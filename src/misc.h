@@ -36,6 +36,8 @@ extern void dbg_mean_of(int v);
 extern void dbg_print();
 
 
+extern void print_array(Square arr[], int size);
+
 struct Log : public std::ofstream {
   Log(const std::string& f = "log.txt") : std::ofstream(f, std::ios::out | std::ios::app) {}
  ~Log() { if (is_open()) close(); }

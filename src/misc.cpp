@@ -192,3 +192,15 @@ void prefetch(char* addr) {
 }
 
 #endif
+
+// debug_print
+// append 2015/02/16
+// 
+void print_array(Square arr[], int size)
+{
+	for (int i = 0; i < size; i++){
+		cout << setw(2) << arr[i] << " ";
+		if (((i + 1) % 8) == 0) cout << endl;
+	}
+}
+

@@ -24,8 +24,10 @@
 #include "types.h"
 
 namespace {
-
-  // The possible pawns squares are 24, the first 4 files and ranks from 2 to 7
+	/*
+	PAWNが移動可能なINDEX
+	*/
+	// The possible pawns squares are 24, the first 4 files and ranks from 2 to 7
   const unsigned IndexMax = 2*24*64*64; // stm * psq * wksq * bksq = 196608
 
   // Each uint32_t stores results of 32 positions, one per bit
@@ -70,7 +72,9 @@ namespace {
 
 } // namespace
 
-
+/*
+用途不明
+*/
 bool Bitbases::probe_kpk(Square wksq, Square wpsq, Square bksq, Color us) {
 
   assert(file_of(wpsq) <= FILE_D);
@@ -79,7 +83,9 @@ bool Bitbases::probe_kpk(Square wksq, Square wpsq, Square bksq, Color us) {
   return KPKBitbase[idx / 32] & (1 << (idx & 0x1F));
 }
 
-
+/*
+用途不明
+*/
 void Bitbases::init_kpk() {
 
   unsigned idx, repeat = 1;

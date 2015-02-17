@@ -30,8 +30,11 @@
 #define SERIALIZE_PAWNS(b, d) while (b) { Square to = pop_lsb(&b); \
                                          (mlist++)->move = make_move(to - (d), to); }
 namespace {
-
-  template<CastlingSide Side, bool Checks, bool Chess960>
+	/*
+	generate_allからのみ呼び出される
+	キャスリング関係の生成関数なのでPASS
+	*/
+	template<CastlingSide Side, bool Checks, bool Chess960>
   ExtMove* generate_castle(const Position& pos, ExtMove* mlist, Color us) {
 
     if (pos.castle_impeded(us, Side) || !pos.can_castle(make_castle_right(us, Side)))
@@ -67,8 +70,12 @@ namespace {
     return mlist;
   }
 
-
-  template<GenType Type, Square Delta>
+	/*
+	generate_pawn_movesから呼び出され
+	指定されたDelta方向子で移動先bitboardをつくり
+	座標を取り出し成れるこまに昇格する手を生成する
+	*/
+	template<GenType Type, Square Delta>
   inline ExtMove* generate_promotions(ExtMove* mlist, Bitboard pawnsOn7,
                                       Bitboard target, const CheckInfo* ci) {
 
@@ -90,7 +97,12 @@ namespace {
 
         // Knight-promotion is the only one that can give a direct check not
         // already included in the queen-promotion.
-        if (Type == QUIET_CHECKS && (StepAttacksBB[W_KNIGHT][to] & ci->ksq))
+				/*
+				生成パターンが駒を取らずに王手をかける　かつ　KNIGHTになったあとKINGに王手をかけることが
+				できるならばその手を着手リストに追加する
+				(void)ci; // Silence a warning under MSVC　はMSVCでワーニングの抑制？
+				*/
+				if (Type == QUIET_CHECKS && (StepAttacksBB[W_KNIGHT][to] & ci->ksq))
             (mlist++)->move = make<PROMOTION>(to - Delta, to, KNIGHT);
         else
             (void)ci; // Silence a warning under MSVC
@@ -99,14 +111,23 @@ namespace {
     return mlist;
   }
 
-
-  template<Color Us, GenType Type>
+	/*
+	PAWNの手生成専用
+	PAWN以外はKNIGHT,ROOK,BISHOP,QUEENの動きは対称（動きがWHITEでもBLACKでも同じ）
+	その点将棋は動きが非対称なものが多い、対称なものは王、飛車、角行のみ
+	*/
+	template<Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* mlist,
                                Bitboard target, const CheckInfo* ci) {
 
     // Compute our parametrized parameters at compile time, named according to
     // the point of view of white side.
-    const Color    Them     = (Us == WHITE ? BLACK    : WHITE);
+		/*
+		方向子を相対的に決めることでWHITE,BLACK共用のルーチンを作っている
+		たとえばUpとはPAWNが前に進む方向子であるがWHITE側にとってDELTA_N(=8)であり
+		BLACK側はDELTA_S(= -8)である
+		*/
+		const Color    Them = (Us == WHITE ? BLACK : WHITE);
     const Bitboard TRank8BB = (Us == WHITE ? Rank8BB  : Rank1BB);
     const Bitboard TRank7BB = (Us == WHITE ? Rank7BB  : Rank2BB);
     const Bitboard TRank3BB = (Us == WHITE ? Rank3BB  : Rank6BB);
@@ -115,28 +136,47 @@ namespace {
     const Square   Left     = (Us == WHITE ? DELTA_NW : DELTA_SE);
 
     Bitboard b1, b2, dc1, dc2, emptySquares;
-
-    Bitboard pawnsOn7    = pos.pieces(Us, PAWN) &  TRank7BB;
-    Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & ~TRank7BB;
-
-    Bitboard enemies = (Type == EVASIONS ? pos.pieces(Them) & target:
+		/*
+		pawnsOn7はあと１手でQUEENになれるPAWNのbitboard
+		*/
+		Bitboard pawnsOn7 = pos.pieces(Us, PAWN) &  TRank7BB;
+		/*
+		まだまだQUEENに成れないPAWN
+		*/
+		Bitboard pawnsNotOn7 = pos.pieces(Us, PAWN) & ~TRank7BB;
+		/*
+		回避の生成パターンなら敵bitboardは敵の駒bitboard & target
+		取る生成パターンならそのまま、その他のパターンは敵の駒全部
+		*/
+		Bitboard enemies = (Type == EVASIONS ? pos.pieces(Them) & target :
                         Type == CAPTURES ? target : pos.pieces(Them));
 
     // Single and double pawn pushes, no promotions
-    if (Type != CAPTURES)
+		/*
+		取るパターンではない場合の手生成
+		*/
+		if (Type != CAPTURES)
     {
-        emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
-
-        b1 = shift_bb<Up>(pawnsNotOn7)   & emptySquares;
-        b2 = shift_bb<Up>(b1 & TRank3BB) & emptySquares;
-
-        if (Type == EVASIONS) // Consider only blocking squares
+			//取らない手なのでtargetは空白となる
+			emptySquares = (Type == QUIETS || Type == QUIET_CHECKS ? target : ~pos.pieces());
+				//b1はQUEENになれないPAWNが駒をとらずに進める場所のbitboard
+				b1 = shift_bb<Up>(pawnsNotOn7)   & emptySquares;
+				/*b2はb1が１手動いたPAWNの内3ランク目にいるPAWNをもう１手動かしたもの
+				つまりb2はPAWNが初手のみ２RANK動けるPAWNのこと
+				b1は１ランクだけ動くb2は２ランク動く手なので、PAWNにとって駒を取らないすべての
+				動きを表している。
+				*/
+				b2 = shift_bb<Up>(b1 & TRank3BB) & emptySquares;
+				//取るパターンではない手の内、王手を回避する（PAWNの動きなので、王手をかけている駒をとる、利きをさえぎる手かな）
+				if (Type == EVASIONS) // Consider only blocking squares
         {
             b1 &= target;
             b2 &= target;
         }
-
-        if (Type == QUIET_CHECKS)
+				//取るパターンではないのうち移動することによって王手をかける
+				//pos.attacks_from<PAWN>(ci->ksq, Them);は敵の王からPAWNの利きとを＆演算するのでb1,b2には
+				//王手の手が入っているはず
+				if (Type == QUIET_CHECKS)
         {
             b1 &= pos.attacks_from<PAWN>(ci->ksq, Them);
             b2 &= pos.attacks_from<PAWN>(ci->ksq, Them);
@@ -145,7 +185,11 @@ namespace {
             // if the pawn is not on the same file as the enemy king, because we
             // don't generate captures. Note that a possible discovery check
             // promotion has been already generated among captures.
-            if (pawnsNotOn7 & ci->dcCandidates)
+						/*ci->dcCandidatesは敵KINGへの利きを邪魔している駒のことなので
+						そんな駒があったら、前方に空白があり、かつ敵KINGのいるFILEにいないPAWNをdc1へ
+						そのdc1が３Rankにいて前方が空白なPAWNをdc2にいれておきb1,b2に追加する
+						*/
+						if (pawnsNotOn7 & ci->dcCandidates)
             {
                 dc1 = shift_bb<Up>(pawnsNotOn7 & ci->dcCandidates) & emptySquares & ~file_bb(ci->ksq);
                 dc2 = shift_bb<Up>(dc1 & TRank3BB) & emptySquares;
@@ -160,7 +204,12 @@ namespace {
     }
 
     // Promotions and underpromotions
-    if (pawnsOn7 && (Type != EVASIONS || (target & TRank8BB)))
+		/*
+		この上の処理は取るパターンではない、ここからは取る、回避するパターンを生成する
+		ランク７にいるPAWNがいて　かつ　（生成パターンが回避パターンでなく　もしくは　移動先が空白）
+		なら
+		*/
+		if (pawnsOn7 && (Type != EVASIONS || (target & TRank8BB)))
     {
         if (Type == CAPTURES)
             emptySquares = ~pos.pieces();
@@ -174,7 +223,11 @@ namespace {
     }
 
     // Standard and en-passant captures
-    if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
+		/*
+		ここは取るパターン　回避するパターン　回避するパターン以外全て
+		ランク７にいるPAWNで移動することによって敵駒をとる手を生成し、着手リストに登録する
+		*/
+		if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS)
     {
         b1 = shift_bb<Right>(pawnsNotOn7) & enemies;
         b2 = shift_bb<Left >(pawnsNotOn7) & enemies;
@@ -204,30 +257,41 @@ namespace {
     return mlist;
   }
 
-
-  template<PieceType Pt, bool Checks> FORCE_INLINE
+	/*
+	PAWN,KING以外の駒の動きはこの関数だけで生成する
+	*/
+	template<PieceType Pt, bool Checks> FORCE_INLINE
   ExtMove* generate_moves(const Position& pos, ExtMove* mlist, Color us,
                           Bitboard target, const CheckInfo* ci) {
 
     assert(Pt != KING && Pt != PAWN);
-
-    const Square* pl = pos.list<Pt>(us);
+		/*
+		指定されたカラー、指定された駒種の現在の座標リスト
+		Checksの意味：QUIET_CHECKSであれはtrue
+		*/
+		const Square* pl = pos.list<Pt>(us);
 
     for (Square from = *pl; from != SQ_NONE; from = *++pl)
     {
         if (Checks)
         {
-            if (    (Pt == BISHOP || Pt == ROOK || Pt == QUEEN)
+						//ChecksはQUIET_CHECKSのときtrueになるがPISHOP,ROOK,QUEENの移動は
+						//移動によって王手が掛られるような手でなければ生成しない
+						//（多分手が増えすぎるのを抑えるのが目的では）
+						if ((Pt == BISHOP || Pt == ROOK || Pt == QUEEN)
                 && !(PseudoAttacks[Pt][from] & target & ci->checkSq[Pt]))
                 continue;
-
-            if (unlikely(ci->dcCandidates) && (ci->dcCandidates & from))
+						/*
+						敵陣のKINGへの利きの邪魔になっている駒が移動する手はすでに生成しているので
+						ここでは生成しない
+						*/
+						if (unlikely(ci->dcCandidates) && (ci->dcCandidates & from))
                 continue;
         }
 
         Bitboard b = pos.attacks_from<Pt>(from) & target;
-
-        if (Checks)
+				//QUIET_CHECKSは移動することで王手をかけれる手に移動する手を追加する
+				if (Checks)
             b &= ci->checkSq[Pt];
 
         SERIALIZE(b);
@@ -236,8 +300,16 @@ namespace {
     return mlist;
   }
 
-
-  template<Color Us, GenType Type> FORCE_INLINE
+	/*
+	駒の動きを生成する
+	引数の内targetは移動先のbitboardを表現している
+	posは今の局面クラス、テンプレート引数のGenType Typeは
+	生成パターンを指定している、パターンはCAPTURES,QUIET,NON_EVASIONSがあるもよう
+	CAPTURESとにかく取る手
+	QUIETとらず移動する手
+	NON_EVASIONS王手を回避する手以外すべて
+	*/
+	template<Color Us, GenType Type> FORCE_INLINE
   ExtMove* generate_all(const Position& pos, ExtMove* mlist, Bitboard target,
                         const CheckInfo* ci = nullptr) {
 
@@ -285,7 +357,10 @@ namespace {
 ///
 /// generate<NON_EVASIONS> generates all pseudo-legal captures and
 /// non-captures. Returns a pointer to the end of the move list.
-
+/*
+手を生成するテンプレート関数
+ここから駒種、生成パターンに応じて分岐する
+*/
 template<GenType Type>
 ExtMove* generate(const Position& pos, ExtMove* mlist) {
 
@@ -293,8 +368,12 @@ ExtMove* generate(const Position& pos, ExtMove* mlist) {
   assert(!pos.checkers());
 
   Color us = pos.side_to_move();
-
-  Bitboard target = Type == CAPTURES     ?  pos.pieces(~us)
+	/*
+	CAPTURES=敵側の駒がターゲット
+	QUIETS=駒を取るのではなく空白に移動する手（QUIETSの本体の意味＝穏やかな）
+	NON_EVASIONS=回避する手ではない＝敵駒＋空白がターゲット
+	*/
+	Bitboard target = Type == CAPTURES ? pos.pieces(~us)
                   : Type == QUIETS       ? ~pos.pieces()
                   : Type == NON_EVASIONS ? ~pos.pieces(us) : 0;
 
@@ -310,6 +389,12 @@ template ExtMove* generate<NON_EVASIONS>(const Position&, ExtMove*);
 
 /// generate<QUIET_CHECKS> generates all pseudo-legal non-captures and knight
 /// underpromotions that give check. Returns a pointer to the end of the move list.
+/*
+まず、敵KINGとの利きの邪魔になっている自陣駒が他の駒を取らずに移動する着手リストを作る
+そのあとgenerate_allを呼ぶ、但しtargetは空白とする（駒を取らないため）
+
+QUIET_CHECKSは駒をとらずに王手をかける手のこと？
+*/
 template<>
 ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* mlist) {
 
@@ -342,6 +427,10 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* mlist) {
 
 /// generate<EVASIONS> generates all pseudo-legal check evasions when the side
 /// to move is in check. Returns a pointer to the end of the move list.
+//EVASIONS＝回避
+/*
+王手を回避する手を生成する
+*/
 template<>
 ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* mlist) {
 
@@ -370,7 +459,12 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* mlist) {
   } while (b);
 
   // Generate evasions for king, capture and non capture moves
-  b = pos.attacks_from<KING>(ksq) & ~pos.pieces(us) & ~sliderAttacks;
+	/*
+	KINGの利き　＆　pos.pieces(us) = KINGの移動可能＆空白または敵駒
+	（KINGの移動可能＆空白または敵駒）＆　敵の飛び駒の利き以外の場所
+	つまりKINGが逃げる場所をmlistに登録している
+	*/
+	b = pos.attacks_from<KING>(ksq) & ~pos.pieces(us) & ~sliderAttacks;
   SERIALIZE(b);
 
   if (checkersCnt > 1)
@@ -385,7 +479,11 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* mlist) {
 
 
 /// generate<LEGAL> generates all the legal moves in the given position
-
+/*
+合法手を生成する
+自KINGに王手がかかってれば回避する手を生成
+そうでなければ回避する手じゃない手を生成する
+*/
 template<>
 ExtMove* generate<LEGAL>(const Position& pos, ExtMove* mlist) {
 
@@ -396,7 +494,8 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* mlist) {
   end = pos.checkers() ? generate<EVASIONS>(pos, mlist)
                        : generate<NON_EVASIONS>(pos, mlist);
   while (cur != end)
-      if (   (pinned || from_sq(cur->move) == ksq || type_of(cur->move) == ENPASSANT)
+		//合法手でなかったら手を消す
+		if ((pinned || from_sq(cur->move) == ksq || type_of(cur->move) == ENPASSANT)
           && !pos.legal(cur->move, pinned))
           cur->move = (--end)->move;
       else

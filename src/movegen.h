@@ -22,13 +22,13 @@
 
 #include "types.h"
 
-enum GenType {
-  CAPTURES,
-  QUIETS,
-  QUIET_CHECKS,
-  EVASIONS,
-  NON_EVASIONS,
-  LEGAL
+enum GenType {			//GenType　手を生成するパターン
+  CAPTURES,					//とにかく取る手
+  QUIETS,						//穏やかな手（とらずに移動するだけ）
+  QUIET_CHECKS,			//？
+  EVASIONS,					//王手を回避する手
+  NON_EVASIONS,			//王手をを回避する手以外の手
+  LEGAL							//合法手を生成　具体的には王手がかかっていなかったらNON_EVASIONSを呼び、王手がかかっていたらEVASIONSを呼ぶ
 };
 
 class Position;
@@ -38,14 +38,22 @@ ExtMove* generate(const Position& pos, ExtMove* mlist);
 
 /// The MoveList struct is a simple wrapper around generate(), sometimes comes
 /// handy to use this class instead of the low level generate() function.
+/*
+着手リストを管理するクラス
+着手リスト自体はprivate変数 mlist[MAX_MOVES=256]
+コンストラクタを呼ばれた時点でcurはmlistの先頭を指しており
+テンプレート変数で指定した生成関数で着手リストがmlistに登録されている
+*/
 template<GenType T>
 struct MoveList {
 
   explicit MoveList(const Position& pos) : last(generate<T>(pos, mlist)) {}
   const ExtMove* begin() const { return mlist; }
   const ExtMove* end() const { return last; }
-  size_t size() const { return last - mlist; }
-  bool contains(Move m) const {
+	//mlistのサイズを返す
+	size_t size() const { return last - mlist; }
+	//渡された手が着手リスト（mlist）にあったらtrueを返す
+	bool contains(Move m) const {
     for (const ExtMove& ms : *this) if (ms.move == m) return true;
     return false;
   }

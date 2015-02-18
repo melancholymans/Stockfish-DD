@@ -24,8 +24,10 @@
 #include "thread.h"
 
 namespace {
-
-  enum Stages {
+	/*
+	着手リストの生成場合分け
+	*/
+	enum Stages {
     MAIN_SEARCH, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
     EVASION,     EVASIONS_S2,
     QSEARCH_0,   CAPTURES_S3, QUIET_CHECKS_S3,
@@ -36,7 +38,10 @@ namespace {
   };
 
   // Our insertion sort, guaranteed to be stable, as is needed
-  void insertion_sort(ExtMove* begin, ExtMove* end)
+	/*
+	挿入ソート
+	*/
+	void insertion_sort(ExtMove* begin, ExtMove* end)
   {
     ExtMove tmp, *p, *q;
 
@@ -51,12 +56,29 @@ namespace {
 
   // Unary predicate used by std::partition to split positive scores from remaining
   // ones so to sort separately the two sets, and with the second sort delayed.
-  inline bool has_positive_score(const ExtMove& ms) { return ms.score > 0; }
+	/*
+	generate_next関数のみから呼ばれる
+	指し手のvalue（多分指し手の仮評価値）が0以上であればtrueを返す
+	*/
+	inline bool has_positive_score(const ExtMove& ms) { return ms.score > 0; }
 
   // Picks and moves to the front the best move in the range [begin, end),
   // it is faster than sorting all the moves in advance when moves are few, as
   // normally are the possible captures.
-  inline ExtMove* pick_best(ExtMove* begin, ExtMove* end)
+	/*
+	std::swapはmax_elementが示す要素と*beginを交換する
+	std::max_elementはbeginからendの間の要素で最大もののイーサレータを返す
+	ここで不明なのがExtMoveはMove,valueの２つの要素を持っているが（構造体）
+	どの要素で比較するのか不明,いろいろ試験してみたがvalueで最大を検出している
+	追記
+	type.hに書かれている
+	inline bool operator<(const ExtMove& f, const ExtMove& s) {
+	return f.value < s.value;
+	}
+	が標準のless関数から呼び出されている(比較演算子のオーバーライド）
+	max_element関数から呼出す
+	*/
+	inline ExtMove* pick_best(ExtMove* begin, ExtMove* end)
   {
       std::swap(*begin, *std::max_element(begin, end));
       return begin;
@@ -69,7 +91,17 @@ namespace {
 /// moves to return (in the quiescence search, for instance, we only want to
 /// search captures, promotions and some checks) and about how important good
 /// move ordering is at the current node.
+/*
+コストラクタ
+seach.cppの呼び出し
+MovePicker mp(pos, ttMove, depth, History, countermoves, followupmoves, ss);
+のようにsearch関数から呼び出される
 
+メインの探索ルーチンに使用する
+王手がかかっているようであればstageをEVASIONにそうでなければMAIN_SEARCHに設定しておく
+まずトランスポジションテーブルの手が有効であればそれを返す。そうでなければcurとendを同じにして
+next_move関数が呼ばれた時に新しく着手リストを生成する
+*/
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
                        Move* cm, Search::Stack* s) : pos(p), history(h), depth(d) {
 
@@ -89,7 +121,19 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
   ttMove = (ttm && pos.pseudo_legal(ttm) ? ttm : MOVE_NONE);
   end += (ttMove != MOVE_NONE);
 }
+/*
+コンストラクタ
+seach.cppの呼び出し
+MovePicker mp(pos, ttMove, depth, History, to_sq((ss-1)->currentMove))
+他のMovepickerがsearch関数からよばれているのに対してqsearch関数から呼ばれている
 
+
+王手がかかっているようであればstageをEVASIONにそうでなければ探索深度に応じて
+DEPTH_QS_NO_CHECKS(-2)とりdepthが大きければQSEARCH_0(8)に設定しておく
+DEPTH_QS_RECAPTURES(-10)よりdepthが大きければQSEARCH_1(11)
+(探索深度がマイナスというのはどういうことだろう）
+いずれでもない場合はRECAPTURE(15)に設定、ttm（トランスポジションテーブル)からの手は無視して最初から生成させる
+*/
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
                        Square sq) : pos(p), history(h), cur(moves), end(moves) {
 
@@ -121,7 +165,14 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
   ttMove = (ttm && pos.pseudo_legal(ttm) ? ttm : MOVE_NONE);
   end += (ttMove != MOVE_NONE);
 }
+/*
+コンストラクタ
+search関数のなかのstep9 ProbCutのところで使われた。
+MovePicker mp(pos, ttMove, History, pos.captured_piece_type())
+のように呼び出されている
 
+stageはPROBCUTの１択
+*/
 MovePicker::MovePicker(const Position& p, Move ttm, const HistoryStats& h, PieceType pt)
                        : pos(p), history(h), cur(moves), end(moves) {
 
@@ -130,10 +181,18 @@ MovePicker::MovePicker(const Position& p, Move ttm, const HistoryStats& h, Piece
   stage = PROBCUT;
 
   // In ProbCut we generate only captures better than parent's captured piece
-  captureThreshold = PieceValue[MG][pt];
+	/*
+	取った駒の評価値をcaptureThresholdに入れておく
+	トランスポジションテーブルからとってきた指し手が合法手であれば（pseudo_legal関数は合法手かどうかを判定する関数だと思う詳細不明）
+	*/
+	captureThreshold = PieceValue[MG][pt];
   ttMove = (ttm && pos.pseudo_legal(ttm) ? ttm : MOVE_NONE);
-
-  if (ttMove && (!pos.capture(ttMove) || pos.see(ttMove) <= captureThreshold))
+	/*
+	ttMoveが駒を取らない手 OR ttMoveを指した後の静止探索評価値がすでに取られている駒評価値より小さい場合
+	ttMoveを無視する。概略するとttMoveが駒を取るような価値の高い手なら採用するがそうでなければ改めて
+	着手リストを生成する
+	*/
+	if (ttMove && (!pos.capture(ttMove) || pos.see(ttMove) <= captureThreshold))
       ttMove = MOVE_NONE;
 
   end += (ttMove != MOVE_NONE);
@@ -142,6 +201,9 @@ MovePicker::MovePicker(const Position& p, Move ttm, const HistoryStats& h, Piece
 
 /// score() assign a numerical move ordering score to each move in a move list.
 /// The moves with highest scores will be picked first.
+/*
+取る手の着手リストの評価値を設定する
+*/
 template<>
 void MovePicker::score<CAPTURES>() {
   // Winning and equal captures in the main search are ordered by MVV/LVA.
@@ -161,18 +223,33 @@ void MovePicker::score<CAPTURES>() {
 
   for (ExtMove* it = moves; it != end; ++it)
   {
-      m = it->move;
+		/*
+		評価値は取る駒の駒評価値から駒種をValueにキャストした数を引いている
+		引いている意味は不明
+		*/
+		m = it->move;
       it->score =  PieceValue[MG][pos.piece_on(to_sq(m))]
                  - type_of(pos.moved_piece(m));
-
-      if (type_of(m) == PROMOTION)
+			/*
+			指し手パターンが成りだったら、なった駒種の駒評価値からPAWNの駒評価値を引いたもの（昇格評価値）を追加している
+			*/
+			if (type_of(m) == PROMOTION)
           it->score += PieceValue[MG][promotion_type(m)] - PieceValue[MG][PAWN];
-
+			/*
+			もし指し手パターンがアンパッサンだったら
+			PAWNの評価値を追加する
+			（アンパッサンの時のPAWNの動きではto座標に敵の駒がいないので）
+			*/
       else if (type_of(m) == ENPASSANT)
           it->score += PieceValue[MG][PAWN];
   }
 }
 
+/*
+穏やかな手の着手リストの評価値をhistory[][]変数で初期化している
+history[][]は駒種別、升目別の駒訪問履歴のようなもので駒がたくさん
+その升目に来ている升は得点が高い
+*/
 template<>
 void MovePicker::score<QUIETS>() {
 
@@ -185,6 +262,15 @@ void MovePicker::score<QUIETS>() {
   }
 }
 
+/*
+MVV-LVAはオーダリングの手法のようだ
+https://chessprogramming.wikispaces.com/MVV-LVA
+意味はわからない
+この関数は王手を回避する手の評価を行っている
+静止探索の結果がマイナスなら評価値を-2000をつける
+そうではなく静止探索の結果がプラスなら最初の取った駒の駒評価値＋2000
+駒を取らない手ならhistory[][]を評価値にする
+*/
 template<>
 void MovePicker::score<EVASIONS>() {
   // Try good captures ordered by MVV/LVA, then non-captures if destination square
@@ -210,21 +296,31 @@ void MovePicker::score<EVASIONS>() {
 
 /// generate_next() generates, scores and sorts the next bunch of moves, when
 /// there are no more moves to try for the current phase.
-
+/*
+next_move関数からよばれる各stageによって生成する指し手のパターンが異なる
+*/
 void MovePicker::generate_next() {
 
   cur = moves;
 
   switch (++stage) {
-
-  case CAPTURES_S1: case CAPTURES_S3: case CAPTURES_S4: case CAPTURES_S5: case CAPTURES_S6:
+		/*
+		取る手をgenerate関数で生成して、score<CAPTURES>()関数で指し手の評価をしている
+		*/
+	case CAPTURES_S1: case CAPTURES_S3: case CAPTURES_S4: case CAPTURES_S5: case CAPTURES_S6:
       end = generate<CAPTURES>(pos, moves);
       score<CAPTURES>();
       return;
-
-  case KILLERS_S1:
+			/*
+			キラー手を生成する
+			*/
+	case KILLERS_S1:
       cur = killers;
       end = cur + 2;
+			/*なぜkillers[0,3,4,5]にMOVE_NONEを入れる*/
+			/*
+			ここから先詳細不明
+			*/
 
       killers[0].move = ss->killers[0];
       killers[1].move = ss->killers[1];
@@ -241,14 +337,33 @@ void MovePicker::generate_next() {
       return;
 
   case QUIETS_1_S1:
-      endQuiets = end = generate<QUIETS>(pos, moves);
-      score<QUIETS>();
-      end = std::partition(cur, end, has_positive_score);
+			/*
+			generate<QUIETS>(pos, moves)は駒を取ったりしない穏やかな指し手を生成する
+			*/
+			endQuiets = end = generate<QUIETS>(pos, moves);
+			/*
+			上のgenerate<QUIETS>で生成した着手リストはプライベート変数moves[]に入っている
+			その着手リストのvalueをhistory[][]変数で初期化しておく
+			history[][]変数は駒種ごと、升目ごとで駒が移動するたびに加算される（訪問履歴評価といったところかな）
+			*/
+			score<QUIETS>();
+			/*
+			std::partition関数はhas_positive_valueがtrueを返す要素とfalseを返す要素を分けて
+			trueとなる要素を最初に並べ、falseとなる要素をその後ろに並べる
+			falseとなる要素の先頭のイーサレータを返す
+			真偽を判定する関数has_positive_valueは指し手の仮評価値が0以上ならtrueを返す
+			insertion_sort関数はインサートソート
+			endは有効な着手数だけ後ろに伸びている
+			*/
+			end = std::partition(cur, end, has_positive_score);
       insertion_sort(cur, end);
       return;
 
   case QUIETS_2_S1:
-      cur = end;
+			/*
+			いままで試してきた手は全て無視してリセット？
+			*/
+			cur = end;
       end = endQuiets;
       if (depth >= 3 * ONE_PLY)
           insertion_sort(cur, end);
@@ -261,7 +376,10 @@ void MovePicker::generate_next() {
       return;
 
   case EVASIONS_S2:
-      end = generate<EVASIONS>(pos, moves);
+			/*
+			王手がかかっている場合、生成される着手リスト
+			*/
+			end = generate<EVASIONS>(pos, moves);
       if (end > moves + 1)
           score<EVASIONS>();
       return;
@@ -286,6 +404,40 @@ void MovePicker::generate_next() {
 /// a new pseudo legal move every time is called, until there are no more moves
 /// left. It picks the move with the biggest score from a list of generated moves
 /// taking care not returning the ttMove if has already been searched previously.
+/*
+search関数から最初に呼ばれる。
+curがmoves配列の先頭を指しており、endがmoves配列の最後を指している
+genmove.cppで手を生成するとendが生成したかずだけのびる
+生成する手がないとcurとendは同じになり、その都度stageが上がっていき
+生成するパターンが変化していく
+
+生成する順番はMAIN_SEARCHからスタートしBAD_CAPTURES_S1->KILLERS_S1 ... BAD_CAPTURES_S1と生成するパターンを変えながら
+手をかえしていく。next_move関数を呼び出しているsearch関数の終了条件はMOVE_NONEなのでnext_move関数が終了するのはnext_move関数の
+case STOPにいくときになる。
+BAD_CAPTURES_S1からの手が全て終了するとgenerate_next_stage関数でstageがあがりEVASIONになるとcase EVASIONに辿りつき
+stageはSTOPになりそのままcase STOPに滑り落ちる(break文がないので）curとendをちかうようにして
+next_move関数に返るcur == endが成立しないのでswitch文に移動しnext_move関数内のcase STOPに移動してMOVE_NONEを返し
+search関数からの呼び出しが終了する
+
+この１行づつが生成パターンの呼び出し順番になる
+MAIN_SEARCHはラベルでCAPTURES_S1からBAD_CAPTURES_S1まで生成し終了する
+
+MAIN_SEARCH, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
+
+EVASIONの生成パターンで呼び出されたらEVASIONS_S2で生成する
+EVASION,     EVASIONS_S2,
+QSEARCH_0の生成パターンで呼び出されたらCAPTURES_S3, QUIET_CHECKS_S3で生成する
+QSEARCH_0,   CAPTURES_S3, QUIET_CHECKS_S3,
+QSEARCH_1の生成パターンで呼び出されたらCAPTURES_S4で生成する
+QSEARCH_1,   CAPTURES_S4,
+PROBCUTの生成パターンはProbCutのとき呼ばれる
+PROBCUT,     CAPTURES_S5,
+RECAPTUREの生成パターンで呼び出されたらCAPTURES_S6で生成する
+RECAPTURE,   CAPTURES_S6,
+MOVE_NONEを返す
+STOP
+};
+*/
 template<>
 Move MovePicker::next_move<false>() {
 
@@ -293,17 +445,29 @@ Move MovePicker::next_move<false>() {
 
   while (true)
   {
-      while (cur == end)
+		/*
+		cur == endが成立するのは指し手が0ということ
+		*/
+		while (cur == end)
           generate_next();
 
       switch (stage) {
-
-      case MAIN_SEARCH: case EVASION: case QSEARCH_0: case QSEARCH_1: case PROBCUT:
+				/*
+				ここにくるということは手を新たに生成していない、ttMoveで十分ということなのでttMoveをかえす
+				*/
+			case MAIN_SEARCH: case EVASION: case QSEARCH_0: case QSEARCH_1: case PROBCUT:
           ++cur;
           return ttMove;
 
       case CAPTURES_S1:
-          move = pick_best(cur++, end)->move;
+				/*
+				CAPTURES_S1で手が生成できたとき（他の指し手は生成していない）ここにくる
+				pick_best関数でもっとも点数のよかった手を返す、
+				静止探索して評価値が0を下回らない（駒の取り合いに勝つか引き分け）
+				静止探索してマイナスになるようなら取る手の着手リストはendBadCapturesの指す
+				位置に移動し、最初から着手リストがなくなるまでつづける（cur == end）が成立するまで
+				*/
+				move = pick_best(cur++, end)->move;
           if (move != ttMove)
           {
               if (pos.see_sign(move) >= 0)

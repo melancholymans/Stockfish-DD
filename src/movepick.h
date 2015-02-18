@@ -37,6 +37,23 @@
 /// Countermoves store the move that refute a previous one. Entries are stored
 /// according only to moving piece and destination square, hence two moves with
 /// different origin but same destination and piece will be considered identical.
+/*
+統計的な数値を記録する？
+テンプレートによりGainsStats,HistoryStats,MovesStatsと３つの
+記録するものを作っている
+
+GainsStatsは
+search関数の冒頭でGainsStats Gainsと宣言している
+id_loop関数内で自メソッドclear関数でtable[][]配列を0クリアしている
+HistoryStatsも
+search関数の冒頭でHistoryStats Historyと宣言している
+id_loop関数内で自メソッドclear関数でtable[][]配列を0クリアしている
+MovesStatsは
+MovesStats Countermoves, Followupmovesと宣言している
+id_loop関数内で自メソッドclear関数でtable[][]配列を0クリアしている
+
+用途不明
+*/
 template<bool Gain, typename T>
 struct Stats {
 
@@ -44,8 +61,11 @@ struct Stats {
 
   const T* operator[](Piece p) const { return table[p]; }
   void clear() { std::memset(table, 0, sizeof(table)); }
-
-  void update(Piece p, Square to, Move m) {
+	/*
+	templateがMovesStatsが使用する
+	upadte関数
+	*/
+	void update(Piece p, Square to, Move m) {
 
     if (m == table[p][to].first)
         return;
@@ -53,13 +73,23 @@ struct Stats {
     table[p][to].second = table[p][to].first;
     table[p][to].first = m;
   }
-
-  void update(Piece p, Square to, Value v) {
-
-    if (Gain)
+	/*
+	templateがGainsStats,HistoryStatsが使用する
+	update関数
+	*/
+	void update(Piece p, Square to, Value v) {
+		/*
+		if文以降が実行するのはGainsStats関数がつかう
+		*/
+		if (Gain)
         table[p][to] = std::max(v, table[p][to] - 1);
-
-    else if (abs(table[p][to] + v) < Max)
+		/*
+		else if文以降条件が成立すればHistoryStats関数が更新する
+		search関数から何らかの条件でupdate_stats関数がよばれ
+		そのupdate_stats関数の中からこのupdate関数が呼ばれ更新される
+		同じ駒コードが同じ升に移動するほど評価値は高くなる
+		*/
+		else if (abs(table[p][to] + v) < Max)
         table[p][to] +=  v;
   }
 
@@ -78,7 +108,12 @@ typedef Stats<false, std::pair<Move, Move> > CountermovesStats;
 /// when MOVE_NONE is returned. In order to improve the efficiency of the alpha
 /// beta algorithm, MovePicker attempts to return the moves which are most likely
 /// to get a cut-off first.
-
+/*
+着手リストを作るのはmovegen.cppの仕事だが,その着手リストをExtMove moves[MAX_MOVES]に保持して
+search関数のリクエストに応じて指し手を渡すのがMovePickerのお仕事
+search関数からは３回呼ばれているが、３回ともコンストラクタがことなる
+メインの探索に使用されるのは３番目のコンストラクタ
+*/
 class MovePicker {
 
   MovePicker& operator=(const MovePicker&); // Silence a warning under MSVC
@@ -104,7 +139,11 @@ private:
   Square recaptureSquare;
   int captureThreshold, stage;
   ExtMove *cur, *end, *endQuiets, *endBadCaptures;
-  ExtMove moves[MAX_MOVES];
+	/*
+	movegen.hにMoveListというstruct型のクラスがありそのなかにもmlistという
+	Move型の配列がある？
+	*/
+	ExtMove moves[MAX_MOVES];
 };
 
 #endif // #ifndef MOVEPICK_H_INCLUDED

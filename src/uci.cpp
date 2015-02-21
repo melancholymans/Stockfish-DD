@@ -130,8 +130,11 @@ namespace {
   // The function sets up the position described in the given fen string ("fen")
   // or the starting position ("startpos") and then makes the moves given in the
   // following move list ("moves").
-
-  void position(Position& pos, istringstream& is) {
+	/*
+	position startposまたは fen 局面を構成するfen文字列を入力することで
+	局面を再設定できる
+	*/
+	void position(Position& pos, istringstream& is) {
 
     Move m;
     string token, fen;
@@ -163,15 +166,20 @@ namespace {
 
   // setoption() is called when engine receives the "setoption" UCI command. The
   // function updates the UCI option ("name") to the given value ("value").
-
-  void setoption(istringstream& is) {
+	/*
+	オプションを設定する
+	*/
+	void setoption(istringstream& is) {
 
     string token, name, value;
 
     is >> token; // Consume "name" token
 
     // Read option name (can contain spaces)
-    while (is >> token && token != "value")
+		/*
+		nameとvalueの間にある文字列をspaceを挟みながら連結してname変数に入れておく
+		*/
+		while (is >> token && token != "value")
         name += string(" ", !name.empty()) + token;
 
     // Read option value (can contain spaces)
@@ -188,8 +196,11 @@ namespace {
   // go() is called when engine receives the "go" UCI command. The function sets
   // the thinking time and other parameters from the input string, and starts
   // the search.
-
-  void go(const Position& pos, istringstream& is) {
+	/*
+	User　Interfaceからこのコマンドがきたらオプションを設定の上
+	Threads.start_thinking関数を呼んで探索開始
+	*/
+	void go(const Position& pos, istringstream& is) {
 
     Search::LimitsType limits;
     vector<Move> searchMoves;
@@ -197,7 +208,10 @@ namespace {
 
     while (is >> token)
     {
-        if (token == "searchmoves")
+			/*
+				go のあとにsearchmoves を続けて特定の指し手をa2a3,c2c4などと指定するとその手のみ探索する
+				*/
+				if (token == "searchmoves")
             while (is >> token)
                 searchMoves.push_back(move_from_uci(pos, token));
 

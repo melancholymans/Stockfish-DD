@@ -25,6 +25,17 @@
 #include "thread.h"
 #include "ucioption.h"
 
+/*
+stackfishはメインスレッドとMainThreadスレッド、TimerThreadがある
+探索中に発生する探索分岐（split）はどう制御しているのかはまだわからない
+クラスの継承関係
+ThreadBase->Thread		->ThreadPool
+											->MainThread
+											->TimerThread
+このstockfishDDバージョンはスレッドの制御に標準ライブラリーのThreadクラスを使っている
+（C++11から搭載されるようになった）
+*/
+
 using namespace Search;
 
 ThreadPool Threads; // Global object
@@ -50,7 +61,10 @@ namespace {
 }
 
 // ThreadBase::notify_one() wakes up the thread when there is some search to do
-
+/*
+notify_oneはThreadBaseクラスが持っているEvent変数を
+シグナルにする
+*/
 void ThreadBase::notify_one() {
 
   std::unique_lock<std::mutex>(this->mutex);
@@ -103,7 +117,20 @@ void TimerThread::idle_loop() {
 
 // MainThread::idle_loop() is where the main thread is parked waiting to be started
 // when there is a new search. Main thread will launch all the slave threads.
+/*
+ここの説明はちょっと間違っている、あとで修正
 
+最初main関数からThreads::init()を呼ぶ
+ThreadsはThreadPoolクラスなのでinit関数からnew_thread<MainThread>を呼ぶ
+new_thread関数からthreadcreate関数（platform.hに定義してある関数でwindowsでは実質CreateThread関数を呼んでいる
+start_routine関数がに行き、idle_loop関数つまりここにくる
+最初に来た時はsearchingフラグがfalseなのでsleep状態に遷移
+
+UCIのgoコマンドからThreads.start_thinking(pos, limits, SetupStates)が呼ばれると
+notify_one関数を呼びsleep状態から抜け
+
+MainThread::idle_loop関数->think関数->id_loop関数->search関数と呼ばれるようになっている
+*/
 void MainThread::idle_loop() {
 
   while (true)
@@ -179,7 +206,15 @@ void ThreadPool::init() {
   sleepWhileIdle = true;
   timer = new_thread<TimerThread>();
   push_back(new_thread<MainThread>());
-  read_uci_options();
+	/*
+	ここの説明は間違っているかも、あとで修正
+
+	Option["Threads"]に複数設定してあればnew_thread<Thread>で設定数だけスレッドを生成する
+	生成されたスレッドはsearch.cppのThread::idle_loop関数に行く
+	一旦sleepCondition.wait(mutex)で待機させられる
+	探索自体はMainThread::idle_loop関数->think関数->id_loop関数->search関数と呼ばれて行くが
+	*/
+	read_uci_options();
 }
 
 
@@ -246,7 +281,10 @@ Thread* ThreadPool::available_slave(const Thread* master) const {
 // told that they have been assigned work. This will cause them to instantly
 // leave their idle loops and call search(). When all threads have returned from
 // search() then split() returns.
-
+/*
+search関数のstep19から呼び出される（呼び出し条件いろいろ）
+Fakeはfalseで呼び出される
+*/
 template <bool Fake>
 void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Value* bestValue,
                    Move* bestMove, Depth depth, Move threatMove, int moveCount,
@@ -260,7 +298,11 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
   assert(splitPointsSize < MAX_SPLITPOINTS_PER_THREAD);
 
   // Pick the next available split point from the split point stack
-  SplitPoint& sp = splitPoints[splitPointsSize];
+	/*
+	MAX_SPLITPOINTS_PER_THREAD=8だけの配列
+	おそらくスレッド単位で必要な情報を入れるものと思われる
+	*/
+	SplitPoint& sp = splitPoints[splitPointsSize];
 
   sp.masterThread = this;
   sp.parentSplitPoint = activeSplitPoint;
@@ -285,8 +327,12 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
   // allocation of the same slave by another master.
   Threads.mutex.lock();
   sp.mutex.lock();
-
-  ++splitPointsSize;
+	/*
+	ここのsplitPointsSizeはThreads[0].splitPointsSizeです（つまりMainThread用の変数なので
+	共有変数となるのでmutexのロックがか掛っている
+	splitPointsSize変数は探索分岐をしているスレッドの数
+	*/
+	++splitPointsSize;
   activeSplitPoint = &sp;
   activePosition = nullptr;
 
@@ -310,8 +356,10 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
   {
       sp.mutex.unlock();
       Threads.mutex.unlock();
-
-      Thread::idle_loop(); // Force a call to base class idle_loop()
+			/*
+			ここから探索分岐
+			*/
+			Thread::idle_loop(); // Force a call to base class idle_loop()
 
       // In helpful master concept a master can help only a sub-tree of its split
       // point, and because here is all finished is not possible master is booked.
@@ -321,7 +369,10 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
       // We have returned from the idle loop, which means that all threads are
       // finished. Note that setting 'searching' and decreasing splitPointsSize is
       // done under lock protection to avoid a race with Thread::available_to().
-      Threads.mutex.lock();
+			/*
+			探索分岐が終了すればここに戻ってくる
+			*/
+			Threads.mutex.lock();
       sp.mutex.lock();
   }
 
@@ -353,7 +404,9 @@ void ThreadPool::wait_for_think_finished() {
 
 // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
 // so to start a new search, then returns immediately.
-
+/*
+MainThread::idle_loop関数->think関数->id_loop関数->search関数と呼ばれるようになっている
+*/
 void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,
                                 const std::vector<Move>& searchMoves, StateStackPtr& states) {
   wait_for_think_finished();
@@ -371,8 +424,11 @@ void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,
       SetupStates = std::move(states); // Ownership transfer here
       assert(!states.get());
   }
-
-  for (const ExtMove& ms : MoveList<LEGAL>(pos))
+	/*
+	RootMoveはクラスでそれをRootMovesというvectorに格納している
+	渡されたMove形式の指し手はこれまたRootMoveクラス内にあるstd::vector<Move> pv変数に入れている
+	*/
+	for (const ExtMove& ms : MoveList<LEGAL>(pos))
       if (   searchMoves.empty()
           || std::count(searchMoves.begin(), searchMoves.end(), ms.move))
           RootMoves.push_back(RootMove(ms.move));

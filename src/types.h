@@ -220,9 +220,7 @@ enum ScaleFactor {
   SCALE_FACTOR_NONE   = 255
 };
 /*
-用途不明
-評価値に関するなにか？
-評価値の上限、下限
+置換表の評価値の種別
 */
 enum Bound {
   BOUND_NONE,

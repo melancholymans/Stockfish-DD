@@ -433,11 +433,13 @@ void test(void)
 	/*
 	オプション機能の確認
 	*/
+	/*
 	int cf = Options["Contempt Factor"] * PawnValueEg / 100; // From centipawns
 
 	stringstream ss;
 
 	ss << Options["Threads"];
+	*/
 	/*
 	型変換演算子
 	*/
@@ -453,6 +455,7 @@ void test(void)
 	/*
 	basic_string
 	*/
+	/*
 	int a = stoi("314");
 	cout << a << endl;
 	size_t idx;
@@ -462,6 +465,7 @@ void test(void)
 
 	string s1 = to_string(27154);
 	cout << s1 << endl;
+	*/
 	/*
 	string s2 = "123,456,789";
 
@@ -498,36 +502,20 @@ void test(void)
 	Move m = move_from_uci(pos, string("a2a3"));
 	cout << "move_to_san: " << move_to_san(pos, m) << endl;
 	*/
+	/*
+	cout << "msb :" << endl;
+	cout << "msb(0x00000)" << msb(0x00000) << endl;
+	cout << "msb(0x00001)" << msb(0x00001) << endl;
+	cout << "msb(0x00010)" << msb(0x00010) << endl;
+	cout << "msb(0x00100)" << msb(0x00100) << endl;
+	cout << "msb(0x01000)" << msb(0x01000) << endl;
+	cout << "msb(0x10000)" << msb(0x10000) << endl;
+	*/
+	cout << ~(64 - 1) << endl;
 	return;
 }
 
-bool func(const ExtMove& left, const ExtMove& right)
-{
-	return left.value > right.value;	//小さい順	max_elementなのであまり意味がないかも
-	//return left.value < right.value;	//大きい順
-}
-
 #include <cstring>
-
-void print_board(Position& pos)
-{
-	using std::string;
-
-	const string PieceToChar(" PNBRQK  pnbrqk");
-
-	for (Rank r = RANK_8; r >= RANK_1; --r){
-		for (File f = FILE_A; f <= FILE_H; ++f){
-			const char s = PieceToChar[pos.piece_on(make_square(f, r))];
-			if (s == ' '){
-				printf("%c", '*');
-			}
-			else{
-				printf("%c", s);
-			}
-		}
-		printf("\n");
-	}
-}
 
 template<LLType LT> void print(void)
 {

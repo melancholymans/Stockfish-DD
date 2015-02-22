@@ -50,7 +50,20 @@ bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const 
 
 
 /// init() initializes the UCI options to their hard coded default values
+/*
+main関数からただ一度呼ばれる
 
+OptionsMapはkeyをstring型、valueをOptionクラスを保持するmapコンテナ
+string型のkeyとは
+"Write Debug Log"
+"Write Search Log"
+"Search Log Filename"
+"Book File"
+で、valueはOption(false, on_logger)です
+<< 演算子がオーバライドされているのでこのファイルの後ろにある
+void Option::operator<<(const Option& o)
+関数を呼ぶ
+*/
 void init(OptionsMap& o) {
 
   o["Write Debug Log"]             = Option(false, on_logger);
@@ -90,7 +103,10 @@ void init(OptionsMap& o) {
 
 /// operator<<() is used to print all the options default values in chronological
 /// insertion order (the idx field) and in the format defined by the UCI protocol.
-
+/*
+OptionMapのidx順にオプションの内容を文字列化して(ostream)返す
+uci.cppのloop関数内で"uci"コマンドの時に呼ばれる
+*/
 std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
   for (size_t idx = 0; idx < om.size(); ++idx)
@@ -125,12 +141,16 @@ Option::Option(Fn* f) : type("button"), min(0), max(0), idx(Options.size()), on_
 Option::Option(int v, int minv, int maxv, Fn* f) : type("spin"), min(minv), max(maxv), idx(Options.size()), on_change(f)
 { defaultValue = currentValue = std::to_string(v); }
 
-
+/*
+int型を要求されたときの型変換演算子
+*/
 Option::operator int() const {
   assert(type == "check" || type == "spin");
   return (type == "spin" ? stoi(currentValue) : currentValue == "true");
 }
-
+/*
+stringを要求されたときこの型変換演算子
+*/
 Option::operator std::string() const {
   assert(type == "string");
   return currentValue;
@@ -140,7 +160,9 @@ Option::operator std::string() const {
 /// operator=() updates currentValue and triggers on_change() action. It's up to
 /// the GUI to check for option's limits, but we could receive the new value from
 /// the user by console window, so let's check the bounds anyway.
-
+/*
+Option[name] = valueのとき起動される演算子オーバライド
+*/
 Option& Option::operator=(const string& v) {
 
   assert(!type.empty());

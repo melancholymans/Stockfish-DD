@@ -28,20 +28,38 @@ namespace UCI {
 class Option;
 
 /// Custom comparator because UCI options should be case insensitive
+/*
+用途不明、OptionMapに使われている
+*/
 struct CaseInsensitiveLess {
   bool operator() (const std::string&, const std::string&) const;
 };
 
 /// Our options container is actually a std::map
+/*
+オプションを保持しているマップコンテナ
+*/
 typedef std::map<std::string, Option, CaseInsensitiveLess> OptionsMap;
 
 /// Option class implements an option as defined by UCI protocol
 class Option {
-
-  typedef void (Fn)(const Option&);
+	/*
+	この宣言の意味がよくわからん
+	*/
+	typedef void (Fn)(const Option&);
 
 public:
-  Option(Fn* = nullptr);
+	/*
+	オプションの取り方が４種類ある
+	関数（省略可）buttn型　ー＞実装はないようである
+	bool型＋関数（省略可）　check型
+	char型＋関数（省略可）　string型
+	int型,int型,int型,関数（省略可）　spin型
+
+	button,check,string型,spin型はこのクラスのプライベート変数に
+	文字列として保存されている
+	*/
+	Option(Fn* = nullptr);
   Option(bool v, Fn* = nullptr);
   Option(const char* v, Fn* = nullptr);
   Option(int v, int min, int max, Fn* = nullptr);
@@ -58,7 +76,9 @@ private:
   size_t idx;
   Fn* on_change;
 };
-
+/*
+この関数はOptionではなくUser interfaceでの関数
+*/
 void init(OptionsMap&);
 void loop(const std::string&);
 

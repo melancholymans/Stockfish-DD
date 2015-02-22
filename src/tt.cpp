@@ -164,7 +164,10 @@ const TTEntry* TranspositionTable::probe(const Key key) const {
 /*
 TranspositionTableへの登録
 局面をハッシュ化したkeyを受け取って上位32bitをクラスタの中のエントリーの識別子に使用
-first_entry関数を呼んで下位32bitでTranspositionTableの
+first_entry関数を呼んで下位32bitでTranspositionTableのインデックスを
+作ってfirst_entry関数でクラスタの最初のエントリーアドレスをtteに入れる
+順番にクラスタを検査して（ちゃんとエントリーは空いているか、もしくはすでに情報は入っているが
+上位３２bitも同じ）上書きOKならそのエントリーを更新対象にする
 */
 void TranspositionTable::store(const Key key, Value v, Bound b, Depth d, Move m, Value statV) {
 
@@ -186,6 +189,9 @@ void TranspositionTable::store(const Key key, Value v, Bound b, Depth d, Move m,
       }
 
       // Implement replace strategy
+			/*
+			更新＆追加対象のエントリーの取捨選択
+			*/
       c1 = (replace->generation() == generation ?  2 : 0);
       c2 = (tte->generation() == generation || tte->bound() == BOUND_EXACT ? -2 : 0);
       c3 = (tte->depth() < replace->depth() ?  1 : 0);
@@ -193,6 +199,8 @@ void TranspositionTable::store(const Key key, Value v, Bound b, Depth d, Move m,
       if (c1 + c2 + c3 > 0)
           replace = tte;
   }
-
+	/*
+	エントリー更新
+	*/
   replace->save(key32, v, b, d, m, generation, statV);
 }

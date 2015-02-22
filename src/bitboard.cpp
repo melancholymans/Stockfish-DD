@@ -106,7 +106,18 @@ Square pop_lsb(Bitboard* b) {
   *b = bb & (bb - 1);
   return BSFTable[bsf_index(bb)];
 }
-
+/*
+msbは渡されたbit列(bitboard)の先頭のbit位置を返す、但し、最下位bitの位置は0とする
+bitが立っていない時も0を返す
+																								16進数			2進数										msbの返す値
+cout << "msb :" << endl;
+cout << "msb(0x00000)" << msb(0x00000) << endl;->0x00000->0 0000 0000 0000 0000		0
+cout << "msb(0x00001)" << msb(0x00001) << endl;->0x00001->0 0000 0000 0000 0001		0
+cout << "msb(0x00010)" << msb(0x00010) << endl;->0x00010->0 0000 0000 0001 0000		4
+cout << "msb(0x00100)" << msb(0x00100) << endl;->0x00100->0 0000 0001 0000 0000		8
+cout << "msb(0x01000)" << msb(0x01000) << endl;->0x01000->0 0000 0000 0000 0000		12
+cout << "msb(0x10000)" << msb(0x10000) << endl;->0x10000->1 0000 0000 0000 0000		16
+*/
 Square msb(Bitboard b) {
 
   unsigned b32;

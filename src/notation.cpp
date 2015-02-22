@@ -38,8 +38,12 @@ static const char* PieceToChar[COLOR_NB] = { " PNBRQK", " pnbrqk" };
 /// mate <y>   Mate in y moves, not plies. If the engine is getting mated
 ///            use negative values for y.
 /*
-search.cppからの呼び出し、評価値とalpha,betaを表示しているが
-用途不明
+主にuci_pv関数から呼び出し。
+uci_pv関数はUCIからの呼び出しに応じて現局面の情報を返すのでそのうちの評価についてこの関数を使っている
+このscore_to_uci関数は評価値(Value v,alpha,beta)を使って現局面の評価を行っている
+CP -> 現在の評価値がPAWNの駒評価値の何倍かをしめす
+mate -> 評価値が正数か負数で評価値表示を切り分けている（UCI側のプロトコルに合わせている？）
+lowerbound | upperbound alpha,beta cutかどうか
 */
 string score_to_uci(Value v, Value alpha, Value beta) {
 

@@ -42,8 +42,11 @@ static const char* PieceToChar[COLOR_NB] = { " PNBRQK", " pnbrqk" };
 uci_pv関数はUCIからの呼び出しに応じて現局面の情報を返すのでそのうちの評価についてこの関数を使っている
 このscore_to_uci関数は評価値(Value v,alpha,beta)を使って現局面の評価を行っている
 CP -> 現在の評価値がPAWNの駒評価値の何倍かをしめす
-mate -> 評価値が正数か負数で評価値表示を切り分けている（UCI側のプロトコルに合わせている？）
+mate -> 評価値が正数か負数で評価値表示を切り分けている（UCI側のプロトコルに合わせている）
 lowerbound | upperbound alpha,beta cutかどうか
+UCIプロトコルのEngine to GUIの
+info　scoreコマンドの応答
+http://wbec-ridderkerk.nl/html/UCIProtocol.html
 */
 string score_to_uci(Value v, Value alpha, Value beta) {
 
@@ -235,7 +238,11 @@ static string time_to_string(int64_t msecs) {
 
   return s.str();
 }
-
+/*
+pretty_pv関数からのみ呼ばれる
+static的な関数なのでこのnotation.cpp内部だけの関数
+渡された評価値を文字列に変換
+*/
 static string score_to_string(Value v) {
 
   stringstream s;

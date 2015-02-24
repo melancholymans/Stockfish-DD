@@ -126,7 +126,7 @@ Move move_from_uci(const Position& pos, string& str) {
 /// move_to_san() takes a position and a legal Move as input and returns its
 /// short algebraic notation representation.
 /*
-指し手の棋譜表記
+Move形式の指し手情報を受け取って一般的な棋譜表記に変換する
 相手の駒を取ったときは「Ｑｘｃ２」とします。（QueenがC2に移動しそのさい駒をとったという記法でｘがとったということを表している）
 チェックだったときは「Ｑｃ２＋」とします。
 チェックメイトだったときは「Ｑｃ２＃」とします。
@@ -261,6 +261,8 @@ static string score_to_string(Value v) {
 /*
 id_loop関数からのみ呼び出されておりOptions["Write Search Log"]が有効時のみ
 SearchLog.txtファイルにログを記録している
+id_loopのなかで反復深化が１回終わるたびに呼び出されてその時の局面,depth,value,かかった探索時間
+pv(最善応手手順の最初の手＝最善手）を文字列にして返す
 */
 string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]) {
 

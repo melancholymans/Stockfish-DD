@@ -25,7 +25,9 @@
 #include "types.h"
 
 class Position;
-
+/*
+notation.cpp‚Ìnotation‚Í•\‹L‚ÆŒ¾‚¤ˆÓ–¡
+*/
 std::string score_to_uci(Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
 Move move_from_uci(const Position& pos, std::string& str);
 const std::string move_to_uci(Move m, bool chess960);

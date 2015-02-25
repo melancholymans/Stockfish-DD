@@ -72,7 +72,18 @@ static const vector<string> Defaults = {
 /// depth 12), an optional file name where to look for positions in fen
 /// format (defaults are the positions defined above) and the type of the
 /// limit value: depth (default), time in secs or number of nodes.
+/*
+ベンチマーク機能
+UCI::loop関数から呼ばれる（ユーザーがコマンド(bench)入力で呼ばれる
+機能、探索条件を固定して機能確認される
+　置換表サイズ:32クラスタ
+　スレッド数：1 （シングルスレッド　マルチスレッドではしないようだ）　
+　探索深さ制限：13
+　局面：このソースファイルの冒頭にあるfen文字配列、別途ファイルを用意して局面文字列を読み込ませることも可能
 
+上記、探索条件でベンチマークして
+探索時間、展開したノード数、単位時間当たりのノード数(nps)を表示する
+*/
 void benchmark(const Position& current, istream& is) {
 
   string token;

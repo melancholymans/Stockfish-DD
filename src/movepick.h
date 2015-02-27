@@ -39,30 +39,44 @@
 /// different origin but same destination and piece will be considered identical.
 /*
 統計的な数値を記録する？
-テンプレートによりGainsStats,HistoryStats,MovesStatsと３つの
+テンプレートによりGainsStats,HistoryStats,Countermovesと３つの
 記録するものを作っている
 
 GainsStatsは
 search関数の冒頭でGainsStats Gainsと宣言している
 id_loop関数内で自メソッドclear関数でtable[][]配列を0クリアしている
+内部のtable[][]配列には
+table[Piece][pair<Move,Move>]を保存
+用途不明
+
 HistoryStatsも
 search関数の冒頭でHistoryStats Historyと宣言している
 id_loop関数内で自メソッドclear関数でtable[][]配列を0クリアしている
-MovesStatsは
-MovesStats Countermoves, Followupmovesと宣言している
-id_loop関数内で自メソッドclear関数でtable[][]配列を0クリアしている
-
+内部のtable[][]配列には
+table[Piece][Value]を保存
 用途不明
+
+Countermovesは
+CountermovesStats Countermovesと宣言している
+id_loop関数内で自メソッドclear関数でtable[][]配列を0クリアしている
+内部のtable[][]配列には
+table[Piece][Value]を保存
+用途不明
+
 */
 template<bool Gain, typename T>
 struct Stats {
 
   static const Value Max = Value(2000);
-
+	/*
+	[]演算子のオーバライド
+	Pieceを指定してtable配列を返す
+	*/
   const T* operator[](Piece p) const { return table[p]; }
+	/*このクラスで保持しているtableを0クリアにする*/
   void clear() { std::memset(table, 0, sizeof(table)); }
 	/*
-	templateがMovesStatsが使用する
+	templateがCountermovesが使用する
 	upadte関数
 	*/
 	void update(Piece p, Square to, Move m) {

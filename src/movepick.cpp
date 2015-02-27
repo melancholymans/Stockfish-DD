@@ -98,7 +98,7 @@ MovePicker mp(pos, ttMove, depth, History, countermoves, followupmoves, ss);
 のようにsearch関数から呼び出される
 
 メインの探索ルーチンに使用する
-王手がかかっているようであればstageをEVASIONにそうでなければMAIN_SEARCHに設定しておく
+王手がかかっているようであればstageをEVASION（回避手生成）にそうでなければMAIN_SEARCH（通常手）に設定しておく
 まずトランスポジションテーブルの手が有効であればそれを返す。そうでなければcurとendを同じにして
 next_move関数が呼ばれた時に新しく着手リストを生成する
 */
@@ -125,14 +125,17 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
 コンストラクタ
 seach.cppの呼び出し
 MovePicker mp(pos, ttMove, depth, History, to_sq((ss-1)->currentMove))
-他のMovepickerがsearch関数からよばれているのに対してqsearch関数から呼ばれている
+他のMovepickerがsearch関数からよばれているのに対してqsearch関数（末端専用探索関数）から呼ばれている
 
 
-王手がかかっているようであればstageをEVASIONにそうでなければ探索深度に応じて
+王手がかかっているようであればstageをEVASION（回避手）にそうでなければ探索深度に応じて
 DEPTH_QS_NO_CHECKS(-2)とりdepthが大きければQSEARCH_0(8)に設定しておく
 DEPTH_QS_RECAPTURES(-10)よりdepthが大きければQSEARCH_1(11)
 (探索深度がマイナスというのはどういうことだろう）
 いずれでもない場合はRECAPTURE(15)に設定、ttm（トランスポジションテーブル)からの手は無視して最初から生成させる
+
+最後の引数sqは１つ前の敵駒が移動した先の升の座標
+
 */
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
                        Square sq) : pos(p), history(h), cur(moves), end(moves) {
@@ -152,11 +155,18 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
       // Skip TT move if is not a capture or a promotion, this avoids qsearch
       // tree explosion due to a possible perpetual check or similar rare cases
       // when TT table is full.
+			/*
+			置換表から得た手が取る手もしくは成る手でないなら無視する
+			*/
       if (ttm && !pos.capture_or_promotion(ttm))
           ttm = MOVE_NONE;
   }
   else
   {
+			/*
+			RE-CAPTURE（取り返しー直前に動いた敵駒を取り返す）
+			recaptureSquareには敵駒の移動先の座標が入る
+			*/
       stage = RECAPTURE;
       recaptureSquare = sq;
       ttm = MOVE_NONE;

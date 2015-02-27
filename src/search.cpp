@@ -1099,7 +1099,7 @@ moves_loop: // When in check and at SpNode search starts from here
     Move countermoves[] = { Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].first,
                             Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].second };
 		/*
-		着手リスト生成
+		着手リスト生成、一般探索で使用される指し手オーダリング。
 		*/
 		MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
     CheckInfo ci(pos);
@@ -1710,6 +1710,11 @@ moves_loop: // When in check and at SpNode search starts from here
     // to search the moves. Because the depth is <= 0 here, only captures,
     // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
     // be generated.
+		/*
+		ここで着手リストをMovePickrerにつくらせる
+		このコンストラクタはqsearch専用です。
+		最後の引数のsqには１手前の敵の駒が移動した升の座標
+		*/
     MovePicker mp(pos, ttMove, depth, History, to_sq((ss-1)->currentMove));
     CheckInfo ci(pos);
 

@@ -621,7 +621,8 @@ bool Position::legal(Move m, Bitboard pinned) const {
 /// pseudo legal. It is used to validate moves from TT that can be corrupted
 /// due to SMP concurrent access or hash position key aliasing.
 /*
-用途不明
+合法手であるかテストする
+置換表の手の検査にも使用する
 */
 bool Position::pseudo_legal(const Move m) const {
 

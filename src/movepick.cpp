@@ -28,12 +28,46 @@ namespace {
 	着手リストの生成場合分け
 	*/
 	enum Stages {
-    MAIN_SEARCH, CAPTURES_S1, KILLERS_S1, QUIETS_1_S1, QUIETS_2_S1, BAD_CAPTURES_S1,
-    EVASION,     EVASIONS_S2,
-    QSEARCH_0,   CAPTURES_S3, QUIET_CHECKS_S3,
-    QSEARCH_1,   CAPTURES_S4,
-    PROBCUT,     CAPTURES_S5,
-    RECAPTURE,   CAPTURES_S6,
+		/*
+		generate_next関数で手を返すフェーズを表す定数
+		STOPまでいくと手がなくなったことを示す
+		movepickは直接手は生成しない、手を生成するのはmovegen.cpp,movegen.h
+		movepickはフェーズに従って手を返す制御をおこなう
+		*/
+		/*
+		通常ならここからスタート
+		通常探索の時に使用されるコンストラクタの設定がMAIN_SEARCH
+		*/
+    MAIN_SEARCH, 
+		/*
+		取る手の生成
+		*/
+		CAPTURES_S1, 
+		/*
+		キラー手の生成
+		*/
+		KILLERS_S1, 
+		/*
+		取る手でない穏やかな手を生成する
+		QUIETS_1_S1はhistoryで評価した評価値が0以上が該当
+		QUIETS_1_S2は評価値がマイナス
+		*/
+		QUIETS_1_S1, 
+		QUIETS_2_S1, 
+		/*
+		*/
+		BAD_CAPTURES_S1,
+    EVASION,     
+		EVASIONS_S2,
+    QSEARCH_0,   
+		CAPTURES_S3, 
+		QUIET_CHECKS_S3,
+    QSEARCH_1,   
+		CAPTURES_S4,
+    PROBCUT,     
+		CAPTURES_S5,
+    RECAPTURE,   
+		CAPTURES_S6,
     STOP
   };
 
@@ -109,19 +143,17 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
 
   cur = end = moves;
   endBadCaptures = moves + MAX_MOVES - 1;
-	/*
-	countermovesは
-
-	*/
   countermoves = cm;
   ss = s;
 
   if (p.checkers())
       stage = EVASION;
-
   else
       stage = MAIN_SEARCH;
-
+	/*
+	置換表の手が合法手かチエックしているOKならttMoveにttmを入れる、NGならMOVE_MONE
+	ttMoveが有効ならendポインタを１つ歩進
+	*/
   ttMove = (ttm && pos.pseudo_legal(ttm) ? ttm : MOVE_NONE);
   end += (ttMove != MOVE_NONE);
 }
@@ -386,6 +418,8 @@ void MovePicker::generate_next() {
 			真偽を判定する関数has_positive_valueは指し手の仮評価値が0以上ならtrueを返す
 			insertion_sort関数はインサートソート
 			endは有効な着手数だけ後ろに伸びている
+
+			つまりhistory配列で評価付けされた手をソート
 			*/
 			end = std::partition(cur, end, has_positive_score);
       insertion_sort(cur, end);
@@ -393,7 +427,9 @@ void MovePicker::generate_next() {
 
   case QUIETS_2_S1:
 			/*
-			いままで試してきた手は全て無視してリセット？
+			ここでQUIETS_1_S1で0未満の評価値を付けられていた着手リストの先頭のポインタendをcurに置き換えて
+			generate<QUIETS>で生成していた着手リストの最後を示していたendQuietsをendにして着手リスト返す
+			残り探索深さが3手より深いならソートして返す（つまり末端ではソートしない）
 			*/
 			cur = end;
       end = endQuiets;
@@ -475,6 +511,14 @@ Move MovePicker::next_move<false>() {
 
   Move move;
 
+	/*
+	search関数->next_move関数ここで最初のstageを設定してgenerate_next関数を呼び
+	stageに応じた着手リストを作る。search関数に手を返していくとcur == endが成立する
+	そしてそのstageでの着手リストはゼロになったので次のstageに進み
+	新しい着手リストを作る
+	つまり一変に着手リストを作っても無駄なので効果の高そうな手から生成してオーダリングしながら
+	手を返す
+	*/
   while (true)
   {
 		/*
@@ -509,7 +553,14 @@ Move MovePicker::next_move<false>() {
               (endBadCaptures--)->move = move;
           }
           break;
-
+					/*
+					キラー手を返す
+				　但し条件がある
+				 moveがMOVE_NONEでないこと
+				 合法手であること
+				 moveがttMoveと同じでないこと
+				 駒を取る手ではないこと
+					*/
       case KILLERS_S1:
           move = (cur++)->move;
           if (    move != MOVE_NONE
@@ -518,7 +569,11 @@ Move MovePicker::next_move<false>() {
               && !pos.capture(move))
               return move;
           break;
-
+					/*
+					穏やかの手を返す（取る手以外）
+					QUIETS_1_S1、QUIETS_2_S1の違いは評価値が高い方がQUIETS_1_S1
+					******************************************************************************************************************************************************************
+					*/
       case QUIETS_1_S1: case QUIETS_2_S1:
           move = (cur++)->move;
           if (   move != ttMove

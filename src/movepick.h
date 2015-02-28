@@ -54,7 +54,7 @@ id_loop関数内で自メソッドclear関数でtable[][]配列を0クリアしている
 内部のtable[][]配列には
 table[Piece][Value]を保存
 最善手の駒種と移動先座標によって評価値を累計していく
-良くとおる升ほど点数が高い
+良くとおる升ほど点数が高い、移動履歴累計評価のようなもの？
 
 Countermovesは
 CountermovesStats Countermovesと宣言している
@@ -142,22 +142,60 @@ public:
   MovePicker(const Position&, Move, Depth, const HistoryStats&, Square);
   MovePicker(const Position&, Move, const HistoryStats&, PieceType);
   MovePicker(const Position&, Move, Depth, const HistoryStats&, Move*, Search::Stack*);
-
+	/*
+	次の手を返す　テンプレートパラメータSpNodeは探索分岐からの呼び出しの時にtrueを渡す
+	*/
   template<bool SpNode> Move next_move();
 
 private:
   template<GenType> void score();
   void generate_next();
-
+	/*
+	現在の局面
+	*/
   const Position& pos;
+	/*
+	移動履歴累計評価？のようなものでオーダリングの点つけに利用する
+	*/
   const HistoryStats& history;
+	/*
+	ここはパス
+	*/
   Search::Stack* ss;
+	/*
+	カウンター手を保存
+	*/
   Move* countermoves;
+	/*
+	探索深さ
+	*/
   Depth depth;
+	/*
+	置換表の指し手
+	*/
   Move ttMove;
+	/*
+	キラー手最初の２つがキラー手
+	のこりつはカウンター手を登録する
+	*/
   ExtMove killers[4];
+	/*
+	直前の敵駒の移動先座標が入っている
+	取り返し手を生成するときに利用する
+	*/
   Square recaptureSquare;
+	/*
+	用途不明
+	stageは着手リストの生成場合分けのための変数
+	*/
   int captureThreshold, stage;
+	/*
+	moves配列のポインタ
+	curが現在の返すポインタ
+	endが終端を指している
+	endQuiets
+	endBadCapturesは不明
+	*/
   ExtMove *cur, *end, *endQuiets, *endBadCaptures;
 	/*
 	movegen.hにMoveListというstruct型のクラスがありそのなかにもmlistという

@@ -38,7 +38,6 @@
 /// according only to moving piece and destination square, hence two moves with
 /// different origin but same destination and piece will be considered identical.
 /*
-統計的な数値を記録する？
 テンプレートによりGainsStats,HistoryStats,Countermovesと３つの
 記録するものを作っている
 
@@ -46,23 +45,25 @@ GainsStatsは
 search関数の冒頭でGainsStats Gainsと宣言している
 id_loop関数内で自メソッドclear関数でtable[][]配列を0クリアしている
 内部のtable[][]配列には
-table[Piece][pair<Move,Move>]を保存
-用途不明
+table[Piece][Value]を保存
+駒の移動によってどれくらい評価値に変化があったかを記録している
 
 HistoryStatsも
 search関数の冒頭でHistoryStats Historyと宣言している
 id_loop関数内で自メソッドclear関数でtable[][]配列を0クリアしている
 内部のtable[][]配列には
 table[Piece][Value]を保存
-用途不明
+最善手の駒種と移動先座標によって評価値を累計していく
+良くとおる升ほど点数が高い
 
 Countermovesは
 CountermovesStats Countermovesと宣言している
 id_loop関数内で自メソッドclear関数でtable[][]配列を0クリアしている
 内部のtable[][]配列には
 table[Piece][Value]を保存
-用途不明
-
+敵駒の種別ごとに特定の座標に移動してきた場合の最善応手を記録しておく（探索した結果を記録）
+table[PIece][pair<Move, Move>]に保存しておく
+この手の組み合わせをカウンター手と呼ぶ
 */
 template<bool Gain, typename T>
 struct Stats {
@@ -77,7 +78,12 @@ struct Stats {
   void clear() { std::memset(table, 0, sizeof(table)); }
 	/*
 	templateがCountermovesが使用する
-	upadte関数
+	upadte関数、search関数から呼ばれる
+	Piece pは直前に動いた敵駒の駒種
+	Square to　その敵駒の移動先座標
+	Move m　全ての探索をした結果一番良かった手
+	つまり相手が特定の駒種で特定の座標に移動してきた場合の
+	自分側の最善手を覚えておくためのテーブル
 	*/
 	void update(Piece p, Square to, Move m) {
 
@@ -99,9 +105,9 @@ struct Stats {
         table[p][to] = std::max(v, table[p][to] - 1);
 		/*
 		else if文以降条件が成立すればHistoryStats関数が更新する
-		search関数から何らかの条件でupdate_stats関数がよばれ
-		そのupdate_stats関数の中からこのupdate関数が呼ばれ更新される
-		同じ駒コードが同じ升に移動するほど評価値は高くなる
+		search関数からupdate関数がよばれ、最善手の駒種とその移動先
+		に移動した探索深さの２乗が評価値として使われる
+		つまり良く通る升目ほど評価値が高いただし2000点どまり
 		*/
 		else if (abs(table[p][to] + v) < Max)
         table[p][to] +=  v;

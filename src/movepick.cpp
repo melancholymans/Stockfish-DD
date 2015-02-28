@@ -109,6 +109,10 @@ MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats&
 
   cur = end = moves;
   endBadCaptures = moves + MAX_MOVES - 1;
+	/*
+	countermovesは
+
+	*/
   countermoves = cm;
   ss = s;
 
@@ -292,6 +296,13 @@ void MovePicker::score<EVASIONS>() {
   for (ExtMove* it = moves; it != end; ++it)
   {
       m = it->move;
+			/*
+			着手リストの手を取り出して静止探索を行ってみてその評価値がマイナスならその手の評価値から2000点を減点する
+			そうでなければ（プラスかゼロ）＋駒を取る手なら
+			移動先にある駒の評価値（ミドルゲーム用の評価値）－　とる駒の駒種を引く、これに2000点を加算する
+			この2000点はかさ上げするためのもの？
+			以上２種類以外ならhistory配列の値を採用
+			*/
       if ((seeScore = pos.see_sign(m)) < 0)
           it->score = seeScore - HistoryStats::Max; // At the bottom
 
@@ -325,21 +336,32 @@ void MovePicker::generate_next() {
 			キラー手を生成する
 			*/
 	case KILLERS_S1:
+			/*
+			killers配列は４まであるが２手までしか使用しない
+			この後にカウンター手を追加するため２手分配列容量に余裕を持たしてある
+			*/
       cur = killers;
       end = cur + 2;
-			/*なぜkillers[0,3,4,5]にMOVE_NONEを入れる*/
-			/*
-			ここから先詳細不明
-			*/
 
       killers[0].move = ss->killers[0];
       killers[1].move = ss->killers[1];
       killers[2].move = killers[3].move = MOVE_NONE;
 
       // Be sure countermoves are different from killers
+			/*
+			countermovesは直前の敵駒の動きに対して最善応手を記録している手で
+			countermoves[0]が敵駒のMove情報,countermoves[1]がそれに対する応手
+			単純に敵の動きに対して探索の結果の最善応手をいれているだけなので
+			周りの状況は異なっているので必ずしも最適な答えではない。カウンター手と呼ぶ
+
+			ここではキラー手１，２がカウンター手と異なるならカウンター手をキラー手配列に追加する
+			*/
       for (int i = 0; i < 2; ++i)
           if (countermoves[i] != cur->move && countermoves[i] != (cur+1)->move)
               (end++)->move = countermoves[i];
+			/*
+			ここから先詳細不明
+			*/
 
       if (countermoves[1] && countermoves[1] == countermoves[0]) // Due to SMP races
           killers[3].move = MOVE_NONE;

@@ -1572,7 +1572,9 @@ moves_loop: // When in check and at SpNode search starts from here
             Move m = quietsSearched[i];
             History.update(pos.moved_piece(m), to_sq(m), -bonus);
         }
-
+				/*
+				prevMoveSq‚Í’¼‘O‚Ì“G‹î‚ÌˆÚ“®æ‚ÌÀ•W‚ª“ü‚Á‚Ä‚¢‚é
+				*/
         if (is_ok((ss-1)->currentMove))
             Countermoves.update(pos.piece_on(prevMoveSq), prevMoveSq, bestMove);
     }

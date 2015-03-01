@@ -17,6 +17,10 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*
+終盤データベース用の関数群のようなのでパス
+*/
+
 #include <algorithm>  // For std::min
 #include <cassert>
 #include <cstring>
@@ -35,10 +39,20 @@ namespace {
   const int NoPawnsSF[4] = { 6, 12, 32 };
 
   // Polynomial material balance parameters
+	/*
+	Polynomial-多項式
+	*/
 
   //                                  pair  pawn knight bishop rook queen
+	/*
+	Linear-一次式
+	Coefficients-係数
+	*/
   const int LinearCoefficients[6] = { 1852, -162, -1122, -183,  249, -52 };
-
+	/*
+	Quadratic-2次式
+	Coefficients-係数
+	*/
   const int QuadraticCoefficientsSameColor[][PIECE_TYPE_NB] = {
     // pair pawn knight bishop rook queen
     {   0                               }, // Bishop pair
@@ -71,19 +85,30 @@ namespace {
   Endgame<KPKP>   ScaleKPKP[]   = { Endgame<KPKP>(WHITE),   Endgame<KPKP>(BLACK) };
 
   // Helper templates used to detect a given material distribution
+	/*
+	敵側のPAWNがゼロでかつPAWNを除く駒の評価値の総計がゼロ（KINGはいる）かつ自陣のPAWNを除く駒評価値がRookValueMg以上ある
+	つまり相手はKINGのみでこちらはKING+ROOKならtrueを返す
+	is_KXKはこちら側がKing+x(どの駒とは分からないがその評価値集計はRookValueMg以上ある）かどうかを判定している
+	*/
   template<Color Us> bool is_KXK(const Position& pos) {
     const Color Them = (Us == WHITE ? BLACK : WHITE);
     return  !pos.count<PAWN>(Them)
           && pos.non_pawn_material(Them) == VALUE_ZERO
           && pos.non_pawn_material(Us) >= RookValueMg;
   }
-
+	/*
+	PAWNを除いた評価値がBishopValueMgちょうど、かつこちらのBISHOPが１個でPAWNが１以上ある
+	is_KBPsKsはKing+Bishop+Pawnが複数 VS King + どんな駒があるか問わない
+	*/
   template<Color Us> bool is_KBPsKs(const Position& pos) {
     return   pos.non_pawn_material(Us) == BishopValueMg
           && pos.count<BISHOP>(Us) == 1
           && pos.count<PAWN  >(Us) >= 1;
   }
-
+	/*
+	こちら側にはPAWNがない＋Queenが１　VS　KING+ROOKが１つ＋PAWNが複数
+	であることを判定している
+	*/
   template<Color Us> bool is_KQKRPs(const Position& pos) {
     const Color Them = (Us == WHITE ? BLACK : WHITE);
     return  !pos.count<PAWN>(Us)
@@ -141,25 +166,38 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
   // return the information we found the last time instead of recomputing it.
   if (e->key == key)
       return e;
-
+	/*
+	material_keyでindexしたメモリ領域をゼロクリアした
+	probe関数内でEntryクラスを構築していく？
+	*/
   std::memset(e, 0, sizeof(Entry));
   e->key = key;
   e->factor[WHITE] = e->factor[BLACK] = (uint8_t)SCALE_FACTOR_NORMAL;
+	/*
+	game_phaseはPAWN以外の駒評価値を正規化して返す（0-128)
+	*/
   e->gamePhase = game_phase(pos);
 
   // Let's look if we have a specialized evaluation function for this
   // particular material configuration. First we look for a fixed
   // configuration one, then a generic one if previous search failed.
+	/*
+	endgameに関係ありそうなのでパス
+	*/
   if (endgames.probe(key, &e->evaluationFunction))
       return e;
-
+	/*
+	盤に残っている駒がWHITE側がKXKであれば関数を設定して帰る
+	*/
   if (is_KXK<WHITE>(pos))
   {
       e->evaluationFunction = &EvaluateKXK[WHITE];
       return e;
   }
-
-  if (is_KXK<BLACK>(pos))
+	/*
+	盤に残っている駒がBLACK側がKXKであれば関数を設定して帰る
+	*/
+	if (is_KXK<BLACK>(pos))
   {
       e->evaluationFunction = &EvaluateKXK[BLACK];
       return e;
@@ -272,11 +310,20 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
 /// Material::game_phase() calculates the phase given the current
 /// position. Because the phase is strictly a function of the material, it
 /// is stored in MaterialEntry.
-
+/*
+駒評価値の正規化した数値を返す(0-128)
+*/
 Phase game_phase(const Position& pos) {
-
+	/*
+	npmにはそれぞれのカラーからPAWNを除いた駒評価値を足し合わせる
+	*/
   Value npm = pos.non_pawn_material(WHITE) + pos.non_pawn_material(BLACK);
-
+	/*
+	npmがMidgameLimit(15,581)を超えるようであればPHASE_MIDGAME(=128)を返す
+	npmがEndgameLimit(3,998)を下回るようであればPHASE_ENDGAME(0）を返す
+	その中間の数値であれば(npm - 3998)*128/(11583)で返す
+	non_pawn_material評価値を0-128の間で正規化している
+	*/
   return  npm >= MidgameLimit ? PHASE_MIDGAME
         : npm <= EndgameLimit ? PHASE_ENDGAME
         : Phase(((npm - EndgameLimit) * 128) / (MidgameLimit - EndgameLimit));

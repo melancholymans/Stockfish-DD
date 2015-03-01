@@ -58,7 +58,17 @@ positionは局面を保持するクラスで、do_moveによって
 使用される情報を入れておく構造体かな
 */
 struct StateInfo {
-  Key pawnKey, materialKey;
+	/*
+
+	*/
+	Key pawnKey;
+	/*
+	カラー、駒種ごとの駒数できますユニークな数（ハッシュ値として使う）
+	*/
+	Key	materialKey;
+	/*
+	npMaterial=non-pawn-material　PAWNがない状態の
+	*/
   Value npMaterial[COLOR_NB];
   int castleRights, rule50, pliesFromNull;
   Score psq;
@@ -727,7 +737,7 @@ inline Score Position::psq_score() const {
   return st->psq;
 }
 /*
-用途不明
+PAWNを除いた駒評価値
 */
 inline Value Position::non_pawn_material(Color c) const {
   return st->npMaterial[c];

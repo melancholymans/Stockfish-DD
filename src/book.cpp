@@ -327,6 +327,9 @@ namespace {
   }};
 
   // polyglot_key() returns the PolyGlot hash key of the given position
+	/*
+	polyglot_key()は局面情報を引数にとってハッシュキーを返す
+	*/
   Key polyglot_key(const Position& pos) {
 
     Key key = 0;
@@ -338,17 +341,28 @@ namespace {
         Piece p = pos.piece_on(s);
 
         // PolyGlot pieces are: BP = 0, WP = 1, BN = 2, ... BK = 10, WK = 11
+				/*
+				bitboardから駒コードと座標を取り出して
+				psq[piece][sq] piece->BP(BlackPawn)=0,WP=1....WK=11  sqは座標なので64
+				こうして冒頭の乱数表？でハッシュキーを作る
+				*/
         key ^= PG.Zobrist.psq[2 * (type_of(p) - 1) + (color_of(p) == WHITE)][s];
     }
-
+		/*
+		キャスリングからも座標を取り出しハッシュキーに加える
+		*/
     b = pos.can_castle(ALL_CASTLES);
 
     while (b)
         key ^= PG.Zobrist.castle[pop_lsb(&b)];
-
+		/*
+		アンパサンからもハッシュキーを加える
+		*/
     if (pos.ep_square() != SQ_NONE)
         key ^= PG.Zobrist.enpassant[file_of(pos.ep_square())];
-
+		/*
+		最後に手番情報もハッシュキーに加える
+		*/
     if (pos.side_to_move() == WHITE)
         key ^= PG.Zobrist.turn;
 
@@ -356,9 +370,13 @@ namespace {
   }
 
 } // namespace
-
+/*
+rkissクラスに現在時刻のシードを与えて継承させている
+*/
 PolyglotBook::PolyglotBook() : rkiss(Time::now() % 10000) {}
-
+/*
+ファイルが開いているようなら閉じて終了すること
+*/
 PolyglotBook::~PolyglotBook() { if (is_open()) close(); }
 
 

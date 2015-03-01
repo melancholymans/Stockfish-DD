@@ -25,7 +25,9 @@
 
 #include "position.h"
 #include "rkiss.h"
-
+/*
+ifstream:読み込み専用のファイルストリーム
+*/
 class PolyglotBook : private std::ifstream {
 public:
   PolyglotBook();

@@ -48,6 +48,14 @@ namespace {
   // Random numbers from PolyGlot, used to compute book hash keys
   const union {
     Key PolyGlotRandoms[781];
+		/*
+		psq[12][64] = 768
+		castle[4] = 4
+		enpassant[8] = 8
+		turn = 1
+		‘S•”‘«‚µ‚Ä781‚Æ‚È‚Á‚Ä
+		PolyGlotRandoms[781]‚Æunit\‘¢‘Ì‚Æ‚È‚é
+		*/
     struct {
       Key psq[12][64];  // [piece][square]
       Key castle[4];    // [castle right]

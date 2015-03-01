@@ -35,17 +35,13 @@ namespace {
 		movepickはフェーズに従って手を返す制御をおこなう
 		*/
 		/*
-		通常ならここからスタート
+		通常手探索専用　ここからスタート　stageが順に増えて最終BAD_CAPTURES_S1で終了する
 		通常探索の時に使用されるコンストラクタの設定がMAIN_SEARCH
 		*/
     MAIN_SEARCH, 
-		/*
-		取る手の生成
-		*/
+		/*取る手の生成*/
 		CAPTURES_S1, 
-		/*
-		キラー手の生成
-		*/
+		/*キラー手の生成*/
 		KILLERS_S1, 
 		/*
 		取る手でない穏やかな手を生成する
@@ -54,18 +50,32 @@ namespace {
 		*/
 		QUIETS_1_S1, 
 		QUIETS_2_S1, 
-		/*
-		*/
 		BAD_CAPTURES_S1,
+		/*
+		王手回避専用　ここからスタート　ここはEVASIONS_S2しかない
+		*/
     EVASION,     
 		EVASIONS_S2,
+		/*
+		末端探索専用　ここからスタート
+		取る手と駒を取らずに王手する手を生成
+		*/
     QSEARCH_0,   
 		CAPTURES_S3, 
 		QUIET_CHECKS_S3,
+		/*
+		末端探索専用残り探索深さによってここからスタート
+		取る手のみ生成、全ての手を返したらSTOPケースに落ちてMOVE_NONEを返す
+		*/
     QSEARCH_1,   
 		CAPTURES_S4,
+		/*
+		PROBCUT専用
+		取る手のみ返す
+		*/
     PROBCUT,     
 		CAPTURES_S5,
+		/*末端探索専用　直前に動いた敵駒を取る*/
     RECAPTURE,   
 		CAPTURES_S6,
     STOP
@@ -163,7 +173,6 @@ seach.cppの呼び出し
 MovePicker mp(pos, ttMove, depth, History, to_sq((ss-1)->currentMove))
 他のMovepickerがsearch関数からよばれているのに対してqsearch関数（末端専用探索関数）から呼ばれている
 
-
 王手がかかっているようであればstageをEVASION（回避手）にそうでなければ探索深度に応じて
 DEPTH_QS_NO_CHECKS(-2)とりdepthが大きければQSEARCH_0(8)に設定しておく
 DEPTH_QS_RECAPTURES(-10)よりdepthが大きければQSEARCH_1(11)
@@ -171,7 +180,6 @@ DEPTH_QS_RECAPTURES(-10)よりdepthが大きければQSEARCH_1(11)
 いずれでもない場合はRECAPTURE(15)に設定、ttm（トランスポジションテーブル)からの手は無視して最初から生成させる
 
 最後の引数sqは１つ前の敵駒が移動した先の升の座標
-
 */
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
                        Square sq) : pos(p), history(h), cur(moves), end(moves) {
@@ -439,6 +447,9 @@ void MovePicker::generate_next() {
 
   case BAD_CAPTURES_S1:
       // Just pick them in reverse order to get MVV/LVA ordering
+			/*
+			MVV/LVAオーダリング？
+			*/
       cur = moves + MAX_MOVES - 1;
       end = endBadCaptures;
       return;
@@ -451,13 +462,19 @@ void MovePicker::generate_next() {
       if (end > moves + 1)
           score<EVASIONS>();
       return;
-
+			/*
+			駒を取らずに王手をかける手を生成する
+			*/
   case QUIET_CHECKS_S3:
       end = generate<QUIET_CHECKS>(pos, moves);
       return;
 
   case EVASION: case QSEARCH_0: case QSEARCH_1: case PROBCUT: case RECAPTURE:
       stage = STOP;
+			/*
+			ここにきたら終わり
+			end = cur + 1としているのは再度generate_next関数（この関数）に来ないようにしているだけ？
+			*/
   case STOP:
       end = cur + 1; // Avoid another next_phase() call
       return;
@@ -516,7 +533,7 @@ Move MovePicker::next_move<false>() {
 	stageに応じた着手リストを作る。search関数に手を返していくとcur == endが成立する
 	そしてそのstageでの着手リストはゼロになったので次のstageに進み
 	新しい着手リストを作る
-	つまり一変に着手リストを作っても無駄なので効果の高そうな手から生成してオーダリングしながら
+	つまり一度に全部の着手リストを作っても無駄なので効果の高そうな手から生成してオーダリングしながら
 	手を返す
 	*/
   while (true)
@@ -572,7 +589,8 @@ Move MovePicker::next_move<false>() {
 					/*
 					穏やかの手を返す（取る手以外）
 					QUIETS_1_S1、QUIETS_2_S1の違いは評価値が高い方がQUIETS_1_S1
-					******************************************************************************************************************************************************************
+					低い方がQUIETS_2_S1
+					但し置換表手、キラー手、カウンター手でないこと
 					*/
       case QUIETS_1_S1: case QUIETS_2_S1:
           move = (cur++)->move;
@@ -583,16 +601,34 @@ Move MovePicker::next_move<false>() {
               && move != killers[3].move)
               return move;
           break;
-
+					/*
+					CAPTURES_S1で拾わなかった手をここで回収する
+					ここで全ての手を返したらgenerate_next関数にいきstageがあがる
+					BAD_CAPTURES_S1のつぎはEVASIONSなのでSTOPケースに落ちて
+					この関数のSTOPケースに移動してMOVE_NONEを返す
+					*/
       case BAD_CAPTURES_S1:
           return (cur--)->move;
-
+					/*
+					ここから先はMovePickのコンストラクタでstageがEVASIONSに設定した場合
+					stageがEVASIONS（回避手）なら
+					generate_next関数で着手リストを生成して評価値でオーダリングされたものが返される
+					pick_best関数で一番良い手を返す。置換表手でなければその手を返す
+					最終的にはcur == endになるのでgenerate_next関数にいきstage++になるのでQSEARCH_0になり
+					そのままbreak文がないのでSTOPケースにいきこの関数のSTOPケースでMOVE_NONEを返す
+					*/
       case EVASIONS_S2: case CAPTURES_S3: case CAPTURES_S4:
           move = pick_best(cur++, end)->move;
           if (move != ttMove)
               return move;
           break;
-
+					/*
+					ここから先はMovePickのコンストラクタでstageがQSEARCH_0に設定した場合（qsearch関数=末端専用探索関数）
+					置換表手があればそれを返す、なければgenerate_next関数に行きstageを増やしCAPTURES_S3になり取る手を生成する
+					この関数に帰ってきたらCAPTURES_S3ケースで手を返していく、
+					その取る手もなくなったらgenerate_next関数でQUIET_CHECKS_S3になる。generate<QUIET_CHECKS>(pos, moves);関数を呼び
+					駒を取らずに王手を掛ける手のみを生成する
+					*/
       case CAPTURES_S5:
            move = pick_best(cur++, end)->move;
            if (move != ttMove && pos.see(move) > captureThreshold)
@@ -604,7 +640,11 @@ Move MovePicker::next_move<false>() {
           if (to_sq(move) == recaptureSquare)
               return move;
           break;
-
+					/*
+					ここでは駒を取らずに王手をかける手を返す（置換表手でなければ）
+					着手リストが終わったらstageはQSEARCH_1になる。そしてそのまま
+					stageはSTOPとなりMOVE_NENOを返す
+					*/
       case QUIET_CHECKS_S3:
           move = (cur++)->move;
           if (move != ttMove)
@@ -624,5 +664,8 @@ Move MovePicker::next_move<false>() {
 /// Version of next_move() to use at split point nodes where the move is grabbed
 /// from the split point's shared MovePicker object. This function is not thread
 /// safe so must be lock protected by the caller.
+/*
+探索分岐したスレッドから呼ぶnext_move関数
+*/
 template<>
 Move MovePicker::next_move<true>() { return ss->splitPoint->movePicker->next_move<false>(); }

@@ -16,6 +16,11 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/*
+https://chessprogramming.wikispaces.com/Endgame
+chess特有の終盤データベースの実装と思われる
+
+*/
 
 #ifndef ENDGAME_H_INCLUDED
 #define ENDGAME_H_INCLUDED
@@ -33,7 +38,18 @@
 /// EndgameType lists all supported endgames
 
 enum EndgameType {
-
+	/*
+	king-Night-Night-King = KNNK		http://www.chesskit.com/training/endgame/KNNk/1/index.php
+	King-x-King = KXK
+	King-Bishop-Night-King = KBNK		http://www.chesskit.com/training/endgame/KBNk/1/index.php
+	King-Pawn-King = KPK						http://www.chesskit.com/training/endgame/KPk/1/index.php
+	King-Rook-King-Pawn = KRKP
+	King-Rook-King-Bishop = KRKB		http://www.chesskit.com/training/endgame/KRkb/1/index.php
+	King-Rook-King-Night = KRKN
+	King-Queen-King-Pawn = KQKP			http://www.chesskit.com/training/endgame/KQkp/1/index.php
+	King-Queen-king-Rook = KQKR			http://www.chesskit.com/training/endgame/KQkr/1/index.php
+	King-Bishop-Bishop-Knight-Night = KBBKN	
+	*/
   // Evaluation functions
 
   KNNK,  // KNN vs K

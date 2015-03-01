@@ -16,7 +16,9 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+/*
+chess特有の終盤データベースのことだと思われる
+*/
 #include <algorithm>
 #include <cassert>
 

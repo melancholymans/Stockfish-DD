@@ -35,14 +35,15 @@ void print(Bitboard b);
 
 namespace Bitbases {
 	/*
-	用途不明
+	bitbase.cppのための宣言、bitbase.hはなくこのbitboard.hが兼任している
+	init_kpkは終盤データベースのための初期化
 	*/
 	void init_kpk();
 	/*
-	用途不明
+	終盤データベースの検査
 	*/
 	bool probe_kpk(Square wksq, Square wpsq, Square bksq, Color us);
-}
+}	//namespace Bitbasesの終わり
 /*
 FileABB=
 1000 0000

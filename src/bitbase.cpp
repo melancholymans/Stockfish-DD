@@ -23,14 +23,28 @@
 #include "bitboard.h"
 #include "types.h"
 
+/*
+
+https://chessprogramming.wikispaces.com/KPK
+このbitbaseはchess特有の終盤データベースのこと
+おそらくKPKはKing-Pawn-Kingの略
+chessにはほかにもking-Queen-king=KQK
+king-knight-king=KNKなどあるがstockfishではKPKしか扱っていない？
+このbitbase.cppはこれ以上立ち入らない
+*/
+
 namespace {
+	// The possible pawns squares are 24, the first 4 files and ranks from 2 to 7
 	/*
 	PAWNが移動可能なINDEX
+	４列の駒×２行～７行まで=4*6=24
 	*/
-	// The possible pawns squares are 24, the first 4 files and ranks from 2 to 7
-  const unsigned IndexMax = 2*24*64*64; // stm * psq * wksq * bksq = 196608
+	const unsigned IndexMax = 2 * 24 * 64 * 64; // stm * psq * wksq * bksq = 196608
 
   // Each uint32_t stores results of 32 positions, one per bit
+	/*
+	IndexMax / 32=32bit変数を使ってIndexMaxを表現するのに必要な配列数=6,144
+	*/
   uint32_t KPKBitbase[IndexMax / 32];
 
   // A KPK bitbase index is an integer in [0, IndexMax] range
@@ -73,7 +87,7 @@ namespace {
 } // namespace
 
 /*
-用途不明
+endgame.cppから呼ばれている
 */
 bool Bitbases::probe_kpk(Square wksq, Square wpsq, Square bksq, Color us) {
 
@@ -84,7 +98,7 @@ bool Bitbases::probe_kpk(Square wksq, Square wpsq, Square bksq, Color us) {
 }
 
 /*
-用途不明
+main.cppから呼ばれて初期化している
 */
 void Bitbases::init_kpk() {
 

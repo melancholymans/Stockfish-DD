@@ -372,6 +372,7 @@ namespace {
 } // namespace
 /*
 rkissクラスに現在時刻のシードを与えて継承させている
+think関数で初期化される
 */
 PolyglotBook::PolyglotBook() : rkiss(Time::now() % 10000) {}
 /*
@@ -400,7 +401,9 @@ template<> PolyglotBook& PolyglotBook::operator>>(Entry& e) {
 
 /// open() tries to open a book file with the given name after closing any
 /// exsisting one.
-
+/*
+probe関数から呼び出される
+*/
 bool PolyglotBook::open(const string& fName) {
 
   if (is_open()) // Cannot close an already closed file
@@ -417,7 +420,15 @@ bool PolyglotBook::open(const string& fName) {
 /// probe() tries to find a book move for the given position. If no move is
 /// found returns MOVE_NONE. If pickBest is true returns always the highest
 /// rated move, otherwise randomly chooses one, based on the move score.
+/*
+think関数で呼び出される
+Move bookMove = book.probe(RootPos, Options["Book File"], Options["Best Book Move"]);
+Options["Book File"]はオプションで指定されるbook file名（デフォルトはbook.bin）
 
+現局面での定跡手があったら手を返す、なかったらMOVE_NONEを返す。
+引数のpickBestがtrueに指定してあったら常に高得点の手を返す
+falseを指定してあればランダムで手を選択
+*/
 Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest) {
 
   if (fileName != fName && !open(fName))
@@ -473,7 +484,9 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
 /// find_first() takes a book key as input, and does a binary search through
 /// the book file for the given key. Returns the index of the leftmost book
 /// entry with the same key as the input.
-
+/*
+probe関数から呼び出し
+*/
 size_t PolyglotBook::find_first(Key key) {
 
   seekg(0, ios::end); // Move pointer to end, so tellg() gets file's size

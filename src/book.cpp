@@ -488,7 +488,9 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
 probe関数から呼び出し
 */
 size_t PolyglotBook::find_first(Key key) {
-
+	/*
+	seekg移動する関数,第一引数が移動するサイズ、第二引数が基準となる位置
+	*/
   seekg(0, ios::end); // Move pointer to end, so tellg() gets file's size
 
   size_t low = 0, mid, high = (size_t)tellg() / sizeof(Entry) - 1;

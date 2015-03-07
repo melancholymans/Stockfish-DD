@@ -384,7 +384,9 @@ PolyglotBook::~PolyglotBook() { if (is_open()) close(); }
 /// operator>>() reads sizeof(T) chars from the file's binary byte stream and
 /// converts them in a number of type T. A Polyglot book stores numbers in
 /// big-endian format.
-
+/*
+ファイルストリームを読み込んでいる
+*/
 template<typename T> PolyglotBook& PolyglotBook::operator>>(T& n) {
 
   n = 0;
@@ -393,7 +395,10 @@ template<typename T> PolyglotBook& PolyglotBook::operator>>(T& n) {
 
   return *this;
 }
-
+/*
+find_first関数から呼び出される
+*this >> e;この部分
+*/
 template<> PolyglotBook& PolyglotBook::operator>>(Entry& e) {
   return *this >> e.key >> e.move >> e.count >> e.learn;
 }
@@ -403,12 +408,15 @@ template<> PolyglotBook& PolyglotBook::operator>>(Entry& e) {
 /// exsisting one.
 /*
 probe関数から呼び出される
+指定された定跡ファイルを読み込む
 */
 bool PolyglotBook::open(const string& fName) {
 
   if (is_open()) // Cannot close an already closed file
       close();
-
+	/*
+	指定されたファイルをバイナリモードで開ければtrueを返す
+	*/
   ifstream::open(fName, ifstream::in | ifstream::binary);
 
   fileName = is_open() ? fName : "";
@@ -438,10 +446,17 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
   uint16_t best = 0;
   unsigned sum = 0;
   Move move = MOVE_NONE;
+	/*局面から生成したkeyを受け取る*/
   Key key = polyglot_key(pos);
-
+	/*
+	find_first関数はkeyから該当する定跡情報(Entry)へのindexを返す
+	*/
   seekg(find_first(key) * sizeof(Entry), ios_base::beg);
-
+	/*
+	while文にある{*this >> e}が定跡ファイルからEntry情報を取り出している部分
+	e.key == keyで取り出した定跡情報が正しいことを確認して、複数の定跡手が
+	ある場合には続けて取り出し、pickBestのtrue/falseで取り出す手を選択している
+	*/
   while (*this >> e, e.key == key && good())
   {
       best = max(best, e.count);
@@ -468,6 +483,14 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
   // move is a promotion we have to convert to our representation, in all the
   // other cases we can directly compare with a Move after having masked out
   // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
+	/*
+	stackfish内部で使われているMove形式の指し手フォーマットとよく似ているが
+	bit 12-14が異なる、またMove形式は14-15bitを特別な動き（アンパッサン、キャスリング,promoto）
+	のフラグにも使っていたがPolyGlotフォーマットでは使っていない
+	PolyGlotフォーマットについては下のURLが正式のようだ
+	http://hgm.nubati.net/book_format.html
+	ここではPolyGlot　formatをstockfishのMove形式に変換している
+	*/
   int pt = (move >> 12) & 7;
   if (pt)
       move = make<PROMOTION>(from_sq(move), to_sq(move), PieceType(pt + 1));
@@ -486,18 +509,27 @@ Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest
 /// entry with the same key as the input.
 /*
 probe関数から呼び出し
+keyを元に定跡ファイルから定跡情報を持ってくる
+ファイルはkeyを元にソートされた状態で入っている（？）ようなので
+探索に２分木探索を使っている
 */
 size_t PolyglotBook::find_first(Key key) {
 	/*
 	seekg移動する関数,第一引数が移動するサイズ、第二引数が基準となる位置
+	seekgでファイルの最後に移動させて置いてtellg関数（現在位置のサイズを返す）
+	でファイルのサイズを取得
 	*/
   seekg(0, ios::end); // Move pointer to end, so tellg() gets file's size
-
+	/*
+	highがファイルの登録されている定跡情報（Entry)
+	*/
   size_t low = 0, mid, high = (size_t)tellg() / sizeof(Entry) - 1;
   Entry e;
 
   assert(low <= high);
-
+	/*
+	good()はiostreamの状態を返す関数
+	*/
   while (low < high && good())
   {
       mid = (low + high) / 2;
@@ -505,6 +537,9 @@ size_t PolyglotBook::find_first(Key key) {
       assert(mid >= low && mid < high);
 
       seekg(mid * sizeof(Entry), ios_base::beg);
+			/*
+			ファイルストリームからe(Entry構造体)にデーターが入ってくる
+			*/
       *this >> e;
 
       if (key <= e.key)

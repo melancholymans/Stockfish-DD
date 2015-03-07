@@ -26,7 +26,7 @@
 #include "position.h"
 #include "rkiss.h"
 /*
-ifstream:読み込み専用のファイルストリーム
+ifstream:読み込み専用のファイルストリームを継承している
 */
 class PolyglotBook : private std::ifstream {
 public:
@@ -35,9 +35,19 @@ public:
   Move probe(const Position& pos, const std::string& fName, bool pickBest);
 
 private:
+	/*
+	>>演算子のオーバーライド
+	テンプレートパラメータTは？
+	*/
   template<typename T> PolyglotBook& operator>>(T& n);
-
+	/*
+	指定されたファイルを開く、そのときすでにひらいてあるファイルがあれば閉じて
+	指定されたファイルを開く
+	*/
   bool open(const std::string& fName);
+	/*
+	局面から生成されたkeyを使って
+	*/
   size_t find_first(Key key);
 
   RKISS rkiss;

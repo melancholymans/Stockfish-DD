@@ -100,7 +100,9 @@ void dbg_print() {
 /// can toggle the logging of std::cout and std:cin at runtime while preserving
 /// usual i/o functionality and without changing a single line of code!
 /// Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
-
+/*
+用途不明
+*/
 struct Tie: public streambuf { // MSVC requires splitted streambuf for cin and cout
 
   Tie(streambuf* b, ofstream* f) : buf(b), file(f) {}
@@ -123,7 +125,9 @@ struct Tie: public streambuf { // MSVC requires splitted streambuf for cin and c
     return last = file->rdbuf()->sputc((char)c);
   }
 };
-
+/*
+用途不明
+*/
 class Logger {
 
   Logger() : in(cin.rdbuf(), &file), out(cout.rdbuf(), &file) {}
@@ -177,6 +181,11 @@ void start_logger(bool b) { Logger::start(b); }
 /// prefetch() preloads the given address in L1/L2 cache. This is a non
 /// blocking function and do not stalls the CPU waiting for data to be
 /// loaded from memory, that can be quite slow.
+/*
+プリフェッチ（先読み）
+事前にプロセッサに近いキャッシュ階層にデータをロードしておきたい場合に使用する方法です．
+ところどころに先読みさせたいメモリを指定してあるようだが、かなり細かい分析が必要な気がする
+*/
 #ifdef NO_PREFETCH
 
 void prefetch(char*) {}

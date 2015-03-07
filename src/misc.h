@@ -37,8 +37,14 @@ extern const std::string engine_info(bool to_uci = false);
 ところどころに先読みさせたいメモリを指定してあるようだが、かなり細かい分析が必要な気がする
 */
 extern void prefetch(char* addr);
+/*
+start_loggerを使ってbをtrueにすると標準入出力がファイルストリームに切り替わる
+ファイルは"io_log.txt"
+*/
 extern void start_logger(bool b);
-
+/*
+使っていない？
+*/
 extern void dbg_hit_on(bool b);
 extern void dbg_hit_on_c(bool c, bool b);
 extern void dbg_mean_of(int v);
@@ -46,15 +52,18 @@ extern void dbg_print();
 
 /*
 配列表示用のデバッグ機能
+私が追加した
 */
 extern void print_array(Square arr[], int size);
-
+/*
+ロギング機能、書き込み専用のファイルストリームを継承
+*/
 struct Log : public std::ofstream {
   Log(const std::string& f = "log.txt") : std::ofstream(f, std::ios::out | std::ios::app) {}
  ~Log() { if (is_open()) close(); }
 };
-
-
+/*
+*/
 namespace Time {
   typedef int64_t point;
   point now();
@@ -70,10 +79,18 @@ private:
   std::vector<Entry> e;
 };
 
+/*
+sync_cout,sync_endlで出力したい文字列などを挟んで使う
+複数の探索スレッドが同時に標準出力すると表示がめちゃくちゃになるのを防いでいる。
+sync_coutでミューテクスを使用してロック
+sync_endlでロック解除する
+misc.cppの
+std::ostream& operator<<(std::ostream& os, SyncCout sc)
+演算子オーバーライドが呼ばれる
+*/
 
 enum SyncCout { io_lock, io_unlock };
 std::ostream& operator<<(std::ostream&, SyncCout);
-
 #define sync_cout std::cout << io_lock
 #define sync_endl std::endl << io_unlock
 

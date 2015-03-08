@@ -76,14 +76,14 @@ const Bitboard FileGBB = FileABB << 6;
 const Bitboard FileHBB = FileABB << 7;
 /*
 Rank1BB=
-1111 1111
+1111 1111	‰ºˆÊbit
 0000 0000
 0000 0000
 0000 0000
 0000 0000
 0000 0000
 0000 0000
-0000 0000
+0000 0000	ãˆÊbit
 */
 const Bitboard Rank1BB = 0xFF;
 const Bitboard Rank2BB = Rank1BB << (8 * 1);
@@ -119,7 +119,6 @@ extern Bitboard ForwardBB[COLOR_NB][SQUARE_NB];
 extern Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
 extern Bitboard PawnAttackSpan[COLOR_NB][SQUARE_NB];
 extern Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
-
 extern int SquareDistance[SQUARE_NB][SQUARE_NB];
 /*
 —p“r•s–¾
@@ -513,5 +512,7 @@ extern Square pop_lsb(Bitboard* b);
 */
 inline Square frontmost_sq(Color c, Bitboard b) { return c == WHITE ? msb(b) : lsb(b); }
 inline Square  backmost_sq(Color c, Bitboard b) { return c == WHITE ? lsb(b) : msb(b); }
+
+void printBSFTable();
 
 #endif // #ifndef BITBOARD_H_INCLUDED

@@ -24,9 +24,25 @@
 
 /// Simple macro to wrap a very common while loop, no facny, no flexibility,
 /// hardcoded names 'mlist' and 'from'.
+/*
+bはターゲットとなるbitboardでfrom座標（マクロなのでこのfromは引数ではなくこのマクロが挿入された場所の
+自動変数を利用している,mlist変数についても同様）にある駒がターゲットに移動する着手リストを作る
+
+generate_moves関数
+generate_all関数
+generate<QUIET_CHECKS>関数
+generate<EVASIONS>
+で使用する
+*/
 #define SERIALIZE(b) while (b) (mlist++)->move = make_move(from, pop_lsb(&b))
 
 /// Version used for pawns, where the 'from' square is given as a delta from the 'to' square
+/*
+PAWNの着手リストを作るためのマクロ
+第一引数のbはPAWNのターゲット（移動先）、第二引数ｄは方向子
+
+generate_promotions関数
+*/
 #define SERIALIZE_PAWNS(b, d) while (b) { Square to = pop_lsb(&b); \
                                          (mlist++)->move = make_move(to - (d), to); }
 namespace {
@@ -73,7 +89,7 @@ namespace {
 	/*
 	generate_pawn_movesから呼び出され
 	指定されたDelta方向子で移動先bitboardをつくり
-	座標を取り出し成れるこまに昇格する手を生成する
+	座標を取り出し成れる駒に昇格する手を生成する
 	*/
 	template<GenType Type, Square Delta>
   inline ExtMove* generate_promotions(ExtMove* mlist, Bitboard pawnsOn7,
@@ -288,12 +304,17 @@ namespace {
 						if (unlikely(ci->dcCandidates) && (ci->dcCandidates & from))
                 continue;
         }
-
+				/*
+				from座標にいる駒から移動可能な場所のbitboardをbに入れておき
+				SERIALIZE(b)マクロで
+				*/
         Bitboard b = pos.attacks_from<Pt>(from) & target;
 				//QUIET_CHECKSは移動することで王手をかけれる手に移動する手を追加する
 				if (Checks)
             b &= ci->checkSq[Pt];
-
+				/*
+				bitboard b（ターゲットbitboard）を渡して着手リスト(mlist）を生成している
+				*/
         SERIALIZE(b);
     }
 

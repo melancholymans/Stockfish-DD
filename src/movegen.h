@@ -25,7 +25,7 @@
 enum GenType {			//GenType　手を生成するパターン
   CAPTURES,					//とにかく取る手
   QUIETS,						//穏やかな手（とらずに移動するだけ）
-  QUIET_CHECKS,			//？
+  QUIET_CHECKS,			//駒をとらないで王手をかける手（穏やかに王手？）
   EVASIONS,					//王手を回避する手
   NON_EVASIONS,			//王手をを回避する手以外の手
   LEGAL							//合法手を生成　具体的には王手がかかっていなかったらNON_EVASIONSを呼び、王手がかかっていたらEVASIONSを呼ぶ
@@ -43,6 +43,15 @@ ExtMove* generate(const Position& pos, ExtMove* mlist);
 着手リスト自体はprivate変数 mlist[MAX_MOVES=256]
 コンストラクタを呼ばれた時点でcurはmlistの先頭を指しており
 テンプレート変数で指定した生成関数で着手リストがmlistに登録されている
+
+このクラス内にbegin,end()関数を持っているのでC++11の範囲ベースfor文が使える
+実際book.cppのprobe関数内で使っている(生成パターンはLEGAL)。begin,end関数はクラス内着手リストを
+使っている。MovePick.cppで使っているMovePickerクラス内の着手リスト（moves）とはちがう
+endgame.cppでも使っている（生成パターンはLEGAL）,notation.cppのなかのmove_from_uci関数でも使っている（生成パターンはLEGAL）
+同じくmove_to_san関数内でも使用している（生成パターンはLEGAL）
+
+search関数で次の手を生成してオダーリングするなど大掛かりなことをするのはMovePickクラス
+ちょっと合法手を生成したい場合はMoveListクラスと分けて使っているのかな？
 */
 template<GenType T>
 struct MoveList {

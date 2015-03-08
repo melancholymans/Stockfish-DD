@@ -26,6 +26,8 @@
 #include "misc.h"
 #include "rkiss.h"
 
+using namespace std;
+
 CACHE_LINE_ALIGNMENT
 
 Bitboard RMasks[SQUARE_NB];
@@ -83,6 +85,8 @@ namespace {
   bit scanしているが仕組みがよくわからん
   ここに解説らしきものが書かれているが読めない
   https://chessprogramming.wikispaces.com/De+Bruijn+Sequence+Generator
+	わかっているのはBSFTable配列と組み合わせて使い、このbsf_index関数にbitboardを渡したら
+	BSFTable配列経由でbitboardのindexを返してくる
   */
   FORCE_INLINE unsigned bsf_index(Bitboard b) {
 
@@ -100,12 +104,27 @@ namespace {
 
 Square lsb(Bitboard b) { return BSFTable[bsf_index(b)]; }
 
+/*
+pop_lsbは下位ビットから数え始めて最初の1bitのインデックスを返す,indexは0から始まる
+その数えたbitは抜いてしまい(pop)0にする
+*/
 Square pop_lsb(Bitboard* b) {
 
   Bitboard bb = *b;
   *b = bb & (bb - 1);
   return BSFTable[bsf_index(bb)];
 }
+
+/*
+void printBSFTable()
+{
+	cout << "BSFTable" << endl;
+	for (int i = 0; i < 64; i++){
+		cout << " " << BSFTable[i];
+	}
+}
+*/
+
 /*
 msbは渡されたbit列(bitboard)の先頭のbit位置を返す、但し、最下位bitの位置は0とする
 bitが立っていない時も0を返す

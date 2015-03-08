@@ -512,6 +512,47 @@ void test(void)
 	cout << "msb(0x10000)" << msb(0x10000) << endl;
 	*/
 	cout << ~(64 - 1) << endl;
+	/*
+	bitboard.cpp のpop_lsb関数を調べていたらそのなかで使われているbsf_index関数と
+	BSFTable配列がわからない、bsf_index関数のなかは32bit版と64bit版があるようで
+	DeBruijn_64とDeBruijn_32とマジックナンバーのような変数が設定されていてよくわからないので
+	とりあえずpop_lsb関数にいろいろとbitboardをいれてどんな反応をするか調べる
+	*/
+	/*
+	FileBBB=
+	0100 0000
+	0100 0000
+	0100 0000
+	0100 0000
+	0100 0000
+	0100 0000
+	0100 0000
+	0100 0000
+	*/
+	/*
+	pop_lsbはbitboardの下位bitから１bitがあるindexを返す
+	indexは0から始まる
+	*/
+	Bitboard bb = FileBBB;
+	Square sq = pop_lsb(&bb);
+	cout << "pop_lsb(FileABB)=" << sq << endl;		//sq = 1
+	print(bb);
+	/*
+	Rank2BB=
+	0000 0000	下位bit
+	1111 1111
+	0000 0000
+	0000 0000
+	0000 0000
+	0000 0000
+	0000 0000
+	0000 0000	上位bit
+	*/	
+	bb = Rank2BB;
+	sq = pop_lsb(&bb);
+	cout << "pop_lsb(Rank2BB)=" << sq << endl;		//sq = 8
+	print(bb);
+	printBSFTable();
 	return;
 }
 

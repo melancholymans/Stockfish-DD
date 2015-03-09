@@ -16,6 +16,9 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/*
+探索の時間制御をおこなう
+*/
 
 #include <algorithm>
 #include <cmath>
@@ -36,6 +39,9 @@ namespace {
   // MoveImportance[] is based on naive statistical analysis of "how many games are still undecided
   // after n half-moves". Game is considered "undecided" as long as neither side has >275cp advantage.
   // Data was extracted from CCRL game database with some simple filtering criteria.
+	/*
+	実際のゲームの統計値？
+	*/
   const int MoveImportance[512] = {
     7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780, 7780,
     7780, 7780, 7780, 7780, 7778, 7778, 7776, 7776, 7776, 7773, 7770, 7768, 7766, 7763, 7757, 7751,
@@ -81,7 +87,11 @@ void TimeManager::pv_instability(double bestMoveChanges) {
   unstablePVExtraTime = int(bestMoveChanges * optimumSearchTime / 1.4);
 }
 
-
+/*
+think関数から呼ばれる
+ゲームの進捗具合によって色々変わっていく部分があるはず
+limitsはname space search内に
+*/
 void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color us)
 {
   /* We support four different kind of time controls:

@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*
-探索の時間制御をおこなう
+探索時間の制御をおこなう
 */
 
 #include <algorithm>
@@ -30,9 +30,17 @@
 namespace {
 
   /// Constants
-
+	/*
+	動きの水平線？
+	*/
   const int MoveHorizon  = 50;    // Plan time management at most this many moves ahead
+	/*
+	トラブル　比率？
+	*/
   const double MaxRatio   = 7.0;  // When in trouble, we can step over reserved time with this ratio
+	/*
+	時間の泥棒ってなに？
+	*/
   const double StealRatio = 0.33; // However we must not steal time from remaining moves over this ratio
 
 
@@ -69,19 +77,28 @@ namespace {
     8, 8, 8, 8, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
     4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3, 2, 2, 2, 2,
     2, 1, 1, 1, 1, 1, 1, 1 };
-
+	/*
+	上の配列の値を返していく関数
+	*/
   int move_importance(int ply) { return MoveImportance[std::min(ply, 511)]; }
 
 
   /// Function Prototypes
-
+	/*
+	用途不明
+	*/
   enum TimeType { OptimumTime, MaxTime };
-
+	/*
+	用途不明
+	*/
   template<TimeType>
   int remaining(int myTime, int movesToGo, int fullMoveNumber, int slowMover);
 }
 
-
+/*
+ｐｖ（最善応手手順）の不安定？
+用途不明
+*/
 void TimeManager::pv_instability(double bestMoveChanges) {
 
   unstablePVExtraTime = int(bestMoveChanges * optimumSearchTime / 1.4);
@@ -90,7 +107,8 @@ void TimeManager::pv_instability(double bestMoveChanges) {
 /*
 think関数から呼ばれる
 ゲームの進捗具合によって色々変わっていく部分があるはず
-limitsはname space search内に
+limitsはname space search内にあって探索に色々な制限を掛けるための構造体
+
 */
 void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color us)
 {

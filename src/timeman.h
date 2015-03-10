@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*
-’Tõ‚ÌŽžŠÔ§Œä
+’TõŽžŠÔ‚Ì§Œä
 */
 #ifndef TIMEMAN_H_INCLUDED
 #define TIMEMAN_H_INCLUDED

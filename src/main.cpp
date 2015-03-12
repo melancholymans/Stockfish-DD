@@ -552,7 +552,7 @@ void test(void)
 	sq = pop_lsb(&bb);
 	cout << "pop_lsb(Rank2BB)=" << sq << endl;		//sq = 8
 	print(bb);
-	printBSFTable();
+	//printBSFTable();
 	return;
 }
 

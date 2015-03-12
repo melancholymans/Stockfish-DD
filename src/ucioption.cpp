@@ -128,16 +128,25 @@ std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
 
 
 /// Option c'tors and conversion operators
-
+/*
+ƒIƒvƒVƒ‡ƒ“‚ðÝ’è‚·‚é‚Æ‚«‚ÉŒÄ‚Î‚ê‚éŠÖ”
+charŒ^{ŠÖ”iÈ—ª‰Âj@stringŒ^
+*/
 Option::Option(const char* v, Fn* f) : type("string"), min(0), max(0), idx(Options.size()), on_change(f)
 { defaultValue = currentValue = v; }
-
+/*
+boolŒ^{ŠÖ”iÈ—ª‰Âj@checkŒ^
+*/
 Option::Option(bool v, Fn* f) : type("check"), min(0), max(0), idx(Options.size()), on_change(f)
 { defaultValue = currentValue = (v ? "true" : "false"); }
-
+/*
+ŠÖ”iÈ—ª‰ÂjbuttnŒ^@[„ŽÀ‘•‚Í‚È‚¢‚æ‚¤‚Å‚ ‚é
+*/
 Option::Option(Fn* f) : type("button"), min(0), max(0), idx(Options.size()), on_change(f)
 {}
-
+/*
+intŒ^,intŒ^,intŒ^,ŠÖ”iÈ—ª‰Âj@spinŒ^
+*/
 Option::Option(int v, int minv, int maxv, Fn* f) : type("spin"), min(minv), max(maxv), idx(Options.size()), on_change(f)
 { defaultValue = currentValue = std::to_string(v); }
 

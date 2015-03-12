@@ -513,6 +513,7 @@ extern Square pop_lsb(Bitboard* b);
 inline Square frontmost_sq(Color c, Bitboard b) { return c == WHITE ? msb(b) : lsb(b); }
 inline Square  backmost_sq(Color c, Bitboard b) { return c == WHITE ? lsb(b) : msb(b); }
 
-void printBSFTable();
+//I am append
+//void printBSFTable();
 
 #endif // #ifndef BITBOARD_H_INCLUDED

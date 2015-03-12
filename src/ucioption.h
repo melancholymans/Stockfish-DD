@@ -44,7 +44,7 @@ typedef std::map<std::string, Option, CaseInsensitiveLess> OptionsMap;
 /// Option class implements an option as defined by UCI protocol
 class Option {
 	/*
-	この宣言の意味がよくわからん
+	オプションが設定・変更した時に呼び出される関数の型
 	*/
 	typedef void (Fn)(const Option&);
 
@@ -63,10 +63,18 @@ public:
   Option(bool v, Fn* = nullptr);
   Option(const char* v, Fn* = nullptr);
   Option(int v, int min, int max, Fn* = nullptr);
-
+	/*
+	代入演算子を使われた時のオーバライド
+	*/
   Option& operator=(const std::string& v);
+	/*
+	int型への変換演算子
+	*/
   operator int() const;
-  operator std::string() const;
+	/*
+	string型への変換演算子
+	*/
+	operator std::string() const;
 
 private:
   friend std::ostream& operator<<(std::ostream&, const OptionsMap&);

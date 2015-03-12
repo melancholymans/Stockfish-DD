@@ -18,6 +18,10 @@
 */
 /*
 探索時間の制御をおこなう
+search名前空間の中に
+TimeManager TimeMgr;
+と宣言してありこの変数から探索時間の閾値を使っていくようだがよくわからない
+閾値を超えるようだとstopを掛けたりしている
 */
 
 #include <algorithm>
@@ -79,6 +83,7 @@ namespace {
     2, 1, 1, 1, 1, 1, 1, 1 };
 	/*
 	上の配列の値を返していく関数
+	このファイル内のremaining関数からのみから呼び出される
 	*/
   int move_importance(int ply) { return MoveImportance[std::min(ply, 511)]; }
 
@@ -86,6 +91,8 @@ namespace {
   /// Function Prototypes
 	/*
 	用途不明
+	OptimumTime = Optimum-Time 最適時間？
+	MaxTime = Max-Time 最大時間
 	*/
   enum TimeType { OptimumTime, MaxTime };
 	/*
@@ -98,6 +105,7 @@ namespace {
 /*
 ｐｖ（最善応手手順）の不安定？
 用途不明
+id_loop関数から呼び出されている
 */
 void TimeManager::pv_instability(double bestMoveChanges) {
 
@@ -108,7 +116,7 @@ void TimeManager::pv_instability(double bestMoveChanges) {
 think関数から呼ばれる
 ゲームの進捗具合によって色々変わっていく部分があるはず
 limitsはname space search内にあって探索に色々な制限を掛けるための構造体
-
+ほとんど用途不明、経験的なものがおおく感じる
 */
 void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color us)
 {
@@ -130,6 +138,14 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
   int hypMTG, hypMyTime, t1, t2;
 
   // Read uci parameters
+	/*
+	この５個のパラメータはUCIオプション
+	Emergency Move Horizon　=　非常用？　	設定値は 40
+	Emergency Base Time　=　非常用？			設定値は 60
+	Emergency Move Time　=　非常用？			設定値は 30
+	Minimum Thinking Time　=　？					設定値は 20
+	Slow Mover　？												設定値は 70
+	*/
   int emergencyMoveHorizon = Options["Emergency Move Horizon"];
   int emergencyBaseTime    = Options["Emergency Base Time"];
   int emergencyMoveTime    = Options["Emergency Move Time"];
@@ -168,7 +184,11 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 
 
 namespace {
-
+	/*
+	remainingは「残ったもの」と言う意味　残された探索時間？
+	このファイル内のinit関数から呼び出されている
+	他から呼び出しなし
+	*/
   template<TimeType T>
   int remaining(int myTime, int movesToGo, int currentPly, int slowMover)
   {

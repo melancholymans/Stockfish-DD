@@ -36,12 +36,42 @@ extern void benchmark(const Position& pos, istream& is);
 namespace {
 
   // FEN string of the initial position, normal chess
+	/*
+	局面を表す文字列 
+	fenStrは局面を文字列で表現したもの
+	＜例＞
+	"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+	R--rook,N--night,B--bishop,Q--queen,K--king,P--pawn,大文字はwhite（先手）
+	r--rook,n--night,b--bishop,q--queen,k--king,p--pawn,小文字はblack（後手）
+	数字は空白の数,/は行の終わり 局面を表現する文字列のあと空白を入れてこの局面で次に
+	指すカラーをw/bで表現、その次のKQkqは不明 -も不明　0 1も不明
+	（追記）
+	KQkqはキャスリングに関係するなにか
+	*/
   const char* StartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
   // Keep track of position keys along the setup moves (from start position to the
   // position just before to start searching). Needed by repetition draw detection.
-  Search::StateStackPtr SetupStates;
+	/*
+	StateStackPtrはStateInfoクラスを格納しているスタック
+	StateStackPtr自体はsearch.hで定義してある
 
+	search.cppのsearch名前空間の中に同名の変数がある
+	こっちのSetupStates変数はこのファイル内のpostion関数で
+	初期局面を設定し、そのあとの駒の動きがあればdo_move関数で局面を
+	更新、同時にSetupStates変数にも情報を登録しておく
+	それをstart_thinking関数でsearch.cppで定義してある
+	同名の変数SetupStates変数にmoveしている（moveはC++11で追加された機能）
+	このためこっちのSetupStates変数は一時的な保持になっている
+
+	positionは局面を保持するクラスで、do_moveによって
+	変更を加えられるが（局面更新）もとの局面に戻す時に
+	使用される情報を入れておく構造体かな
+	*/
+  Search::StateStackPtr SetupStates;
+	/*
+
+	*/
   void setoption(istringstream& up);
   void position(Position& pos, istringstream& up);
   void go(const Position& pos, istringstream& up);
@@ -168,6 +198,29 @@ namespace {
   // function updates the UCI option ("name") to the given value ("value").
 	/*
 	オプションを設定する
+	オプションはこのような形で呼び出される(UCIプロトコル）
+
+	setoption name <id> [value <x>]
+
+	name <id>
+		<id> = USI_Hash, type spin
+		HashのメモリーをMB単位で設定するオプション,デフォルトでは32MB
+		<id> = USI_Ponder, type check
+		先読みをするかどうかの設定,デフォルトではtrue
+		<id> = USI_OwnBook, type check
+		定跡Bookを使用するかどうか、デフォルトではfalse
+		<id> = USI_MultiPV, type spin
+		MultiPVをサポートするか、何本PVを保持するか、デフォルトでは１
+		<id> = USI_ShowCurrLine, type check
+		stockfishはこのオプションをサポートしていない？
+		<id> = USI_ShowRefutations, type check
+		stockfishはこのオプションをサポートしていない？
+		<id> = USI_LimitStrength, type check
+		stockfishはこのオプションをサポートしていない？
+		<id> = USI_Strength, type spin
+		stockfishはこのオプションをサポートしていない？
+		<id> = USI_AnalyseMode, type check
+		stockfishはこのオプションをサポートしていない？
 	*/
 	void setoption(istringstream& is) {
 

@@ -61,7 +61,7 @@ namespace Zobrist {
 /*
 用途不明
 */
-Key Position::exclusion_key() const { return st->key ^ Zobrist::exclusion; }
+Key Position::exclusion_key() const { return m_st->key ^ Zobrist::exclusion; }
 
 namespace {
 
@@ -210,8 +210,8 @@ startStateは用途不明
 Position& Position::operator=(const Position& pos) {
 
   std::memcpy(this, &pos, sizeof(Position));
-  startState = *st;
-  st = &startState;
+  startState = *m_st;
+  m_st = &startState;
   nodes = 0;
 
   assert(pos_is_ok());
@@ -333,28 +333,28 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
 	if (((ss >> col) && (col >= 'a' && col <= 'h'))
       && ((ss >> row) && (row == '3' || row == '6')))
   {
-      st->epSquare = File(col - 'a') | Rank(row - '1');
+      m_st->epSquare = File(col - 'a') | Rank(row - '1');
 
-      if (!(attackers_to(st->epSquare) & pieces(sideToMove, PAWN)))
-          st->epSquare = SQ_NONE;
+      if (!(attackers_to(m_st->epSquare) & pieces(sideToMove, PAWN)))
+          m_st->epSquare = SQ_NONE;
   }
 
   // 5-6. Halfmove clock and fullmove number
 	//用途不明
-	ss >> std::skipws >> st->rule50 >> gamePly;
+	ss >> std::skipws >> m_st->rule50 >> gamePly;
 
   // Convert from fullmove starting from 1 to ply starting from 0,
   // handle also common incorrect FEN with fullmove = 0.
 	//用途不明
 	gamePly = std::max(2 * (gamePly - 1), 0) + int(sideToMove == BLACK);
 	//用途不明
-	st->key = compute_key();
-  st->pawnKey = compute_pawn_key();
-  st->materialKey = compute_material_key();
-  st->psq = compute_psq_score();
-  st->npMaterial[WHITE] = compute_non_pawn_material(WHITE);
-  st->npMaterial[BLACK] = compute_non_pawn_material(BLACK);
-  st->checkersBB = attackers_to(king_square(sideToMove)) & pieces(~sideToMove);
+	m_st->key = compute_key();
+  m_st->pawnKey = compute_pawn_key();
+  m_st->materialKey = compute_material_key();
+  m_st->psq = compute_psq_score();
+  m_st->npMaterial[WHITE] = compute_non_pawn_material(WHITE);
+  m_st->npMaterial[BLACK] = compute_non_pawn_material(BLACK);
+  m_st->checkersBB = attackers_to(king_square(sideToMove)) & pieces(~sideToMove);
   chess960 = isChess960;
   thisThread = th;
 
@@ -374,7 +374,7 @@ void Position::set_castle_right(Color c, Square rfrom) {
   CastlingSide cs = kfrom < rfrom ? KING_SIDE : QUEEN_SIDE;
   CastleRight cr = make_castle_right(c, cs);
 
-  st->castleRights |= cr;
+  m_st->castleRights |= cr;
   castleRightsMask[kfrom] |= cr;
   castleRightsMask[rfrom] |= cr;
   castleRookSquare[c][cs] = rfrom;
@@ -440,11 +440,11 @@ const string Position::fen() const {
   if (can_castle(BLACK_OOO))
       ss << (chess960 ? file_to_char(file_of(castle_rook_square(BLACK, QUEEN_SIDE)),  true) : 'q');
 
-  if (st->castleRights == CASTLES_NONE)
+  if (m_st->castleRights == CASTLES_NONE)
       ss << '-';
 
   ss << (ep_square() == SQ_NONE ? " - " : " " + square_to_string(ep_square()) + " ")
-      << st->rule50 << " " << 1 + (gamePly - int(sideToMove == BLACK)) / 2;
+      << m_st->rule50 << " " << 1 + (gamePly - int(sideToMove == BLACK)) / 2;
 
   return ss.str();
 }
@@ -476,7 +476,7 @@ const string Position::pretty(Move move) const {
          << move_to_san(*const_cast<Position*>(this), move);
 
   ss << brd << "\nFen: " << fen() << "\nKey: " << std::hex << std::uppercase
-     << std::setfill('0') << std::setw(16) << st->key << "\nCheckers: ";
+     << std::setfill('0') << std::setw(16) << m_st->key << "\nCheckers: ";
 
   for (Bitboard b = checkers(); b; )
       ss << square_to_string(pop_lsb(&b)) << " ";
@@ -836,7 +836,7 @@ void Position::do_move(Move m, StateInfo& newSt) {
 void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveIsCheck) {
 
   assert(is_ok(m));
-  assert(&newSt != st);
+  assert(&newSt != m_st);
 	/*
 	展開したノード数をカウントしている
 	think関数で探索が終了したあとnodes_searched関数を呼び出し
@@ -846,7 +846,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 	/*
 	StateInfo.keyに局面のハッシュ値が記録されている
 	*/
-	Key k = st->key;
+	Key k = m_st->key;
 
   // Copy some fields of old state to our new StateInfo object except the ones
   // which are going to be recalculated from scratch anyway, then switch our state
@@ -855,12 +855,12 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 	StateCopySize64はStateInfo構造体のなかでkeyアイテムまでのオフセット（byte単位）数を返す
 	つまりStateInfo構造体の一部だけnewStにコピーする（何故全部コピーしないのかは不明）
 	*/
-	std::memcpy(&newSt, st, StateCopySize64 * sizeof(uint64_t));
+	std::memcpy(&newSt, m_st, StateCopySize64 * sizeof(uint64_t));
 	/*
 	StateInfoをつないでいる
 	*/
-	newSt.previous = st;
-  st = &newSt;
+	newSt.previous = m_st;
+  m_st = &newSt;
 
   // Update side to move
 	/*
@@ -876,8 +876,8 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 	pliesFromNullは今のところ不明do_null_move関数では0に初期化する
 	*/
 	++gamePly;
-  ++st->rule50;
-  ++st->pliesFromNull;
+  ++m_st->rule50;
+  ++m_st->pliesFromNull;
 
   Color us = sideToMove;
   Color them = ~us;
@@ -903,7 +903,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 
       do_castle(from, to, rfrom, rto);
 
-      st->psq += psq[us][ROOK][rto] - psq[us][ROOK][rfrom];
+      m_st->psq += psq[us][ROOK][rto] - psq[us][ROOK][rfrom];
       k ^= Zobrist::psq[us][ROOK][rfrom] ^ Zobrist::psq[us][ROOK][rto];
   }
 	/*
@@ -927,7 +927,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
               capsq += pawn_push(them);
 
               assert(pt == PAWN);
-              assert(to == st->epSquare);
+              assert(to == m_st->epSquare);
               assert(relative_rank(us, to) == RANK_6);
               assert(piece_on(to) == NO_PIECE);
               assert(piece_on(capsq) == make_piece(them, PAWN));
@@ -935,10 +935,10 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
               board[capsq] = NO_PIECE;
           }
 
-          st->pawnKey ^= Zobrist::psq[them][PAWN][capsq];
+          m_st->pawnKey ^= Zobrist::psq[them][PAWN][capsq];
       }
       else
-          st->npMaterial[them] -= PieceValue[MG][captured];
+          m_st->npMaterial[them] -= PieceValue[MG][captured];
 
       // Update board and piece lists
 			/*
@@ -954,20 +954,20 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 			同時にmaterialKeyも変更している
 			*/
 			k ^= Zobrist::psq[them][captured][capsq];
-      st->materialKey ^= Zobrist::psq[them][captured][pieceCount[them][captured]];
-      prefetch((char*)thisThread->materialTable[st->materialKey]);
+      m_st->materialKey ^= Zobrist::psq[them][captured][pieceCount[them][captured]];
+      prefetch((char*)thisThread->materialTable[m_st->materialKey]);
 
       // Update incremental scores
 			/*
-			st->psqは位置評価値の集計値なので取られた駒の差分をしている
+			m_st->psqは位置評価値の集計値なので取られた駒の差分をしている
 			*/
-			st->psq -= psq[them][captured][capsq];
+			m_st->psq -= psq[them][captured][capsq];
 
       // Reset rule 50 counter
 			/*
 			駒を取ったのでrule50は一旦キャンセルとなる
 			*/
-			st->rule50 = 0;
+			m_st->rule50 = 0;
   }
 	/*
 	これ以降は駒を取られていない指し手の更新
@@ -982,21 +982,21 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 	/*
 	アンパッサン関係だと思うが詳細不明
 	*/
-	if (st->epSquare != SQ_NONE)
+	if (m_st->epSquare != SQ_NONE)
   {
-      k ^= Zobrist::enpassant[file_of(st->epSquare)];
-      st->epSquare = SQ_NONE;
+      k ^= Zobrist::enpassant[file_of(m_st->epSquare)];
+      m_st->epSquare = SQ_NONE;
   }
 
   // Update castle rights if needed
 	/*
 	キャスリング関係かな、詳細不明
 	*/
-	if (st->castleRights && (castleRightsMask[from] | castleRightsMask[to]))
+	if (m_st->castleRights && (castleRightsMask[from] | castleRightsMask[to]))
   {
       int cr = castleRightsMask[from] | castleRightsMask[to];
-      k ^= Zobrist::castle[st->castleRights & cr];
-      st->castleRights &= ~cr;
+      k ^= Zobrist::castle[m_st->castleRights & cr];
+      m_st->castleRights &= ~cr;
   }
 
   // Prefetch TT access as soon as we know the new hash key
@@ -1023,8 +1023,8 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 		if ((int(to) ^ int(from)) == 16
           && (attacks_from<PAWN>(from + pawn_push(us), us) & pieces(them, PAWN)))
       {
-          st->epSquare = Square((from + to) / 2);
-          k ^= Zobrist::enpassant[file_of(st->epSquare)];
+          m_st->epSquare = Square((from + to) / 2);
+          k ^= Zobrist::enpassant[file_of(m_st->epSquare)];
       }
 		/*
 		PAWNがなる場合の処理
@@ -1049,30 +1049,30 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 					局面のハッシュ値をを更新、pawn専用のハッシュ値も更新
 					*/
 					k ^= Zobrist::psq[us][PAWN][to] ^ Zobrist::psq[us][promotion][to];
-          st->pawnKey ^= Zobrist::psq[us][PAWN][to];
-          st->materialKey ^=  Zobrist::psq[us][promotion][pieceCount[us][promotion]-1]
+          m_st->pawnKey ^= Zobrist::psq[us][PAWN][to];
+          m_st->materialKey ^=  Zobrist::psq[us][promotion][pieceCount[us][promotion]-1]
                             ^ Zobrist::psq[us][PAWN][pieceCount[us][PAWN]];
 
           // Update incremental score
 					//位置評価値もも更新
-					st->psq += psq[us][promotion][to] - psq[us][PAWN][to];
+					m_st->psq += psq[us][promotion][to] - psq[us][PAWN][to];
 
           // Update material
 					/*
 					駒評価値も更新
 					*/
-					st->npMaterial[us] += PieceValue[MG][promotion];
+					m_st->npMaterial[us] += PieceValue[MG][promotion];
       }
 
       // Update pawn hash key and prefetch access to pawnsTable
-      st->pawnKey ^= Zobrist::psq[us][PAWN][from] ^ Zobrist::psq[us][PAWN][to];
-      prefetch((char*)thisThread->pawnsTable[st->pawnKey]);
+      m_st->pawnKey ^= Zobrist::psq[us][PAWN][from] ^ Zobrist::psq[us][PAWN][to];
+      prefetch((char*)thisThread->pawnsTable[m_st->pawnKey]);
 
       // Reset rule 50 draw counter
 			/*
 			引き分け条件をクリア
 			*/
-			st->rule50 = 0;
+			m_st->rule50 = 0;
   }
 	/*
 	これ以降は駒を取らない指し手でPAWN以外の駒種の処理、共通処理かな
@@ -1081,22 +1081,22 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 	/*
 	位置評価値の更新
 	*/
-	st->psq += psq[us][pt][to] - psq[us][pt][from];
+	m_st->psq += psq[us][pt][to] - psq[us][pt][from];
 
   // Set capture piece
 	/*
 	とった駒種
 	*/
-	st->capturedType = captured;
+	m_st->capturedType = captured;
 
   // Update the key with the final value
 	/*
 	最終ハッシュ値を登録
 	*/
-	st->key = k;
+	m_st->key = k;
 
   // Update checkers bitboard, piece must be already moved
-  st->checkersBB = 0;
+  m_st->checkersBB = 0;
 	/*
 	moveIsCheckはdo_move関数の引数の１つ
 	王手の手があるならtrue
@@ -1104,7 +1104,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 	if (moveIsCheck)
   {
       if (type_of(m) != NORMAL)
-          st->checkersBB = attackers_to(king_square(them)) & pieces(us);
+          m_st->checkersBB = attackers_to(king_square(them)) & pieces(us);
       else
       {
           // Direct checks
@@ -1114,7 +1114,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 					そしてチエックが可能であればcheckerBBに追加している
 					*/
 					if (ci.checkSq[pt] & to)
-						st->checkersBB |= to;
+						m_st->checkersBB |= to;
 
           // Discovery checks
 					/*
@@ -1123,10 +1123,10 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 					if (ci.dcCandidates && (ci.dcCandidates & from))
           {
               if (pt != ROOK)
-                  st->checkersBB |= attacks_from<ROOK>(king_square(them)) & pieces(us, QUEEN, ROOK);
+                  m_st->checkersBB |= attacks_from<ROOK>(king_square(them)) & pieces(us, QUEEN, ROOK);
 
               if (pt != BISHOP)
-                  st->checkersBB |= attacks_from<BISHOP>(king_square(them)) & pieces(us, QUEEN, BISHOP);
+                  m_st->checkersBB |= attacks_from<BISHOP>(king_square(them)) & pieces(us, QUEEN, BISHOP);
           }
       }
   }
@@ -1155,7 +1155,7 @@ void Position::undo_move(Move m) {
   Square from = from_sq(m);
   Square to = to_sq(m);
   PieceType pt = type_of(piece_on(to));
-  PieceType captured = st->capturedType;
+  PieceType captured = m_st->capturedType;
 
   assert(empty(from) || type_of(m) == CASTLE);
   assert(captured != KING);
@@ -1203,7 +1203,7 @@ void Position::undo_move(Move m) {
           capsq -= pawn_push(us);
 
           assert(pt == PAWN);
-          assert(to == st->previous->epSquare);
+          assert(to == m_st->previous->epSquare);
           assert(relative_rank(us, to) == RANK_6);
           assert(piece_on(capsq) == NO_PIECE);
       }
@@ -1212,7 +1212,7 @@ void Position::undo_move(Move m) {
   }
 
   // Finally point our state pointer back to the previous state
-  st = st->previous;
+  m_st = m_st->previous;
   --gamePly;
 
   assert(pos_is_ok());
@@ -1244,22 +1244,22 @@ void Position::do_null_move(StateInfo& newSt) {
 
   assert(!checkers());
 
-  std::memcpy(&newSt, st, sizeof(StateInfo)); // Fully copy here
+  std::memcpy(&newSt, m_st, sizeof(StateInfo)); // Fully copy here
 
-  newSt.previous = st;
-  st = &newSt;
+  newSt.previous = m_st;
+  m_st = &newSt;
 
-  if (st->epSquare != SQ_NONE)
+  if (m_st->epSquare != SQ_NONE)
   {
-      st->key ^= Zobrist::enpassant[file_of(st->epSquare)];
-      st->epSquare = SQ_NONE;
+      m_st->key ^= Zobrist::enpassant[file_of(m_st->epSquare)];
+      m_st->epSquare = SQ_NONE;
   }
 
-  st->key ^= Zobrist::side;
-  prefetch((char*)TT.first_entry(st->key));
+  m_st->key ^= Zobrist::side;
+  prefetch((char*)TT.first_entry(m_st->key));
 
-  ++st->rule50;
-  st->pliesFromNull = 0;
+  ++m_st->rule50;
+  m_st->pliesFromNull = 0;
 
   sideToMove = ~sideToMove;
 
@@ -1272,7 +1272,7 @@ void Position::undo_null_move() {
 
   assert(!checkers());
 
-  st = st->previous;
+  m_st = m_st->previous;
   sideToMove = ~sideToMove;
 }
 
@@ -1422,7 +1422,7 @@ void Position::clear() {
 
   std::memset(this, 0, sizeof(Position));
   startState.epSquare = SQ_NONE;
-  st = &startState;
+  m_st = &startState;
 
   for (int i = 0; i < PIECE_TYPE_NB; ++i)
       for (int j = 0; j < 16; ++j)
@@ -1437,7 +1437,7 @@ void Position::clear() {
 
 Key Position::compute_key() const {
 
-  Key k = Zobrist::castle[st->castleRights];
+  Key k = Zobrist::castle[m_st->castleRights];
 
   for (Bitboard b = pieces(); b; )
   {
@@ -1555,19 +1555,19 @@ bool Position::is_draw() const {
       return true;
 
   // Draw by the 50 moves rule?
-  if (st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
+  if (m_st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
 
-  int i = 4, e = std::min(st->rule50, st->pliesFromNull);
+  int i = 4, e = std::min(m_st->rule50, m_st->pliesFromNull);
 
   if (i <= e)
   {
-      StateInfo* stp = st->previous->previous;
+      StateInfo* stp = m_st->previous->previous;
 
       do {
           stp = stp->previous->previous;
 
-          if (stp->key == st->key)
+          if (stp->key == m_st->key)
               return true; // Draw after first repetition
 
           i += 2;
@@ -1694,7 +1694,7 @@ bool Position::pos_is_ok(int* failedStep) const {
       if (attackers_to(king_square(~sideToMove)) & pieces(sideToMove))
           return false;
 
-  if ((*step)++, debugCheckerCount && popcount<Full>(st->checkersBB) > 2)
+  if ((*step)++, debugCheckerCount && popcount<Full>(m_st->checkersBB) > 2)
       return false;
 
   if ((*step)++, debugBitboards)
@@ -1730,21 +1730,21 @@ bool Position::pos_is_ok(int* failedStep) const {
   if ((*step)++, ep_square() != SQ_NONE && relative_rank(sideToMove, ep_square()) != RANK_6)
       return false;
 
-  if ((*step)++, debugKey && st->key != compute_key())
+  if ((*step)++, debugKey && m_st->key != compute_key())
       return false;
 
-  if ((*step)++, debugPawnKey && st->pawnKey != compute_pawn_key())
+  if ((*step)++, debugPawnKey && m_st->pawnKey != compute_pawn_key())
       return false;
 
-  if ((*step)++, debugMaterialKey && st->materialKey != compute_material_key())
+  if ((*step)++, debugMaterialKey && m_st->materialKey != compute_material_key())
       return false;
 
-  if ((*step)++, debugIncrementalEval && st->psq != compute_psq_score())
+  if ((*step)++, debugIncrementalEval && m_st->psq != compute_psq_score())
       return false;
 
   if ((*step)++, debugNonPawnMaterial)
-      if (   st->npMaterial[WHITE] != compute_non_pawn_material(WHITE)
-          || st->npMaterial[BLACK] != compute_non_pawn_material(BLACK))
+      if (   m_st->npMaterial[WHITE] != compute_non_pawn_material(WHITE)
+          || m_st->npMaterial[BLACK] != compute_non_pawn_material(BLACK))
           return false;
 
   if ((*step)++, debugPieceCounts)

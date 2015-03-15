@@ -56,6 +56,8 @@ struct CheckInfo {
 positionは局面を保持するクラスで、do_moveによって
 変更を加えられるが（局面更新）もとの局面に戻す時に
 使用される情報を入れておく構造体かな
+
+
 */
 struct StateInfo {
 	/*
@@ -243,7 +245,6 @@ public:
 
   // Attacks to/from a given square
 	/*
-	用途不明
 	利き計算だとおもう
 	*/
 	Bitboard attackers_to(Square s) const;
@@ -322,21 +323,21 @@ public:
 
   // Doing and undoing moves
 	/*
-	局面更新、詳細不明
+	局面更新
 	ここからいろいろ引数を追加して下の
 	do_moveを呼んでいるラッパー
 	*/
 	void do_move(Move m, StateInfo& st);
 	/*
-	局面更新、詳細不明
+	局面更新
 	*/
 	void do_move(Move m, StateInfo& st, const CheckInfo& ci, bool moveIsCheck);
 	/*
-	局面復元、詳細不明
+	局面復元
 	*/
 	void undo_move(Move m);
 	/*
-	null moveを動かす,詳細不明
+	null moveを動かす
 	*/
 	void do_null_move(StateInfo& st);
 	/*
@@ -346,7 +347,6 @@ public:
 
   // Static exchange evaluation
 	/*
-	用途不明
 	SEEの名前からして静止探索？
 	*/
 	int see(Move m, int asymmThreshold = 0) const;
@@ -507,7 +507,7 @@ private:
 	/*
 	用途不明
 	*/
-	StateInfo* st;
+	StateInfo* m_st;	//あまりにも同じ名前がついていて紛らしいので変更2015/3 st->m_st
 	/*
 	変則chess960かどうかのフラグ
 	*/
@@ -604,7 +604,7 @@ template<PieceType Pt> inline const Square* Position::list(Color c) const {
 用途不明
 */
 inline Square Position::ep_square() const {
-  return st->epSquare;
+  return m_st->epSquare;
 }
 /*
 指定したカラーのKINGの座標を返す
@@ -616,13 +616,13 @@ inline Square Position::king_square(Color c) const {
 用途不明
 */
 inline int Position::can_castle(CastleRight f) const {
-  return st->castleRights & f;
+  return m_st->castleRights & f;
 }
 /*
 用途不明
 */
 inline int Position::can_castle(Color c) const {
-  return st->castleRights & ((WHITE_OO | WHITE_OOO) << (2 * c));
+  return m_st->castleRights & ((WHITE_OO | WHITE_OOO) << (2 * c));
 }
 /*
 用途不明
@@ -678,7 +678,7 @@ checkersBBは局面クラスが生成された時、set_state関数で最初の初期化をする
 その後はdo_move関数で更新する
 */
 inline Bitboard Position::checkers() const {
-  return st->checkersBB;
+  return m_st->checkersBB;
 }
 /*
 Colorに自陣カラー kingColorに敵陣カラーを指定すれば
@@ -716,31 +716,31 @@ inline bool Position::passed_pawn_push(Move m) const {
 用途不明
 */
 inline Key Position::key() const {
-  return st->key;
+  return m_st->key;
 }
 /*
 用途不明
 */
 inline Key Position::pawn_key() const {
-  return st->pawnKey;
+  return m_st->pawnKey;
 }
 /*
 用途不明
 */
 inline Key Position::material_key() const {
-  return st->materialKey;
+  return m_st->materialKey;
 }
 /*
 用途不明
 */
 inline Score Position::psq_score() const {
-  return st->psq;
+  return m_st->psq;
 }
 /*
 PAWNを除いた駒評価値
 */
 inline Value Position::non_pawn_material(Color c) const {
-  return st->npMaterial[c];
+  return m_st->npMaterial[c];
 }
 /*
 ゲームの何手目かを返す
@@ -807,7 +807,7 @@ inline bool Position::capture(Move m) const {
 取った駒の駒種を入れておく、do_move関数で更新される
 */
 inline PieceType Position::captured_piece_type() const {
-  return st->capturedType;
+  return m_st->capturedType;
 }
 /*
 用途不明

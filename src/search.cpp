@@ -709,7 +709,7 @@ namespace {
     assert(depth > DEPTH_ZERO);
 
     Move quietsSearched[64];
-    StateInfo st;
+		StateInfo st;
     const TTEntry *tte;
     SplitPoint* splitPoint;
     Key posKey;

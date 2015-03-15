@@ -347,7 +347,7 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
   // handle also common incorrect FEN with fullmove = 0.
 	//用途不明
 	gamePly = std::max(2 * (gamePly - 1), 0) + int(sideToMove == BLACK);
-	//用途不明
+	//局面復元のための情報
 	m_st->key = compute_key();
   m_st->pawnKey = compute_pawn_key();
   m_st->materialKey = compute_material_key();
@@ -1434,7 +1434,9 @@ void Position::clear() {
 /// key is usually updated incrementally as moves are made and unmade, the
 /// compute_key() function is only used when a new position is set up, and
 /// to verify the correctness of the hash key when running in debug mode.
-
+/*
+局面の全ての駒と手番とキャスリング、アンパッサンに元ずいてハッシュ値を決める
+*/
 Key Position::compute_key() const {
 
   Key k = Zobrist::castle[m_st->castleRights];
@@ -1454,13 +1456,14 @@ Key Position::compute_key() const {
   return k;
 }
 
-
 /// Position::compute_pawn_key() computes the hash key of the position. The
 /// hash key is usually updated incrementally as moves are made and unmade,
 /// the compute_pawn_key() function is only used when a new position is set
 /// up, and to verify the correctness of the pawn hash key when running in
 /// debug mode.
-
+/*
+局面上のPAWNだけの情報に基づいてハッシュ値を決める
+*/
 Key Position::compute_pawn_key() const {
 
   Key k = 0;
@@ -1474,13 +1477,17 @@ Key Position::compute_pawn_key() const {
   return k;
 }
 
-
 /// Position::compute_material_key() computes the hash key of the position.
 /// The hash key is usually updated incrementally as moves are made and unmade,
 /// the compute_material_key() function is only used when a new position is set
 /// up, and to verify the correctness of the material hash key when running in
 /// debug mode.
-
+/*
+Zobrist::psq[2][8][64]と最後の升は本来、座標を表すものだが
+駒数で乱数表を引いている
+デバックチエックのpos_is_ok関数からと、set関数からのみ呼ばれている
+駒だけ（material）の情報でハッシュ値を決めている
+*/
 Key Position::compute_material_key() const {
 
   Key k = 0;
@@ -1498,7 +1505,9 @@ Key Position::compute_material_key() const {
 /// game and the endgame. These functions are used to initialize the incremental
 /// scores when a new position is set up, and to verify that the scores are correctly
 /// updated by do_move and undo_move when the program is running in debug mode.
-
+/*
+位置評価値の集計
+*/
 Score Position::compute_psq_score() const {
 
   Score score = SCORE_ZERO;
@@ -1518,7 +1527,9 @@ Score Position::compute_psq_score() const {
 /// game material value for the given side. Material values are updated
 /// incrementally during the search, this function is only used while
 /// initializing a new Position object.
-
+/*
+PAWNを除いた駒評価値の集計（中盤評価値）
+*/
 Value Position::compute_non_pawn_material(Color c) const {
 
   Value value = VALUE_ZERO;

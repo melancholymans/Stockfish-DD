@@ -55,13 +55,11 @@ struct CheckInfo {
 /*
 positionは局面を保持するクラスで、do_moveによって
 変更を加えられるが（局面更新）もとの局面に戻す時に
-使用される情報を入れておく構造体かな
-
-
+使用される情報を入れておく構造体
 */
 struct StateInfo {
 	/*
-
+	PAWNだけの局面情報に基づいたハッシュ値を保管する変数
 	*/
 	Key pawnKey;
 	/*
@@ -69,16 +67,41 @@ struct StateInfo {
 	*/
 	Key	materialKey;
 	/*
-	npMaterial=non-pawn-material　PAWNがない状態の
+	npMaterial=non-pawn-material　PAWNを入れない他の駒の評価値の集計
 	*/
   Value npMaterial[COLOR_NB];
+	/*
+	castleRights：キャスリング
+	rule50：50手ルールお互い駒をとらないなど条件が成立したら引き分けにするルール
+					途中で駒を取ったらキャンセルするなどdo_move関数ないで処理している
+	http://ja.wikipedia.org/wiki/50%E6%89%8B%E3%83%AB%E3%83%BC%E3%83%AB
+	pliesFromNull：do_move関数でカウントアップ、do_null_moveでゼロクリア
+	is_draw関数でドロー判定するときrule50とpliesFromNullを比較して小さいほうで判定している
+	*/
   int castleRights, rule50, pliesFromNull;
+	/*
+	位置評価値の集計値
+	*/
   Score psq;
+	/*
+	アンパッサン
+	*/
   Square epSquare;
-
+	/*
+	この局面のハッシュ値
+	*/
   Key key;
+	/*
+	手番側のKINGへ利きを利かしている敵の駒のbitboard
+	*/
   Bitboard checkersBB;
+	/*
+	この局面で取った駒種（do_move関数で更新）
+	*/
   PieceType capturedType;
+	/*
+	ひとつ上のレベルへのリンク
+	*/
   StateInfo* previous;
 };
 
@@ -103,9 +126,20 @@ const size_t StateCopySize64 = offsetof(StateInfo, key) / sizeof(uint64_t) + 1;
 class Position {
 public:
   Position() {}
+	/*
+	他の局面をコピーして生成するコンストラクタ
+	*/
   Position(const Position& p, Thread* t) { *this = p; thisThread = t; }
+	/*
+	fen文字から生成コンストラクタ,c960は変形ルールを適用するどうかのflag
+	*/
   Position(const std::string& f, bool c960, Thread* t) { set(f, c960, t); }
+	/*代入演算子オーバーライド*/
   Position& operator=(const Position&);
+	/*
+	初期化、Position全体の初期化で、盤面の初期化はあとのset関数で行う
+	main関数から一度だけ呼ばれる
+	*/
   static void init();
 
   // Text input/output
@@ -141,7 +175,8 @@ public:
 	指した手と現在の局面を文字列にして返す
 	*/
 	const std::string pretty(Move m = MOVE_NONE) const;
-
+	********************************************************************************************************************
+		ここまで」
   // Position representation
 	/*
 	全ての駒のビットがたったbitboardを返す
@@ -486,6 +521,10 @@ private:
 	int castleRightsMask[SQUARE_NB];
   Square castleRookSquare[COLOR_NB][CASTLING_SIDE_NB];
   Bitboard castlePath[COLOR_NB][CASTLING_SIDE_NB];
+	/*
+	開始局面のためのStateInfo変数、Position::clear関数内で
+	StateInfo* m_stからポインターされる
+	*/
   StateInfo startState;
 	/*
 	do_moveを呼び出した回数
@@ -505,7 +544,10 @@ private:
 	*/
 	Thread* thisThread;
 	/*
-	用途不明
+	局面復元のために必要な情報(StateInfo）を保持するためのポインター
+	StateInfoは各レベルの自動変数 StateInfo st;をdo_move関数内で情報を設定している
+	m_stは常に最深部のStateInfoを指している
+	StateInfoのpreviousを辿ることで１つ手間のレベルの指し手情報にアクセスできる
 	*/
 	StateInfo* m_st;	//あまりにも同じ名前がついていて紛らしいので変更2015/3 st->m_st
 	/*

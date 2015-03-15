@@ -201,6 +201,8 @@ namespace {
 	オプションはこのような形で呼び出される(UCIプロトコル）
 
 	setoption name <id> [value <x>]
+	<例>
+	setoption name Hash value 70
 
 	name <id>
 		<id> = USI_Hash, type spin
@@ -238,7 +240,9 @@ namespace {
     // Read option value (can contain spaces)
     while (is >> token)
         value += string(" ", !value.empty()) + token;
-
+		/*
+		Option-mapに値を更新
+		*/
     if (Options.count(name))
         Options[name] = value;
     else

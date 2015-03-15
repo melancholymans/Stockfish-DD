@@ -492,15 +492,27 @@ const string Position::pretty(Move move) const {
 /// Position:hidden_checkers() returns a bitboard of all pinned / discovery check
 /// pieces, according to the call parameters. Pinned pieces protect our king,
 /// discovery check pieces attack the enemy king.
+/*
+ksqは自陣のKINGの座標
+Colorは敵サイドのカラー
+toMoveは自陣サイドのカラー
 
+敵の大駒にpinされている自駒を返す
+*/
 Bitboard Position::hidden_checkers(Square ksq, Color c, Color toMove) const {
 
   Bitboard b, pinners, result = 0;
 
   // Pinners are sliders that give check when pinned piece is removed
+	/*
+	敵側QUEEN,ROOK,BISHOP駒で自陣KINGに影の利きをとうしている駒をpinners(bitboard)に入れておく
+	*/
   pinners = (  (pieces(  ROOK, QUEEN) & PseudoAttacks[ROOK  ][ksq])
              | (pieces(BISHOP, QUEEN) & PseudoAttacks[BISHOP][ksq])) & pieces(c);
-
+	/*
+	その影の利きを掛けている駒とKINGの間にある駒をb(bitboard)に入れて
+	その駒が１つである自駒を返す（more_than_one関数が判定する）
+	*/
   while (pinners)
   {
       b = between_bb(ksq, pop_lsb(&pinners)) & pieces();

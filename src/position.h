@@ -175,8 +175,6 @@ public:
 	指した手と現在の局面を文字列にして返す
 	*/
 	const std::string pretty(Move m = MOVE_NONE) const;
-	********************************************************************************************************************
-		ここまで」
   // Position representation
 	/*
 	全ての駒のビットがたったbitboardを返す
@@ -215,7 +213,7 @@ public:
 	*/
 	Square king_square(Color c) const;
 	/*
-	用途不明
+	アンパッサンの座標を返す
 	*/
 	Square ep_square() const;
 	/*
@@ -261,8 +259,8 @@ public:
 
   // Checking
 	/*
-	用途不明
 	StateInfoのメンバーcheckersBBを返してくる
+	手番側のKINGに王手をかけている敵側のbitboardを返す
 	*/
 	Bitboard checkers() const;
 	/*
@@ -316,8 +314,8 @@ public:
 	*/
 	bool gives_check(Move m, const CheckInfo& ci) const;
 	/*
+	着手データの駒種がPAWNでかつ行がRank_4以上だったらtrueを返す
 	用途不明
-	PAWNに関することのようであるが不明
 	*/
 	bool passed_pawn_push(Move m) const;
 	/*
@@ -732,7 +730,7 @@ inline Bitboard Position::discovered_check_candidates() const {
   return hidden_checkers(king_square(~sideToMove), sideToMove, sideToMove);
 }
 /*
-自陣サイドのpinつけされている駒のbitboardを返す
+自陣サイド（toMove）のpinつけされている駒のbitboardを返す
 */
 inline Bitboard Position::pinned_pieces(Color toMove) const {
   return hidden_checkers(king_square(toMove), ~toMove, toMove);
@@ -755,25 +753,26 @@ inline bool Position::passed_pawn_push(Move m) const {
         && pawn_passed(sideToMove, to_sq(m));
 }
 /*
-用途不明
+現局面のハッシュ値
 */
 inline Key Position::key() const {
   return m_st->key;
 }
 /*
-用途不明
+局面上のPAWNだけを使って得られたハッシュ値
 */
 inline Key Position::pawn_key() const {
   return m_st->pawnKey;
 }
 /*
-用途不明
+駒だけでの情報で得られたハッシュ値
+key()と違って手番、キャスリング、アンパッサンの情報は入っていない
 */
 inline Key Position::material_key() const {
   return m_st->materialKey;
 }
 /*
-用途不明
+現局面での位置評価値の集計値
 */
 inline Score Position::psq_score() const {
   return m_st->psq;
@@ -828,8 +827,8 @@ inline bool Position::is_chess960() const {
   return chess960;
 }
 /*
-通常の動き＋駒をとる動作ならtrue
-promoto＋アンパッサンならtrue（関数の名前からpromotoを検出しているようだが両方検出している、バグ）
+通常の動き(NORMAL=0)＋駒をとる動作ならtrue
+promoto　｜｜　アンパッサンならtrue（ノーマル、キャスリング以外）
 */
 inline bool Position::capture_or_promotion(Move m) const {
 
@@ -852,7 +851,7 @@ inline PieceType Position::captured_piece_type() const {
   return m_st->capturedType;
 }
 /*
-用途不明
+この探索用のスレッドを返す
 */
 inline Thread* Position::this_thread() const {
   return thisThread;
@@ -860,7 +859,6 @@ inline Thread* Position::this_thread() const {
 /*
 駒を置くことによって生じるbitboardの更新
 駒の移動ではない、初期の駒配置に使用する
-pieceCountは
 */
 inline void Position::put_piece(Square s, Color c, PieceType pt) {
 
@@ -874,6 +872,7 @@ inline void Position::put_piece(Square s, Color c, PieceType pt) {
 }
 /*
 駒の移動による局面(bitboardなど）の更新
+do_move,undo_move関数から呼ばれる
 */
 inline void Position::move_piece(Square from, Square to, Color c, PieceType pt) {
 
@@ -892,6 +891,7 @@ inline void Position::move_piece(Square from, Square to, Color c, PieceType pt) 
 駒を取られた時の局面の更新
 byTypeBB,byTypeBB,byColorBBを更新
 index[],pieceList[][][],pieceCount[][]配列を更新する関数
+do_move,undo_move,do_castle関数から呼ばれる
 */
 inline void Position::remove_piece(Square s, Color c, PieceType pt) {
 

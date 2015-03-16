@@ -27,7 +27,10 @@
 #include "position.h"
 
 using namespace std;
-
+/*
+move_to_uci、move_to_san関数で使用されている
+駒種を文字１文字で表現するための文字列
+*/
 static const char* PieceToChar[COLOR_NB] = { " PNBRQK", " pnbrqk" };
 
 

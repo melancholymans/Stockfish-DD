@@ -36,12 +36,21 @@
 using std::string;
 using std::cout;
 using std::endl;
-
+/*
+notation.cppにも同じ名前で定義されているがこちら側はstring型、notation.cppはchar型
+駒種を文字１文字で表現するための文字列
+*/
 static const string PieceToChar(" PNBRQK  pnbrqk");
-
+/*
+アラメントを64bitに揃えている
+*/
 CACHE_LINE_ALIGNMENT
+/*
+psqという名前の変数はあっちこっちにある、Piece-Squareのように駒種別の座標によってある値をもつ
+ような意味に使われることがおおいようだ
 
-Score psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+*/
+Score psq_score[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Value PieceValue[PHASE_NB][PIECE_NB] = {
 { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
 { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };

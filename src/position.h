@@ -134,7 +134,7 @@ public:
 	fen文字から生成コンストラクタ,c960は変形ルールを適用するどうかのflag
 	*/
   Position(const std::string& f, bool c960, Thread* t) { set(f, c960, t); }
-	/*代入演算子オーバーライド*/
+	/*代入演算子オーバーロード*/
   Position& operator=(const Position&);
 	/*
 	初期化、Position全体の初期化で、盤面の初期化はあとのset関数で行う

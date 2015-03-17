@@ -47,10 +47,13 @@ static const string PieceToChar(" PNBRQK  pnbrqk");
 CACHE_LINE_ALIGNMENT
 /*
 psqという名前の変数はあっちこっちにある、Piece-Squareのように駒種別の座標によってある値をもつ
-ような意味に使われることがおおいようだ
-
+ような意味に使われることがおおいようだ。
+なので名前をpiece_sq_scoreに変更する
+初期化はPosition::initでする
+do_move関数でこの値を集計してStateInfo->psq変数に格納している
+あとcompute_psq_score関数で使用されている。
 */
-Score psq_score[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+Score piece_sq_score[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 Value PieceValue[PHASE_NB][PIECE_NB] = {
 { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
 { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };
@@ -202,8 +205,8 @@ void Position::init() {
 			*/
 			for (Square s = SQ_A1; s <= SQ_H8; ++s)
       {
-         psq[WHITE][pt][ s] =  (v + PSQT[pt][s]);
-         psq[BLACK][pt][~s] = -(v + PSQT[pt][s]);
+         piece_sq_score[WHITE][pt][ s] =  (v + PSQT[pt][s]);
+				 piece_sq_score[BLACK][pt][~s] = -(v + PSQT[pt][s]);
       }
   }
 }
@@ -844,7 +847,7 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
 /// to a StateInfo object. The move is assumed to be legal. Pseudo-legal
 /// moves should be filtered out before this function is called.
 /*
-局面を更新する関数、下の関数do_moveのオーバーライド
+局面を更新する関数、下の関数do_moveのオーバーロード
 */
 void Position::do_move(Move m, StateInfo& newSt) {
 
@@ -924,7 +927,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 
       do_castle(from, to, rfrom, rto);
 
-      m_st->psq += psq[us][ROOK][rto] - psq[us][ROOK][rfrom];
+			m_st->psq += piece_sq_score[us][ROOK][rto] - piece_sq_score[us][ROOK][rfrom];
       k ^= Zobrist::psq[us][ROOK][rfrom] ^ Zobrist::psq[us][ROOK][rto];
   }
 	/*
@@ -982,7 +985,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 			/*
 			m_st->psqは位置評価値の集計値なので取られた駒の差分をしている
 			*/
-			m_st->psq -= psq[them][captured][capsq];
+			m_st->psq -= piece_sq_score[them][captured][capsq];
 
       // Reset rule 50 counter
 			/*
@@ -1075,8 +1078,8 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
                             ^ Zobrist::psq[us][PAWN][pieceCount[us][PAWN]];
 
           // Update incremental score
-					//位置評価値もも更新
-					m_st->psq += psq[us][promotion][to] - psq[us][PAWN][to];
+					//位置評価値も更新
+					m_st->psq += piece_sq_score[us][promotion][to] - piece_sq_score[us][PAWN][to];
 
           // Update material
 					/*
@@ -1102,7 +1105,7 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 	/*
 	位置評価値の更新
 	*/
-	m_st->psq += psq[us][pt][to] - psq[us][pt][from];
+	m_st->psq += piece_sq_score[us][pt][to] - piece_sq_score[us][pt][from];
 
   // Set capture piece
 	/*
@@ -1537,7 +1540,7 @@ Score Position::compute_psq_score() const {
   {
       Square s = pop_lsb(&b);
       Piece pc = piece_on(s);
-      score += psq[color_of(pc)][type_of(pc)][s];
+			score += piece_sq_score[color_of(pc)][type_of(pc)][s];
   }
 
   return score;

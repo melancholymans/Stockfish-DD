@@ -36,7 +36,7 @@ public:
 
 private:
 	/*
-	>>演算子のオーバーライド
+	>>演算子のオーバーロード
 	テンプレートパラメータTは？
 	*/
   template<typename T> PolyglotBook& operator>>(T& n);

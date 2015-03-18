@@ -54,6 +54,16 @@ do_move関数でこの値を集計してStateInfo->psq変数に格納している
 あとcompute_psq_score関数で使用されている。
 */
 Score piece_sq_score[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+/*
+駒自身の価値、中盤での価値が**Mg,終盤での価値が**Egになっている
+white側のみでPosition::initでBLACK側にコピーする
+PieceValue[Mg=0][0-5]でVALUE_ZEROからQueenまでの中盤の駒評価値が入る
+PieceValue[Eg=1][0-5]でVALUE_ZEROからQueenまでの中盤の駒評価値が入る
+init関数で残りの
+PieceValue[Mg=0][8-13]でVALUE_ZEROからQueenまでの中盤の駒評価値が入る
+PieceValue[Eg=1][8-13]でVALUE_ZEROからQueenまでの中盤の駒評価値が入る
+配列の全てに値が入っているわけではない
+*/
 Value PieceValue[PHASE_NB][PIECE_NB] = {
 { VALUE_ZERO, PawnValueMg, KnightValueMg, BishopValueMg, RookValueMg, QueenValueMg },
 { VALUE_ZERO, PawnValueEg, KnightValueEg, BishopValueEg, RookValueEg, QueenValueEg } };

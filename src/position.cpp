@@ -57,11 +57,11 @@ Score piece_sq_score[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 /*
 駒自身の価値、中盤での価値が**Mg,終盤での価値が**Egになっている
 white側のみでPosition::initでBLACK側にコピーする
-PieceValue[Mg=0][0-5]でVALUE_ZEROからQueenまでの中盤の駒評価値が入る
-PieceValue[Eg=1][0-5]でVALUE_ZEROからQueenまでの中盤の駒評価値が入る
+PieceValue[Mg=0][0-5]でVALUE_ZEROからQueenまでの中盤のwhile側駒評価値が入る
+PieceValue[Eg=1][0-5]でVALUE_ZEROからQueenまでの終盤のwhile側駒評価値が入る
 init関数で残りの
-PieceValue[Mg=0][8-13]でVALUE_ZEROからQueenまでの中盤の駒評価値が入る
-PieceValue[Eg=1][8-13]でVALUE_ZEROからQueenまでの中盤の駒評価値が入る
+PieceValue[Mg=0][8-13]でVALUE_ZEROからQueenまでの中盤のblack側駒評価値が入る
+PieceValue[Eg=1][8-13]でVALUE_ZEROからQueenまでの終盤のblack側駒評価値が入る
 配列の全てに値が入っているわけではない
 */
 Value PieceValue[PHASE_NB][PIECE_NB] = {
@@ -73,15 +73,30 @@ chessなどの局面の状態を１つのハッシュ値で代表させる方法
 初期化しているのはPosition::init()関数内
 */
 namespace Zobrist {
-
+	/*
+	COLORごと、駒種ごと、盤座標ごとに乱数を発生させ（rkiss.hにあるclass RKISSで発生させている）
+	一意のハッシュ値を得る
+	*/
   Key psq[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
+	/*
+	アンパッサンのときのハッシュ値
+	*/
   Key enpassant[FILE_NB];
+	/*
+	キャスリングのときのハッシュ値
+	*/
   Key castle[CASTLE_RIGHT_NB];
+	/*
+	手番のときのハッシュ値
+	*/
   Key side;
+	/*
+	用途不明、単語の意味は除外
+	*/
   Key exclusion;
 }
 /*
-用途不明
+用途不明、単語の意味は除外
 */
 Key Position::exclusion_key() const { return m_st->key ^ Zobrist::exclusion; }
 
@@ -1331,7 +1346,9 @@ int Position::see_sign(Move m) const {
 
   return see(m);
 }
-
+/*
+静止探索
+*/
 int Position::see(Move m, int asymmThreshold) const {
 
   Square from, to;

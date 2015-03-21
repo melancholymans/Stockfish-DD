@@ -1333,6 +1333,7 @@ void Position::undo_null_move() {
 /// the capturing sequence is considered bad.
 /*
 静止探索
+駒の取り合いの評価、探索ルーチンを使用せず駒の取り合いがなくなるまで評価を続ける
 */
 int Position::see_sign(Move m) const {
 
@@ -1341,6 +1342,12 @@ int Position::see_sign(Move m) const {
   // Early return if SEE cannot be negative because captured piece value
   // is not less then capturing one. Note that king moves always return
   // here because king midgame value is set to 0.
+	/*
+	手番の指し手の駒価値（中盤）がこれから取ろうとしている駒の価値（中盤）より小さいまたは同等なら
+	１で帰れ（より価値の小さい駒で価値の大きな駒を取ることはOKらしい
+	つまりこれ以降の処理(see関数を呼ぶ処理）は指し手の駒が取る駒より価値が高い場合の
+	処理と言うことになる
+	*/
   if (PieceValue[MG][moved_piece(m)] <= PieceValue[MG][piece_on(to_sq(m))])
       return 1;
 

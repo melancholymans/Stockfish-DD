@@ -107,28 +107,50 @@ namespace {
 // from the bitboards and scan for new X-ray attacks behind it.
 /*
 min_attacker関数はsee関数のヘルパー関数
-でsee関数はおそらく静止探索だと思う
-詳細不明
+でsee関数は静止探索
+const Bitboard* bb[]は駒種ごとのbitboard
+const Square& to取り合いになっている座標
+const Bitboard& stmAttackers敵のアタッカー駒のbitboard
+Bitboard& occupied　from座標の駒を除いた全駒のbitboard
+Bitboard& attackers 全アタッカー（カラーに関係なく）
 */
 template<int Pt> FORCE_INLINE
 PieceType min_attacker(const Bitboard* bb, const Square& to, const Bitboard& stmAttackers,
                        Bitboard& occupied, Bitboard& attackers) {
+	/*
+	テンプレートパラメータで指定してある駒種でアタッカー駒を抽出
+	最初の駒種はPAWNからーつまり価値の低い駒から行う
+	指定した駒種がなかった場合min_attacker関数を駒種を上げて(PAWN->NIGHT->...)再帰呼び出しする
 
+	*/
   Bitboard b = stmAttackers & bb[Pt];
   if (!b)
       return min_attacker<Pt+1>(bb, to, stmAttackers, occupied, attackers);
-
+	/*
+	取り合う駒種の駒を全体のbitboardから取り除く
+	*/
   occupied ^= b & ~(b - 1);
 	/*
-	ここの処理不明
+	取り合う駒種がPAWN || BISHOP || QUEENだったとき、座標toに影の利きを利かせている
+	BISHOP,QUEEN駒があるようならattackersビットボードに追加する
+
+	取り合う駒種がROOK || QUEENだったとき、座標toに影の利きを利かせている
+	ROOK,QUEEN駒があるようならattackersビットボードに追加する
+
+	つまり駒を使ったらその後ろにまだto座標で取り合いできる駒があれば追加せよということ
 	*/
 	if (Pt == PAWN || Pt == BISHOP || Pt == QUEEN)
       attackers |= attacks_bb<BISHOP>(to, occupied) & (bb[BISHOP] | bb[QUEEN]);
 
   if (Pt == ROOK || Pt == QUEEN)
       attackers |= attacks_bb<ROOK>(to, occupied) & (bb[ROOK] | bb[QUEEN]);
-
+	/*
+	X-ray=直訳するとレントゲン線？
+	*/
   attackers &= occupied; // After X-ray that may add already processed pieces
+	/*
+	取り合える駒種を返す、引数のbitboardは参照渡しなのでこの関数内で更新すみ
+	*/
   return (PieceType)Pt;
 }
 /*
@@ -171,7 +193,7 @@ CheckInfo::CheckInfo(const Position& pos) {
 /// the black halves of the tables are initialized by flipping and changing the
 /// sign of the white scores.
 /*
-Zobristを初期化している
+Zobrist（局面ごとのハッシュ値を生成するクラス）を初期化している
 そのあと評価値（駒評価値と位置評価値）を初期している
 */
 void Position::init() {
@@ -366,7 +388,7 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
   }
 
   // 4. En passant square. Ignore if no pawn capture is possible
-	//用途不明
+	//アンパサン
 	if (((ss >> col) && (col >= 'a' && col <= 'h'))
       && ((ss >> row) && (row == '3' || row == '6')))
   {
@@ -377,7 +399,10 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
   }
 
   // 5-6. Halfmove clock and fullmove number
-	//用途不明
+	/*
+	std::skipwsはマニピュレータ（先頭の空白を読み飛ばす）
+	５０手ルールのフラグ、手数などのssに入力している
+	*/
 	ss >> std::skipws >> m_st->rule50 >> gamePly;
 
   // Convert from fullmove starting from 1 to ply starting from 0,
@@ -564,19 +589,6 @@ Bitboard Position::hidden_checkers(Square ksq, Color c, Color toMove) const {
 /// Position::attackers_to() computes a bitboard of all pieces which attack a
 /// given square. Slider attacks use occ bitboard as occupancy.
 /*
-attacks_from<>関数の概要
-指定した駒コード、盤座標にある駒の利きのbitboardを返す。ただしPAWNは進む方向と
-駒を取る利きが違う、attacks_fromはあくまで駒をとる利きのみかえす
-attacks_from関数は３つオーバーロードしている
-attacks_from(Square s)はテンプレート引数で駒種を指定して、
-指定した座標から利きのbitboardを返す。
-飛び駒だけでなく非飛び駒の利きbitboardも返せる。
-attacks_from<PAWN>(Square s, Color c)
-駒種はPAWNだけで座標とカラーが指定できて利きbitboardを返す
-attacks_from(Piece pc, Square s)
-指定した座標、指定した駒種から利きのbitboardを返す。
-非飛び駒は対応していない
-
 attackers_to関数の機能
 指定した座標に利いている全ての駒（カラーに関係なく）を検出してビットを立てた
 bitboardを返す
@@ -594,7 +606,20 @@ Bitboard Position::attackers_to(Square s, Bitboard occ) const {
 
 /// Position::attacks_from() computes a bitboard of all attacks of a given piece
 /// put in a given square. Slider attacks use occ bitboard as occupancy.
-
+/*
+attacks_from<>関数の機能
+指定した駒コード、盤座標にある駒の利きのbitboardを返す。ただしPAWNは進む方向と
+駒を取る利きが違う、attacks_fromはあくまで駒をとる利きのみかえす
+attacks_from関数は３つオーバーロードしている
+attacks_from(Square s)はテンプレート引数で駒種を指定して、
+指定した座標から利きのbitboardを返す。
+飛び駒だけでなく非飛び駒の利きbitboardも返せる。
+attacks_from<PAWN>(Square s, Color c)
+駒種はPAWNだけで座標とカラーが指定できて利きbitboardを返す
+attacks_from(Piece pc, Square s)
+指定した座標、指定した駒種から利きのbitboardを返す。
+非飛び駒は対応していない
+*/
 Bitboard Position::attacks_from(Piece p, Square s, Bitboard occ) {
 
   assert(is_ok(s));
@@ -652,13 +677,16 @@ bool Position::legal(Move m, Bitboard pinned) const {
   // If the moving piece is a king, check whether the destination
   // square is attacked by the opponent. Castling moves are checked
   // for legality during move generation.
+	/*
+	指し手がKINGなら着手パターンがキャスリングであること　|| KINGの移動先に敵の利きがないことでOK
+	*/
   if (type_of(piece_on(from)) == KING)
       return type_of(m) == CASTLE || !(attackers_to(to_sq(m)) & pieces(~us));
 
   // A non-king move is legal if and only if it is not pinned or it
   // is moving along the ray towards or away from the king.
 	/*
-	BISHOP,ROOKが仮にPINされていてもPINを外さないうごきならOK
+	指し手駒がpinされていなければOK、BISHOP、ROOKの利き方向への移動ならOK
 	*/
 	return   !pinned
         || !(pinned & from)
@@ -671,7 +699,9 @@ bool Position::legal(Move m, Bitboard pinned) const {
 /// due to SMP concurrent access or hash position key aliasing.
 /*
 合法手であるかテストする
-置換表の手の検査にも使用する
+
+置換表からの手は必ずしも現局面において合法かどうかは検査するまで
+わからない、同様に兄弟手の水平展開＝キラー手も検査する
 */
 bool Position::pseudo_legal(const Move m) const {
 
@@ -681,37 +711,67 @@ bool Position::pseudo_legal(const Move m) const {
   Piece pc = moved_piece(m);
 
   // Use a slower but simpler function for uncommon cases
+	/*
+	現局面でのMoveListクラスで合法手を生成
+	contains関数は渡された指し手が合法手リストにあるかチエックしている
+	type_of(m) != NORMALなのでPROMOTIONかEN PASSANTかCASTINGである
+	*/
   if (type_of(m) != NORMAL)
       return MoveList<LEGAL>(*this).contains(m);
 
   // Is not a promotion, so promotion piece must be empty
+	/*
+	ここにくるということは着手パターンは
+	NORMALなのでpromotion_typeに手があったらNG
+	*/
   if (promotion_type(m) - 2 != NO_PIECE_TYPE)
       return false;
 
   // If the from square is not occupied by a piece belonging to the side to
   // move, the move is obviously not legal.
+	/*
+	指し手の駒に駒コードが入っていない、カラーが違うのは当然NG
+	*/
   if (pc == NO_PIECE || color_of(pc) != us)
       return false;
 
   // The destination square cannot be occupied by a friendly piece
+	/*
+	指し手の移動先に自陣の駒があるのはNG
+	*/
   if (pieces(us) & to)
       return false;
 
   // Handle the special case of a pawn move
+	/*
+	PAWNに関するチエック
+	*/
   if (type_of(pc) == PAWN)
   {
       // Move direction must be compatible with pawn color
+			/*
+			WHITE側PAWNの移動はプラスとなりBLACK側PAWNの移動はマイナスとなる
+			従って手番がWHITEの時directionがプラスではないのはNG
+			*/
       int direction = to - from;
       if ((us == WHITE) != (direction > 0))
           return false;
 
       // We have already handled promotion moves, so destination
       // cannot be on the 8/1th rank.
+			/*
+			PAWNの移動先がRANK_8またはRANK_1ではNG
+			（ここにいるということは着手パターンがPMOTOTIONではないので）
+			*/
       if (rank_of(to) == RANK_8 || rank_of(to) == RANK_1)
           return false;
 
       // Proceed according to the square delta between the origin and
       // destination squares.
+			/*
+			directionはPAWNの移動距離（WHITEならプラス、BLACKならマイナス）
+			DELTA_NW、DELTA_NE、DELTA_SW、DELTA_SEは方向子
+			*/
       switch (direction)
       {
       case DELTA_NW:
@@ -720,10 +780,17 @@ bool Position::pseudo_legal(const Move m) const {
       case DELTA_SE:
       // Capture. The destination square must be occupied by an enemy
       // piece (en passant captures was handled earlier).
+			/*
+			斜めの方向子は取る動きなのでその移動先に駒がない　||　あっても自陣の駒ではNG
+			ここにいるということはアンパッサンの心配はいらない
+			*/
       if (piece_on(to) == NO_PIECE || color_of(piece_on(to)) != ~us)
           return false;
 
       // From and to files must be one file apart, avoids a7h5
+			/*
+			PAWNの取る動作は左右どちらでも列１分しか動かない
+			*/
       if (abs(file_of(from) - file_of(to)) != 1)
           return false;
       break;
@@ -731,6 +798,9 @@ bool Position::pseudo_legal(const Move m) const {
       case DELTA_N:
       case DELTA_S:
       // Pawn push. The destination square must be empty.
+			/*
+			１升だけ動くターンの時は駒は取らない
+			*/
       if (!empty(to))
           return false;
       break;
@@ -739,6 +809,11 @@ bool Position::pseudo_legal(const Move m) const {
       // Double white pawn push. The destination square must be on the fourth
       // rank, and both the destination square and the square between the
       // source and destination squares must be empty.
+				/*
+				http://chess.plala.jp/p2-6.html
+				PAWNは最初の位置からの移動のみ２升動ける
+				ここはWHITE側PAWNなので移動先がRANK_4ではない　||　移動先に駒がある　||　移動先との間に駒があるはNG
+				*/
       if (    rank_of(to) != RANK_4
           || !empty(to)
           || !empty(from + DELTA_N))
@@ -749,7 +824,11 @@ bool Position::pseudo_legal(const Move m) const {
       // Double black pawn push. The destination square must be on the fifth
       // rank, and both the destination square and the square between the
       // source and destination squares must be empty.
-      if (    rank_of(to) != RANK_5
+				/*
+				PAWNは最初の位置からの移動のみ２升動ける
+				ここはBLACK側PAWNなので移動先がRANK_5ではない　 || 移動先に駒がある　 || 移動先との間に駒があるはNG
+				*/
+					if (rank_of(to) != RANK_5
           || !empty(to)
           || !empty(from + DELTA_S))
           return false;
@@ -758,13 +837,17 @@ bool Position::pseudo_legal(const Move m) const {
       default:
           return false;
       }
-  }
+  }	//PAWNの場合のチエックここまで、その他の駒のチエックは駒の利き上に移動先があることを見ている
   else if (!(attacks_from(pc, from) & to))
       return false;
 
   // Evasions generator already takes care to avoid some kind of illegal moves
   // and pl_move_is_legal() relies on this. So we have to take care that the
   // same kind of moves are filtered out here.
+	/*
+	手番側のKINGに王手をかけている駒があって、指し手の駒がKINGでなくって他の駒で、王手をかけているのが
+	単独ではなく開き王手であった場合、開き王手の場合、王自身の移動以外正解はないのでその時点でNG
+	*/
   if (checkers())
   {
       if (type_of(pc) != KING)
@@ -774,22 +857,35 @@ bool Position::pseudo_legal(const Move m) const {
               return false;
 
           // Our move must be a blocking evasion or a capture of the checking piece
+					/*
+					王手をかけている駒とKINGの間に入って利きを遮断する手か王手をかけている駒自身を
+					取る手以外の手はNG
+					*/
           if (!((between_bb(lsb(checkers()), king_square(us)) | checkers()) & to))
               return false;
       }
       // In case of king moves under check we have to remove king so to catch
       // as invalid moves like b1a1 when opposite queen is on c1.
+			/*
+			ここにくるのはKNIGで、その移動先に敵駒の利きが利いていたらNG
+			*/
       else if (attackers_to(to, pieces() ^ from) & pieces(~us))
           return false;
   }
-
   return true;
 }
 
 
 /// Position::move_gives_check() tests whether a pseudo-legal move gives a check
 /*
-指し手が王手であればtrueを返す
+指し手が王手であればtrueを返す（チエックしている）
+呼んでいる関数
+generate_castle
+move_to_san
+do_move
+perft
+search
+qsearch
 */
 bool Position::gives_check(Move m, const CheckInfo& ci) const {
 
@@ -808,7 +904,7 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
 
   // Discovery check ?
 	/*
-	移動することで王手が掛けれるならtrueを返す
+	移動することで王手が掛けれるなら（開き王手）trueを返す
 	*/
 	if (unlikely(ci.dcCandidates) && (ci.dcCandidates & from))
   {
@@ -819,6 +915,9 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
   }
 
   // Can we skip the ugly special cases ?
+	/*
+	指し手パターンがノーマルならfalse？
+	*/
   if (type_of(m) == NORMAL)
       return false;
 
@@ -875,7 +974,10 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
 局面を更新する関数、下の関数do_moveのオーバーロード
 */
 void Position::do_move(Move m, StateInfo& newSt) {
-
+	/*
+	CheckInfoで手番側に王手がかかっているかチエックしている
+	反対にgives_checkはこれから指す手が王手かどうかをチエックしている
+	*/
   CheckInfo ci(*this);
   do_move(m, newSt, ci, gives_check(m, ci));
 }
@@ -902,7 +1004,15 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
   // pointer to point to the new, ready to be updated, state.
 	/*
 	StateCopySize64はStateInfo構造体のなかでkeyアイテムまでのオフセット（byte単位）数を返す
-	つまりStateInfo構造体の一部だけnewStにコピーする（何故全部コピーしないのかは不明）
+	つまりStateInfo構造体の一部だけnewStにコピーする
+	コピーされるアイテムは
+	Key pawnKey;
+	Key	materialKey;
+	Value npMaterial[COLOR_NB];
+	int castleRights, rule50, pliesFromNull;
+	Score psq;
+	Square epSquare;
+	Key key;
 	*/
 	std::memcpy(&newSt, m_st, StateCopySize64 * sizeof(uint64_t));
 	/*
@@ -1345,7 +1455,7 @@ int Position::see_sign(Move m) const {
 	/*
 	手番の指し手の駒価値（中盤）がこれから取ろうとしている駒の価値（中盤）より小さいまたは同等なら
 	１で帰れ（より価値の小さい駒で価値の大きな駒を取ることはOKらしい
-	つまりこれ以降の処理(see関数を呼ぶ処理）は指し手の駒が取る駒より価値が高い場合の
+	つまりこれ以降の処理(see関数を呼ぶ処理）は指し手の駒が取られる駒より価値が高い場合の
 	処理と言うことになる
 	*/
   if (PieceValue[MG][moved_piece(m)] <= PieceValue[MG][piece_on(to_sq(m))])
@@ -1368,8 +1478,14 @@ int Position::see(Move m, int asymmThreshold) const {
 
   from = from_sq(m);
   to = to_sq(m);
+	/*
+	swapListの最初にはto座標にいる駒の価値を入れておく（最初に取られる駒）
+	*/
   swapList[0] = PieceValue[MG][piece_on(to)];
   stm = color_of(piece_on(from));
+	/*
+	カラーに関係なく全駒のbitboard、但しfromにいる駒を除く
+	*/
   occupied = pieces() ^ from;
 
   // Castle moves are implemented as king capturing the rook so cannot be
@@ -1413,17 +1529,22 @@ int Position::see(Move m, int asymmThreshold) const {
   // destination square, where the sides alternately capture, and always
   // capture with the least valuable piece. After each capture, we look for
   // new X-ray attacks from behind the capturing piece.
-  captured = type_of(piece_on(from));
 	/*
-	slIndexは１から始まる
+	slIndexは１から始まる、0は最初にto座標にいる駒が入っている
 	swapList[]は取り合い駒リスト
 	*/
+	captured = type_of(piece_on(from));
 	do {
+			/*
+			swapList配列は３２まで
+			*/
       assert(slIndex < 32);
 
       // Add the new entry to the swap list
 			/*
 			取り合いになっていくがその駒評価値をswapListに記録する
+			直前に取った駒の価値との差分を記録する
+			
 			*/
 			swapList[slIndex] = -swapList[slIndex - 1] + PieceValue[MG][captured];
       ++slIndex;
@@ -1431,7 +1552,7 @@ int Position::see(Move m, int asymmThreshold) const {
       // Locate and remove the next least valuable attacker
 			/*
 			まず取り合いはPAWNからおこない、to座標にきている駒を取り合い
-			その駒種を返す
+			その駒種を返す、
 			*/
 			captured = min_attacker<PAWN>(byTypeBB, to, stmAttackers, occupied, attackers);
       stm = ~stm;
@@ -1440,6 +1561,7 @@ int Position::see(Move m, int asymmThreshold) const {
       // Stop before processing a king capture
 			/*
 			取り合いになり徐々に駒種がPAWNから上がっていくがKNIGになったらそこでやめる
+			もしくはbitboardがなくなったらやめる
 			*/
 			if (captured == KING && stmAttackers)
       {
@@ -1447,12 +1569,15 @@ int Position::see(Move m, int asymmThreshold) const {
           break;
       }
 
-  } while (stmAttackers);
+  } while (stmAttackers);	//アタッカー駒があれば続ける
 
   // If we are doing asymmetric SEE evaluation and the same side does the first
   // and the last capture, he loses a tempo and gain must be at least worth
   // 'asymmThreshold', otherwise we replace the score with a very low value,
   // before negamaxing.
+	/*
+	asymmThresholdはsee関数」の引数
+	*/
   if (asymmThreshold)
       for (int i = 0; i < slIndex; i += 2)
           if (swapList[i] < asymmThreshold)

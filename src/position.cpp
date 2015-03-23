@@ -400,8 +400,14 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
 
   // 5-6. Halfmove clock and fullmove number
 	/*
+	Halfmove
+	https://chessprogramming.wikispaces.com/Halfmove+Clock
+
 	std::skipwsはマニピュレータ（先頭の空白を読み飛ばす）
-	５０手ルールのフラグ、手数などのssに入力している
+	m_st->rule50は５０手ルールのフラグかと思っていたが違うようだ＝
+	この変数で50手を数えている、do_move関数内でカウントアップし99手に達しそうになったら
+	５０手ルールを適用している
+	gamePlyも手数手数などのssに入力している
 	*/
 	ss >> std::skipws >> m_st->rule50 >> gamePly;
 
@@ -1301,12 +1307,15 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 /// Position::undo_move() unmakes a move. When it returns, the position should
 /// be restored to exactly the same state as before the move was made.
 /*
+手を戻す関数
 do_move関数にくらべすごくコード量が少ない
 */
 void Position::undo_move(Move m) {
 
   assert(is_ok(m));
-
+	/*
+	手番反転
+	*/
   sideToMove = ~sideToMove;
 
   Color us = sideToMove;
@@ -1318,9 +1327,14 @@ void Position::undo_move(Move m) {
 
   assert(empty(from) || type_of(m) == CASTLE);
   assert(captured != KING);
-
+	/*
+	もし指し手パターンが成るパターンなら
+	*/
   if (type_of(m) == PROMOTION)
   {
+			/*
+			promotionにはPAWNがなった駒種を入れる->QUEENかNIGHT
+			*/
       PieceType promotion = promotion_type(m);
 
       assert(promotion == pt);
@@ -1328,7 +1342,8 @@ void Position::undo_move(Move m) {
       assert(promotion >= KNIGHT && promotion <= QUEEN);
 			/*
 			remove_piece関数は駒を取り除く時の処理
-			ひとます、なった駒をもとに戻し通常の移動の処理と共通化する
+			ひとまず、なった駒をもとに戻し通常の移動の処理と共通化する
+			（remove_piece関数で成った駒を取り除く処理をして、PAWNを置く処理＝成ったPAWNを元に戻す）
 			*/
 			remove_piece(to, us, promotion);
       put_piece(to, us, PAWN);
@@ -1352,7 +1367,10 @@ void Position::undo_move(Move m) {
 		移動の戻し（from,toをテレコにしている）
 		*/
 		move_piece(to, from, us, pt); // Put the piece back at the source square
-
+	/*
+	取った駒があれば(captured>0)、取られた場所に戻す
+	但し取った方法がアンパッサンなら取られた場所はto座標ではないので注意
+	*/
 	if (captured)
   {
       Square capsq = to;
@@ -1371,6 +1389,10 @@ void Position::undo_move(Move m) {
   }
 
   // Finally point our state pointer back to the previous state
+	/*
+	StateInfoを１手戻している,m_stが指していたStateInfoは自動変数なのでメモリーリークの心配はいらない
+	gamePlyも戻している
+	*/
   m_st = m_st->previous;
   --gamePly;
 
@@ -1402,24 +1424,35 @@ void Position::do_castle(Square kfrom, Square kto, Square rfrom, Square rto) {
 void Position::do_null_move(StateInfo& newSt) {
 
   assert(!checkers());
-
+	/*
+	手番はパスするがStateInfoはコピーが必要
+	*/
   std::memcpy(&newSt, m_st, sizeof(StateInfo)); // Fully copy here
 
   newSt.previous = m_st;
   m_st = &newSt;
-
+	/*
+	アンパッサン？
+	*/
   if (m_st->epSquare != SQ_NONE)
   {
       m_st->key ^= Zobrist::enpassant[file_of(m_st->epSquare)];
       m_st->epSquare = SQ_NONE;
   }
-
+	/*
+	局面は変わらないが手番は変わるのでハッシュ値は更新
+	*/
   m_st->key ^= Zobrist::side;
   prefetch((char*)TT.first_entry(m_st->key));
 
   ++m_st->rule50;
+	/*
+	pliesFromNullはヌルムーブからのカウントなのでここでカウントゼロ
+	*/
   m_st->pliesFromNull = 0;
-
+	/*
+	手番切り替え
+	*/
   sideToMove = ~sideToMove;
 
   assert(pos_is_ok());
@@ -1576,7 +1609,10 @@ int Position::see(Move m, int asymmThreshold) const {
   // 'asymmThreshold', otherwise we replace the score with a very low value,
   // before negamaxing.
 	/*
-	asymmThresholdはsee関数」の引数
+	asymmThresholdはsee関数」の引数、デフォルト数は0
+	0以上であれば　swapList[i]を繰ってasymmThresholdより小さければ
+	もしasymmThresholdが0より大きいならそれより価値の低い駒取っていたなら
+	その価値をさらに低くする（クイーン１６個分より低く）
 	*/
   if (asymmThreshold)
       for (int i = 0; i < slIndex; i += 2)
@@ -1619,6 +1655,7 @@ void Position::clear() {
 /// to verify the correctness of the hash key when running in debug mode.
 /*
 局面の全ての駒と手番とキャスリング、アンパッサンに元ずいてハッシュ値を決める
+pos_is_ok関数とset関数のみから呼ばれる
 */
 Key Position::compute_key() const {
 
@@ -1646,6 +1683,7 @@ Key Position::compute_key() const {
 /// debug mode.
 /*
 局面上のPAWNだけの情報に基づいてハッシュ値を決める
+pos_is_ok関数とset関数のみから呼ばれる
 */
 Key Position::compute_pawn_key() const {
 
@@ -1732,10 +1770,11 @@ Value Position::compute_non_pawn_material(Color c) const {
 次の場合は、「自動的」にドローとなる。
 ステイルメイト ： 自分の手番で、自分のキングにチェックされてはいないが、合法手がない状況を指す。
 ドロー・オファー： 片方がドローを提案し、もう片方がそれを承諾した場合。
-デッド・ポジション[8]： 駒の兵力不足のため、双方が相手のキングをチェックメイトできなくなった状況を指す。次の駒の組合せの時は、たとえ敵の駒がキング一つだけであってもチェックメイトすることはできない。[9]
-キング + ビショップ1個
-キング + ナイト1個
-（キング + ナイト2個
+デッド・ポジション[8]： 駒の兵力不足のため、双方が相手のキングをチェックメイトできなくなった状況を指す。次の駒の組合せの時は、
+たとえ敵の駒がキング一つだけであってもチェックメイトすることはできない。[9]
+	キング + ビショップ1個
+	キング + ナイト1個
+	（キング + ナイト2個
 
 次の場合、一方のプレーヤーの「申請（クレーム）」によりドローとなる
 50手ルール ： 50手連続して両者ともポーンが動かず、またお互いに駒を取らない場合。
@@ -1744,23 +1783,44 @@ Value Position::compute_non_pawn_material(Color c) const {
 bool Position::is_draw() const {
 
   // Draw by material?
+	/*
+	カラーに関係なくPAWNがない　&&　両カラーの駒価値の合計がBishopValueMg以下=>デッド・ポジションかな
+	*/
   if (   !pieces(PAWN)
       && (non_pawn_material(WHITE) + non_pawn_material(BLACK) <= BishopValueMg))
       return true;
 
   // Draw by the 50 moves rule?
+	/*
+	指し手数が５０手（先手、後手合わせて１手と棋譜には表記する）を
+	超えて、手番での王手がない　||　合法手はあるが膠着状態と判断できたらドロー
+	*/
   if (m_st->rule50 > 99 && (!checkers() || MoveList<LEGAL>(*this).size()))
       return true;
 
   int i = 4, e = std::min(m_st->rule50, m_st->pliesFromNull);
-
+	/*
+	スリーフォールド・レピティションの判断をしている
+	e:現在の手数をm_st->rule50, m_st->pliesFromNullで判断している
+	これは何故かというとrule50は駒を取ったりするとカウントクリアしているので
+	同形が出やすい
+	*/
   if (i <= e)
   {
+			/*
+			現局面より２手遡る
+			*/
       StateInfo* stp = m_st->previous->previous;
 
       do {
+					/*
+					２手づつ遡る
+					*/
           stp = stp->previous->previous;
-
+					/*
+					手を遡って１回ハッシュ値で同形と判断したらドロー判定
+					ルールでは同形３回とあるが何故
+					*/
           if (stp->key == m_st->key)
               return true; // Draw after first repetition
 
@@ -1775,7 +1835,10 @@ bool Position::is_draw() const {
 
 /// Position::flip() flips position with the white and black sides reversed. This
 /// is only useful for debugging especially for finding evaluation symmetry bugs.
-
+/*
+渡された文字が小文字なら大文字に変換し大文字なら小文字にする
+すぐ下にあるflip関数のヘルパー、先手、後手を反転させる
+*/
 static char toggle_case(char c) {
   return char(islower(c) ? toupper(c) : tolower(c));
 }
@@ -1871,7 +1934,10 @@ bool Position::pos_is_ok(int* failedStep) const {
 
   if ((*step)++, piece_on(king_square(BLACK)) != B_KING)
       return false;
-
+	/*
+	debugKingCountがtrueになっていればこの検査をする
+	盤をスキャンしてWHITE,BLACKのKINGが１つづつでなければNG
+	*/
   if ((*step)++, debugKingCount)
   {
       int kingCount[COLOR_NB] = {};
@@ -1883,14 +1949,24 @@ bool Position::pos_is_ok(int* failedStep) const {
       if (kingCount[0] != 1 || kingCount[1] != 1)
           return false;
   }
-
+	/*
+	debugKingCaptureがtrueになっていれば検査する
+	相手側のKINGに王手がかかっているとNG
+	このpos_is_ok関数は局面をセットした時やdo_move関数で局面を更新した時の最後の呼ばれるので
+	その時点でKINGに王手がかかっていましたはNGである
+	*/
   if ((*step)++, debugKingCapture)
       if (attackers_to(king_square(~sideToMove)) & pieces(sideToMove))
           return false;
-
+	/*
+	debugCheckerCountがtrueでかつ手番側のKINGに王手を掛けている駒が３つ以上ある
+	王手は最大でも２駒までしかかけられないのでNG
+	*/
   if ((*step)++, debugCheckerCount && popcount<Full>(m_st->checkersBB) > 2)
       return false;
-
+	/*
+	debugBitboardsがtrueなら検査
+	*/
   if ((*step)++, debugBitboards)
   {
       // The intersection of the white and black pieces must be empty
@@ -1920,33 +1996,57 @@ bool Position::pos_is_ok(int* failedStep) const {
               if (p1 != p2 && (pieces(p1) & pieces(p2)))
                   return false;
   }
-
+	/*
+	アンパッサンのチエック、アンパッサンのルール上アンパサンが起こるランクはBLACK側からみたらRANK3
+	WHITE側から見たらRANK6になるのでこのようなチエックをしている
+	*/
   if ((*step)++, ep_square() != SQ_NONE && relative_rank(sideToMove, ep_square()) != RANK_6)
       return false;
-
+	/*
+	debugKeyがtrueなら検査する
+	局面のハッシュ値が正しいかチエック
+	*/
   if ((*step)++, debugKey && m_st->key != compute_key())
       return false;
-
+	/*
+	debugPawnKeyがtrueなら検査する
+	pawnKeyが正しいかチエック
+	*/
   if ((*step)++, debugPawnKey && m_st->pawnKey != compute_pawn_key())
       return false;
-
+	/*
+	debugMaterialKeyがtrueなら検査する
+	materialKeyが正しいかチエック
+	*/
   if ((*step)++, debugMaterialKey && m_st->materialKey != compute_material_key())
       return false;
-
+	/*
+	debugIncrementalEvalがtrueなら検査する
+	位置評価値が正しいかチエック
+	*/
   if ((*step)++, debugIncrementalEval && m_st->psq != compute_psq_score())
       return false;
-
+	/*
+	debugNonPawnMaterialがtrueなら検査する
+	npMaterialが正しいかチエック
+	*/
   if ((*step)++, debugNonPawnMaterial)
       if (   m_st->npMaterial[WHITE] != compute_non_pawn_material(WHITE)
           || m_st->npMaterial[BLACK] != compute_non_pawn_material(BLACK))
           return false;
-
+	/*
+	debugPieceCountsがtrueなら検査する
+	pieceCount[][]に正しい数が入っているかチエック
+	*/
   if ((*step)++, debugPieceCounts)
       for (Color c = WHITE; c <= BLACK; ++c)
           for (PieceType pt = PAWN; pt <= KING; ++pt)
               if (pieceCount[c][pt] != popcount<Full>(pieces(c, pt)))
                   return false;
-
+	/*
+	debugPieceListがtrueなら検査する
+	pieceCount[][]とpieceList[][][]とboard[]があっている
+	*/
   if ((*step)++, debugPieceList)
       for (Color c = WHITE; c <= BLACK; ++c)
           for (PieceType pt = PAWN; pt <= KING; ++pt)
@@ -1954,7 +2054,10 @@ bool Position::pos_is_ok(int* failedStep) const {
                   if (   board[pieceList[c][pt][i]] != make_piece(c, pt)
                       || index[pieceList[c][pt][i]] != i)
                       return false;
-
+	/*
+	debugCastleSquaresがtrueなら検査する
+	なんかキャスリングのチエック
+	*/
   if ((*step)++, debugCastleSquares)
       for (Color c = WHITE; c <= BLACK; ++c)
           for (CastlingSide s = KING_SIDE; s <= QUEEN_SIDE; s = CastlingSide(s + 1))

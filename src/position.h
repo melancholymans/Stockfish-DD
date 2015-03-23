@@ -67,7 +67,7 @@ struct StateInfo {
 	*/
 	Key	materialKey;
 	/*
-	npMaterial=non-pawn-material　PAWNを入れない他の駒の評価値の集計
+	npMaterial=non-pawn-material　PAWNとKINGを入れない他の駒の評価値の集計
 	*/
   Value npMaterial[COLOR_NB];
 	/*
@@ -111,7 +111,6 @@ struct StateInfo {
 /*
 offsetofの機能
 構造体のメンバのバイト位置を示す整数を返す
-用途不明
 */
 const size_t StateCopySize64 = offsetof(StateInfo, key) / sizeof(uint64_t) + 1;
 
@@ -271,8 +270,7 @@ public:
 	*/
 	Bitboard discovered_check_candidates() const;
 	/*
-	用途不明
-	多分、kingへのチエックに関するなにか
+	pinが掛っている駒のbitboard
 	*/
 	Bitboard pinned_pieces(Color toMove) const;
 
@@ -293,7 +291,10 @@ public:
 	*/
 	bool legal(Move m, Bitboard pinned) const;
 	/*
-	用途不明
+	合法手であるかテストする
+
+	置換表からの手は必ずしも現局面において合法かどうかは検査するまで
+	わからない、同様に兄弟手の水平展開＝キラー手も検査する
 	*/
 	bool pseudo_legal(const Move m) const;
 	/*
@@ -301,16 +302,19 @@ public:
 	*/
 	bool capture(Move m) const;
 	/*
-	用途不明
-	着手の種別をチエックしているが
-	関数名から判断するに駒をとる手
-	もしくは成る手を判定しているようだが
-	？
+	通常の動き(NORMAL=0)＋駒をとる動作ならtrue
+	promoto　｜｜　アンパッサンならtrue（ノーマル、キャスリング以外）
 	*/
 	bool capture_or_promotion(Move m) const;
 	/*
-	用途不明
-	合法手の判定？
+	指し手が王手であればtrueを返す（チエックしている）
+	呼んでいる関数
+	generate_castle
+	move_to_san
+	do_move
+	perft
+	search
+	qsearch
 	*/
 	bool gives_check(Move m, const CheckInfo& ci) const;
 	/*
@@ -508,7 +512,16 @@ private:
 	int pieceCount[COLOR_NB][PIECE_TYPE_NB];
 	//カラーごと、駒種ごと、どの座標にいるのか記憶しておく配列
 	Square pieceList[COLOR_NB][PIECE_TYPE_NB][16];
-	//用途不明
+	/*
+	pieceCount[][]とpieceList[][][]を結ぶもので
+	具体的には下のように設定する
+	cはカラー、ptは駒種、sは座標を意味する
+	index[][]にはカラーこと駒種ごとの追い番(index)が入る
+	そのindexをpieceList(カラーごと、駒種ごとの座標リスト)のindexに使用する
+	index[s] = pieceCount[c][pt]++;
+	pieceList[c][pt][index[s]] = s;
+
+	*/
 	int index[SQUARE_NB];
 
   // Other info

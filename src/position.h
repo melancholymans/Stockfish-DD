@@ -236,23 +236,19 @@ public:
 
   // Castling
 	/*
-	用途不明
-	多分、キャステイングのことだと思う
+	キャステイング
 	*/
 	int can_castle(CastleRight f) const;
 	/*
-	用途不明
-	多分、キャステイングのことだと思う
+	キャステイング
 	*/
 	int can_castle(Color c) const;
 	/*
-	用途不明
-	多分、キャステイングのことだと思う
+	キャステイング
 	*/
 	bool castle_impeded(Color c, CastlingSide s) const;
 	/*
-	用途不明
-	多分、キャステイングのことだと思う
+	キャステイング
 	*/
 	Square castle_rook_square(Color c, CastlingSide s) const;
 
@@ -318,8 +314,7 @@ public:
 	*/
 	bool gives_check(Move m, const CheckInfo& ci) const;
 	/*
-	着手データの駒種がPAWNでかつ行がRank_4以上だったらtrueを返す
-	用途不明
+	移動後敵駒を取れそうなPAWNの移動ならtrueを返す
 	*/
 	bool passed_pawn_push(Move m) const;
 	/*
@@ -749,16 +744,16 @@ inline Bitboard Position::pinned_pieces(Color toMove) const {
   return hidden_checkers(king_square(toMove), ~toMove, toMove);
 }
 /*
-passed_pawn_mask関数は？
+passed_pawn_mask関数は指定したカラー、座標にいるPAWNの移動可能なbitboardを返す関数
+
 指定した座標にいるPAWNが移動可能な範囲の中に敵側のPAWNとのAND
-なのでこれから取ることが可能なPAWNのbitboardを返す
+なのでこれから取ることが可能ならtrueを返す
 */
 inline bool Position::pawn_passed(Color c, Square s) const {
   return !(pieces(~c, PAWN) & passed_pawn_mask(c, s));
 }
 /*
-着手データの駒種がPAWNでかつ行がRank_4以上だったらtrueを返す
-用途不明
+指し手の駒種がPAWNでかつ移動後敵駒が取れそうならtrueを返す
 */
 inline bool Position::passed_pawn_push(Move m) const {
 

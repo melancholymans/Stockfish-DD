@@ -490,7 +490,7 @@ void Bitboards::init() {
 
 	PassedPawnMaskの確認
 	PassedPawnMaskはForwardBBビットボードとPawnAttackSpanビットボードのOR演算なので
-	PAWN駒の３列にbitboardが立つことになる。用途不明
+	PAWN駒の３列にbitboardが立つことになる。PAWNの移動可能場所にbitが立ったもの
 	＜例＞
 	PassedPawnMask[WHITE][s=SQ_E1]
 	WHITE

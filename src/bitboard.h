@@ -337,8 +337,11 @@ inline Bitboard pawn_attack_span(Color c, Square s) {
 /// the given square is a passed pawn. Definition of the table is:
 /// PassedPawnMask[c][s] = pawn_attack_span(c, s) | forward_bb(c, s)
 /*
-名前にPawnが入っていることから想定して
 Pawnが前進または駒をとるbitboardを返す
+PassedPawnMask配列はPAWNの前進方向に３列にbitが立ったもので
+指定したカラー、座標を指定するとその座標にいるPAWNの移動可能範囲
+をbitboardで返す（可能なだけで実際に行けるかはその局面とのbitboardとの
+ANDが必要）
 */
 inline Bitboard passed_pawn_mask(Color c, Square s) {
   return PassedPawnMask[c][s];

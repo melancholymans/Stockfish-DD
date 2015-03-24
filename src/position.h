@@ -328,16 +328,19 @@ public:
 
   // Piece specific
 	/*
-	用途不明
+	passed_pawn_mask関数は指定したカラー、座標にいるPAWNの移動可能なbitboardを返す関数
+
+	指定した座標にいるPAWNが移動可能な範囲の中に敵側のPAWNとのAND
+	なのでこれから取ることが可能ならtrueを返す
 	*/
 	bool pawn_passed(Color c, Square s) const;
 	/*
-	PAWNが相手陣地の最下段にいるかチエック、いたら
-	trueを返す、PAWNが成るためのチエックに使用しているのかも？
+	PAWNがRANK_7にいるbitboard(BLACKにとってはRank_2）
+	つまり次の１手でQUEENになれる候補ということ
+	search関数から呼ばれている
 	*/
 	bool pawn_on_7th(Color c) const;
 	/*
-	用途不明
 	同じカラーのbishopが２個以上あって（つまりとられていない）
 	boardのカラー（市松模様の色）が異なっていればtrue
 	ただ味方同士のbishopは互いに異なるboardカラーに配置されるので
@@ -379,18 +382,17 @@ public:
 
   // Static exchange evaluation
 	/*
-	SEEの名前からして静止探索？
+	静止探索？
 	*/
 	int see(Move m, int asymmThreshold = 0) const;
 	/*
-	用途不明
+	静止探索？
 	*/
 	int see_sign(Move m) const;
 
   // Accessing hash keys
 	/*
-	用途不明
-	StateInfoのメンバーkeyを返すだけ
+	StateInfoのメンバーkeyを返す
 	*/
 	Key key() const;
 	/*
@@ -398,24 +400,21 @@ public:
 	*/
 	Key exclusion_key() const;
 	/*
-	用途不明
-	StateInfoのメンバーpawnKeyを返すだけ
+	StateInfoのメンバーpawnKeyを返す
 	*/
 	Key pawn_key() const;
 	/*
-	用途不明
-	StateInfoのメンバーmaterialKeyを返すだけ
+	StateInfoのメンバーmaterialKeyを返す
 	*/
 	Key material_key() const;
 
   // Incremental piece-square evaluation
 	/*
-	用途不明
 	StateInfoのメンバーpsqを返す
+	psqはこの局面の位置評価の集計値
 	*/
 	Score psq_score() const;
 	/*
-	用途不明
 	StateInfoのメンバーnpMaterial
 	*/
 	Value non_pawn_material(Color c) const;
@@ -423,6 +422,7 @@ public:
   // Other properties of the position
 	/*
 	メンバー変数sideToMoveを返す
+	手番を返す
 	*/
 	Color side_to_move() const;
 	/*
@@ -435,9 +435,11 @@ public:
 	*/
 	bool is_chess960() const;
 	/*
-	用途不明
 	メンバー変数thisThreadを返す
+	この探索をしているスレッドを返す
+	（stackfushはマルチスレッド対応）
 	*/
+	************************************************************************************ここまで
 	Thread* this_thread() const;
 	/*
 	探索木のノード数を返す

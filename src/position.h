@@ -439,7 +439,6 @@ public:
 	この探索をしているスレッドを返す
 	（stackfushはマルチスレッド対応）
 	*/
-	************************************************************************************ここまで
 	Thread* this_thread() const;
 	/*
 	探索木のノード数を返す
@@ -451,15 +450,13 @@ public:
 	*/
 	void set_nodes_searched(int64_t n);
 	/*
-	用途不明
-	引き分けの判定をしている？
+	50手ルールなどの引き分けの判定をしている
 	*/
 	bool is_draw() const;
 
   // Position consistency check, for debugging
 	/*
 	局面の不整合などをチエックしている
-	詳細不明なところもある
 	*/
 	bool pos_is_ok(int* failedStep = nullptr) const;
 	/*
@@ -471,22 +468,45 @@ private:
   // Initialization helpers (used while setting up a position)
 	/*
 	positionクラスをクリアにする
-	一部用途不明あり
 	*/
 	void clear();
 	/*
+	キャスリング関係？
 	用途不明
 	*/
 	void set_castle_right(Color c, Square rfrom);
 
   // Helper functions
-  void do_castle(Square kfrom, Square kto, Square rfrom, Square rto);
+	/*
+	キャスリング関係？
+	用途不明
+	*/
+	void do_castle(Square kfrom, Square kto, Square rfrom, Square rto);
+	/*
+	ksqは自陣のKINGの座標
+	Colorは敵サイドのカラー
+	toMoveは自陣サイドのカラー
+
+	敵の大駒にpinされている自駒を返す
+	*/
   Bitboard hidden_checkers(Square ksq, Color c, Color toMove) const;
+	/*
+	盤に駒を置くときに使用、do_move関数などで使用される、移動の処理ではないので注意
+	*/
   void put_piece(Square s, Color c, PieceType pt);
+	/*
+	駒を取り除く処理、undo_move関数で使用されている
+	*/
   void remove_piece(Square s, Color c, PieceType pt);
+	/*
+	駒の移動の処理、d0_move,undo_move関数で使用されている
+	*/
   void move_piece(Square from, Square to, Color c, PieceType pt);
 
   // Computing hash keys from scratch (for initialization and debugging)
+	/*
+	***********************************************************************************ここまで
+	*/
   Key compute_key() const;
   Key compute_pawn_key() const;
   Key compute_material_key() const;

@@ -208,14 +208,12 @@ void Position::init() {
           for (Square s = SQ_A1; s <= SQ_H8; ++s)
               Zobrist::psq[c][pt][s] = rk.rand<Key>();
 	/*
-	アンパッサンのハッシュ値？
-	用途不明
+	アンパッサンのハッシュ値
 	*/
 	for (File f = FILE_A; f <= FILE_H; ++f)
       Zobrist::enpassant[f] = rk.rand<Key>();
 	/*
-	キャスリングのハッシュ値？
-	用途不明
+	キャスリングのハッシュ値
 	*/
 	for (int cr = CASTLES_NONE; cr <= ALL_CASTLES; ++cr)
   {
@@ -227,7 +225,7 @@ void Position::init() {
       }
   }
 	/*
-	用途不明
+	手番のハッシュ値
 	*/
 	Zobrist::side = rk.rand<Key>();
   Zobrist::exclusion  = rk.rand<Key>();
@@ -264,7 +262,7 @@ void Position::init() {
 /// the source one.
 /*
 局面クラスpositionをコピーする演算子のオーバーロード
-startStateは用途不明
+startStateを受け取る
 */
 Position& Position::operator=(const Position& pos) {
 
@@ -413,7 +411,6 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
 
   // Convert from fullmove starting from 1 to ply starting from 0,
   // handle also common incorrect FEN with fullmove = 0.
-	//用途不明
 	gamePly = std::max(2 * (gamePly - 1), 0) + int(sideToMove == BLACK);
 	//局面復元のための情報
 	m_st->key = compute_key();
@@ -434,7 +431,6 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
 /// rights given the corresponding color and the rook starting square.
 /*
 多分キャスリングに関するなにか
-用途不明
 */
 void Position::set_castle_right(Color c, Square rfrom) {
 
@@ -644,7 +640,7 @@ Bitboard Position::attacks_from(Piece p, Square s, Bitboard occ) {
 /*
 引数Move mが合法手か検査する合法手かどうかは
 アンパッサンだったら
-用途不明
+
 動いた駒がKINGだったら
 移動先に敵の利きが利いていたらNG、キャスリングはOK
 pinがかかっていないこと,pinがかかっていてもpinがはずれない動きならOK
@@ -1635,7 +1631,6 @@ int Position::see(Move m, int asymmThreshold) const {
 /// empty board, white to move, and no castling rights.
 /*
 positionクラスをクリアにする、
-startStateは用途不明
 */
 void Position::clear() {
 

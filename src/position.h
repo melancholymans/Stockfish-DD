@@ -84,7 +84,7 @@ struct StateInfo {
 	*/
   Score psq;
 	/*
-	アンパッサン
+	アンパッサンの座標
 	*/
   Square epSquare;
 	/*
@@ -472,14 +472,12 @@ private:
 	void clear();
 	/*
 	キャスリング関係？
-	用途不明
 	*/
 	void set_castle_right(Color c, Square rfrom);
 
   // Helper functions
 	/*
 	キャスリング関係？
-	用途不明
 	*/
 	void do_castle(Square kfrom, Square kto, Square rfrom, Square rto);
 	/*
@@ -544,7 +542,6 @@ private:
   // Other info
 	/*
 	キャスリング関係の変数かな
-	用途不明
 	*/
 	int castleRightsMask[SQUARE_NB];
   Square castleRookSquare[COLOR_NB][CASTLING_SIDE_NB];
@@ -671,7 +668,7 @@ template<PieceType Pt> inline const Square* Position::list(Color c) const {
   return pieceList[c][Pt];
 }
 /*
-用途不明
+アンパッサンの座標を返す
 */
 inline Square Position::ep_square() const {
   return m_st->epSquare;
@@ -683,31 +680,31 @@ inline Square Position::king_square(Color c) const {
   return pieceList[c][KING][0];
 }
 /*
-用途不明
+キャスリング関係
 */
 inline int Position::can_castle(CastleRight f) const {
   return m_st->castleRights & f;
 }
 /*
-用途不明
+キャスリング関係
 */
 inline int Position::can_castle(Color c) const {
   return m_st->castleRights & ((WHITE_OO | WHITE_OOO) << (2 * c));
 }
 /*
-用途不明
+キャスリング関係
 */
 inline bool Position::castle_impeded(Color c, CastlingSide s) const {
   return byTypeBB[ALL_PIECES] & castlePath[c][s];
 }
 /*
-用途不明
+キャスリング関係
 */
 inline Square Position::castle_rook_square(Color c, CastlingSide s) const {
   return castleRookSquare[c][s];
 }
 /*
-指定した座標に指定した駒種（テンプレート引数で指定）の利きbitboard
+指定した座標ｓに指定した駒種（テンプレート引数で指定）の利きbitboard
 利いているbitboardを返す（駒種を指定できる、指定していなかったら
 非飛び駒の利きを返す）
 */

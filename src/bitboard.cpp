@@ -548,7 +548,7 @@ void Bitboards::init() {
 	SquareDistance変数には座標s1とs2の距離を入れている
 	但し列と行の距離の大きい方をいれる。
 	DistanceRingsBB変数の初期化
-	DistanceRingsBBはよくわからない
+	DistanceRingsBBはチェビシェフ距離を表している
 	*/
 
   for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)

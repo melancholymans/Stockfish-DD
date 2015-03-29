@@ -24,7 +24,9 @@
 #include "types.h"
 
 namespace Bitboards {
-
+/*
+bitboard関係の初期化,main関数から呼ばれている
+*/
 void init();
 /*
 bitboardを表形式で表示
@@ -44,7 +46,17 @@ namespace Bitbases {
 	*/
 	bool probe_kpk(Square wksq, Square wpsq, Square bksq, Color us);
 }	//namespace Bitbasesの終わり
+
+
 /*
+bitboard変数(64bit変数)とbit位置と座標との対応
+
+H8 G8 F8 E8 D8 C8 B8 A8 H7 G7 F7 E7 D7 C7 B7 A7 H6 G6 F6 E6 D6 C6 B6 A6 H5 G5 F5 E5 D5 C5 B5 A5 H4 G4 F4 E4 D4 C4 B4 A4 H3 G3 F3 E3 D3 C3 B3 A3 H2 G2 F2 E2 D2 C2 B2 A2 H1 G1 F1 E1 D1 C1 B1 A1    
+63 62 61 60 59 58 57 56 55 54 53 52 51 50 49 48 47 46 45 44 43 42 41 40 39 38 37 36 35 34 33 32 31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00
+*/
+
+/*
+列を特定するためのbitboard
 FileABB=
 1000 0000
 1000 0000
@@ -75,8 +87,22 @@ const Bitboard FileFBB = FileABB << 5;
 const Bitboard FileGBB = FileABB << 6;
 const Bitboard FileHBB = FileABB << 7;
 /*
+行を特定するためのbitboard
+Stockfishは通常のchessの行表記と逆さまになっている
+通常のchess表記			Stockfishでの表記
+BLACK SIDE					WHITE SIDE
+8										1
+7										2
+6										3
+5										4
+4										5
+3										6
+2										7
+1										8
+WHITE SIDE					BLACK
+
 Rank1BB=
-1111 1111	下位bit
+1111 1111	下位bit	
 0000 0000
 0000 0000
 0000 0000
@@ -93,35 +119,288 @@ const Bitboard Rank5BB = Rank1BB << (8 * 4);
 const Bitboard Rank6BB = Rank1BB << (8 * 5);
 const Bitboard Rank7BB = Rank1BB << (8 * 6);
 const Bitboard Rank8BB = Rank1BB << (8 * 7);
-
+/*
+アライメントを64bitに揃える
+*/
 CACHE_LINE_ALIGNMENT
-
+/*
+RMasks本体はbitboard.cppに宣言されている
+初期化はBoards::init関数でされる
+RMasks[SQ_A1]で出力されるbitboard
+これからSQ_A1にいるROOKの利き用のマスクであることが分かる
+最後の座標（SQ_H1,SQ_A8）までマスキングされていないのは
+そこに利きが利いていようがいまいが関係ないから
++---+---+---+---+---+---+---+---+
+|   | X | X | X | X | X | X |   |
++---+---+---+---+---+---+---+---+
+| X |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+| X |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+| X |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+| X |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+| X |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+| X |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+RMasks[SQ_B2]で出力されるbitboard
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   | X | X | X | X | X |   |
++---+---+---+---+---+---+---+---+
+|   | X |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   | X |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   | X |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   | X |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   | X |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+RMasks[SQ_C3]で出力されるbitboard
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   | X |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   | X |   | X | X | X | X |   |
++---+---+---+---+---+---+---+---+
+|   |   | X |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   | X |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   | X |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   | X |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+*/
 extern Bitboard RMasks[SQUARE_NB];
+/*
+ROOK用のmagic bitboard
+https://chessprogramming.wikispaces.com/Magic+Bitboards
+*/
 extern Bitboard RMagics[SQUARE_NB];
+/*
+ROOK用の利きbitboard
+*/
 extern Bitboard* RAttacks[SQUARE_NB];
+/*
+RShiftsはbitboardをその座標に応じてbitシフトしているが
+用途不明
+シフトする回数を座標ごとに整理してみたがよくわからない
+規則性はあるようだが詳細不明
+   A  B  C  D  E  F  G  H
+1 20 21 21 21 21 21 21 20
+2 21 22 22 22 22 22 22 20
+3 21 22 22 22 22 22 22 21
+4 21 22 22 22 22 22 22 21
+5 21 22 22 22 22 22 22 21
+6 21 22 22 22 22 22 22 21
+7 21 22 22 22 22 22 22 21
+8 20 21 21 21 21 21 21 20
+*/
 extern unsigned RShifts[SQUARE_NB];
-
+/*
+BMasks本体はbitboard.cppに宣言されている
+初期化はBoards::init関数でされる
+BMasks[SQ_A1]で出力されるbitboard
+これからSQ_A1にいるBISHOPの利き用のマスクであることが分かる
+最後の座標（SQ_H8）までマスキングされていないのは
+そこに利きが利いていようがいまいが関係ないから
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   | X |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   | X |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   | X |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   | X |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   | X |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   | X |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+BMasks[SQ_B2]で出力されるbitboard
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   | X |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   | X |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   | X |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   | X |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   | X |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+BMasks[SQ_C3]で出力されるbitboard
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   | X |   | X |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   | X |   | X |   |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   | X |   |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   | X |   |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   | X |   |
++---+---+---+---+---+---+---+---+
+|   |   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+
+*/
 extern Bitboard BMasks[SQUARE_NB];
+/*
+BISHOP用のmagic bitboard
+*/
 extern Bitboard BMagics[SQUARE_NB];
+/*
+BISHOP用の利きbitboard
+*/
 extern Bitboard* BAttacks[SQUARE_NB];
+/*
+BShiftsはbitboardをその座標に応じてbitシフトしているが
+用途不明
+シフトする回数を座標ごとに整理してみたがよくわからない
+規則性はあるようだが詳細不明
+   A  B  C  D  E  F  G  H
+1 26 27 27 27 27 27 27 26
+2 27 27 27 27 27 27 27 27
+3 27 27 25 25 25 25 27 27 
+4 27 27 25 23 23 25 27 27 
+5 27 27 25 23 23 25 27 27 
+6 27 27 25 25 25 25 27 27
+7 27 27 27 27 27 27 27 27
+8 26 27 27 27 27 27 27 26 
+*/
 extern unsigned BShifts[SQUARE_NB];
-
+/*
+座標の位置だけがbitが立っているbitboard
+*/
 extern Bitboard SquareBB[SQUARE_NB];
+/*
+FileABB,FileBBB,FileCBB,FileDBB,FileEBB,FileFBB,FileGBB,FileHBBを
+配列にしたもの
+*/
 extern Bitboard FileBB[FILE_NB];
+/*
+Rank1BB,Rank2BB,Rank3BB,Rank4BB,Rank5BB,Rank6BB,Rank7BB,Rank8BBを
+配列にしたもの
+*/
 extern Bitboard RankBB[RANK_NB];
+/*
+指定した列の両脇の
+隣の列のbitboard
+*/
 extern Bitboard AdjacentFilesBB[FILE_NB];
+/*
+InFrontBBは指定した行より敵サイド領域(Front)のbitを立てる
+*/
 extern Bitboard InFrontBB[COLOR_NB][RANK_NB];
+/*
+非飛び駒（bishop,rook,queenを除く駒）が駒をとれる位置に
+ビットが立ったbitboardの配列
+*/
 extern Bitboard StepAttacksBB[PIECE_NB][SQUARE_NB];
+/*
+BetweenBB[s1][s2]はs1,s2のあいだにRook,bishopの利きがあるのbitboardを返す
+*/
 extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
+/*
+LineBB[s1][s2]はs1, s2のあいだにRook, bishopの利きがあるのbitboardを返す
+BetweenBBとよく似ているような印象を受けるがBetweenBBは指定した座標の間
+LineBBはs1,s2をとおる直線
+*/
 extern Bitboard LineBB[SQUARE_NB][SQUARE_NB];
+/*
+DistanceRingsBB変数には座標s1とs2の距離を入れている
+但し列と行の距離の大きい方をいれる。
+チェビシェフ距離を表している
+*/
 extern Bitboard DistanceRingsBB[SQUARE_NB][8];
+/*
+自分の位置から前方１列（Forward）のbitboardを返す
+*/
 extern Bitboard ForwardBB[COLOR_NB][SQUARE_NB];
+/*
+PAWN駒の前３列にbitboardが立つことになる。PAWNの移動可能場所にbitが立ったもの
+*/
 extern Bitboard PassedPawnMask[COLOR_NB][SQUARE_NB];
+/*
+PAWNが駒を取れる位置のbitboardを返す
+*/
 extern Bitboard PawnAttackSpan[COLOR_NB][SQUARE_NB];
+/*
+ROOK,BISHOP,QUEENの座標ごとの利きを入れておく
+他に駒がない状態の時の利き
+*/
 extern Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
+/*
+SquareDistance[SQ_A1][to]で出力させた
+基準となる座標（A1)からの距離でrow,col大きい方を返す
+01234567
+11234567
+22234567
+33334567
+44444567
+55555567
+66666667
+77777777
+SquareDistance[SQ_D2][to]で出力させた
+基準となる座標（D2)からの距離でrow,col大きい方を返す
+32111234
+32101234
+32111234
+32222234
+33333334
+44444444
+55555555
+66666666
+*/
 extern int SquareDistance[SQUARE_NB][SQUARE_NB];
 /*
-用途不明
+盤の市松模様をbitboardにしたもの
+Color of a Square
+https://chessprogramming.wikispaces.com/Color+of+a+Square
++---+---+---+---+---+---+---+---+
+| X |   | X |   | X |   | X |   |
++---+---+---+---+---+---+---+---+
+|   | X |   | X |   | X |   | X |
++---+---+---+---+---+---+---+---+
+| X |   | X |   | X |   | X |   |
++---+---+---+---+---+---+---+---+
+|   | X |   | X |   | X |   | X |
++---+---+---+---+---+---+---+---+
+| X |   | X |   | X |   | X |   |
++---+---+---+---+---+---+---+---+
+|   | X |   | X |   | X |   | X |
++---+---+---+---+---+---+---+---+
+| X |   | X |   | X |   | X |   |
++---+---+---+---+---+---+---+---+
+|   | X |   | X |   | X |   | X |
++---+---+---+---+---+---+---+---+
 */
 const Bitboard DarkSquares = 0xAA55AA55AA55AA55ULL;
 
@@ -500,9 +779,18 @@ FORCE_INLINE Square pop_lsb(Bitboard* b) {
 }
 
 #else // if defined(USE_BSFQ)
-
+/*
+上位bitからスキャンしてbitが立っているindexを返す、0オリジン
+*/
 extern Square msb(Bitboard b);
+/*
+下位bitからスキャンbitが立っているindexを返す、0オリジン
+*/
 extern Square lsb(Bitboard b);
+/*
+下位bitからスキャンbitが立っているindexを返す、0オリジン
+同時にそのbitを消す
+*/
 extern Square pop_lsb(Bitboard* b);
 
 #endif
@@ -511,7 +799,8 @@ extern Square pop_lsb(Bitboard* b);
 /// most/least advanced bit relative to the given color.
 /*
 ｍｓｂは最上位bit,LSBは最下位bit
-用途不明
+WHITE側のbitのスキャンを上位bitから開始する
+BLACK側のbitのスキャンを下位bitから開始することです
 */
 inline Square frontmost_sq(Color c, Bitboard b) { return c == WHITE ? msb(b) : lsb(b); }
 inline Square  backmost_sq(Color c, Bitboard b) { return c == WHITE ? lsb(b) : msb(b); }

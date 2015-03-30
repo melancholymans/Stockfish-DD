@@ -67,7 +67,13 @@ int SquareDistance[SQUARE_NB][SQUARE_NB];
 namespace {
 
   // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
+	/*
+	https://chessprogramming.wikispaces.com/BitScan
+	*/
   const uint64_t DeBruijn_64 = 0x3F79D71B4CB0A89ULL;
+	/*
+	https://chessprogramming.wikispaces.com/Looking+for+Magics
+	*/
   const uint32_t DeBruijn_32 = 0x783A9B23;
 
   CACHE_LINE_ALIGNMENT
@@ -87,10 +93,15 @@ namespace {
   https://chessprogramming.wikispaces.com/De+Bruijn+Sequence+Generator
 	わかっているのはBSFTable配列と組み合わせて使い、このbsf_index関数にbitboardを渡したら
 	BSFTable配列経由でbitboardのindexを返してくる
+
+
+
   */
   FORCE_INLINE unsigned bsf_index(Bitboard b) {
 
     // Matt Taylor's folding for 32 bit systems, extended to 64 bits by Kim Walisch
+		/********************************************************************************こここここここまで
+		*/
     b ^= (b - 1);
     return Is64Bit ? (b * DeBruijn_64) >> 58
                    : ((unsigned(b) ^ unsigned(b >> 32)) * DeBruijn_32) >> 26;
@@ -99,7 +110,11 @@ namespace {
 
 /// lsb()/msb() finds the least/most significant bit in a nonzero bitboard.
 /// pop_lsb() finds and clears the least significant bit in a nonzero bitboard.
+/*
+BitScanをソフトウエアで行うときはここが有効になる、ハードウエアで行う場合はbitboard.hに
+ある_BitScanForward64命令などを使った関数を使う。
 
+*/
 #ifndef USE_BSFQ
 
 Square lsb(Bitboard b) { return BSFTable[bsf_index(b)]; }
@@ -126,6 +141,29 @@ void printBSFTable()
 */
 
 /*
+MS1BTableはこのような数列になる
+00112222333333334444444444444444
+55555555555555555555555555555555
+66666666666666666666666666666666
+66666666666666666666666666666666
+77777777777777777777777777777777
+77777777777777777777777777777777
+77777777777777777777777777777777
+77777777777777777777777777777777
+最初の0-8indexを取って対応する数値と比較してみる
+MS1BTable	10進数		16進数		2進数
+0					0				0x00		0000 0000
+0					1				0x01		0000 0001
+1					2				0x02		0000 0010
+1					3				0x03		0000 0011
+2					4				0x04		0000 0100
+2					5				0x05		0000 0100
+2					6				0x06		0000 0110
+2					7				0x07		0000 0111
+3					8				0x08		0000 1000
+上の例でわかるようにMS1BTableは上位bitからスキャンして最初のbitのindexを返す
+indexは0-オリジン
+
 msbは渡されたbit列(bitboard)の先頭のbit位置を返す、但し、最下位bitの位置は0とする
 bitが立っていない時も0を返す
 																								16進数			2進数										msbの返す値
@@ -142,6 +180,9 @@ Square msb(Bitboard b) {
   unsigned b32;
   int result = 0;
 
+	/*
+	bが32bitより大きいようであれば32右シフトする
+	*/
   if (b > 0xFFFFFFFF)
   {
       b >>= 32;
@@ -149,14 +190,18 @@ Square msb(Bitboard b) {
   }
 
   b32 = unsigned(b);
-
+	/*
+	bが16bitより大きいようであれば16右シフトする
+	*/
   if (b32 > 0xFFFF)
   {
       b32 >>= 16;
       result += 16;
   }
-
-  if (b32 > 0xFF)
+	/*
+	bが8bitより大きいようであれば8右シフトする
+	*/
+	if (b32 > 0xFF)
   {
       b32 >>= 8;
       result += 8;
@@ -857,21 +902,23 @@ void Bitboards::init() {
 
 
 namespace {
-
+/*
+与えられた座標から、与えられた方向子によって四方向に利きを伸ばし
+盤外でないことをチエックしつつ、その軌跡をbitboard attack変数に残していく。
+他の駒に当たったらそこでその方向はやめる
+つまり利きをスライドしている
+*/
   Bitboard sliding_attack(Square deltas[], Square sq, Bitboard occupied) {
 
     Bitboard attack = 0;
 
     for (int i = 0; i < 4; ++i)
-        for (Square s = sq + deltas[i];
-             is_ok(s) && square_distance(s, s - deltas[i]) == 1;
-             s += deltas[i])
-        {
-            attack |= s;
-
-            if (occupied & s)
-                break;
-        }
+        for (Square s = sq + deltas[i];is_ok(s) && square_distance(s, s - deltas[i]) == 1;s += deltas[i])
+						{
+							attack |= s;
+							if (occupied & s)
+								break;
+						}
 
     return attack;
   }
@@ -881,6 +928,9 @@ namespace {
 
     // Values s1 and s2 are used to rotate the candidate magic of a
     // quantity known to be the optimal to quickly find the magics.
+		/*
+		boosterの数値を使って（乱数のシード？）乱数を作る
+		*/
     int s1 = booster & 63, s2 = (booster >> 6) & 63;
 
     Bitboard m = rk.rand<Bitboard>();
@@ -995,7 +1045,9 @@ namespace {
 
   void init_magics(Bitboard table[], Bitboard* attacks[], Bitboard magics[],
                    Bitboard masks[], unsigned shifts[], Square deltas[], Fn index) {
-
+		/*
+		[0][8]が32bit[1][8]が64bit機
+		*/
     int MagicBoosters[][8] = { { 3191, 2184, 1310, 3618, 2091, 1308, 2452, 3996 },
                                { 1059, 3608,  605, 3234, 3326,   38, 2029, 3043 } };
     RKISS rk;
@@ -1008,34 +1060,116 @@ namespace {
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
         // Board edges are not considered in the relevant occupancies
+				/*
+				edgesは指定の座標の上下の両端と左右の両端bitboardを作る
+				たとえば座標sがSQ_A1なら次のように返す.このedgesはmask[sq]を作るためのヘルパー
+				+---+---+---+---+---+---+---+---+
+				| S |   |   |   |   |   |   | X |
+				+---+---+---+---+---+---+---+---+
+				|   |   |   |   |   |   |   | X |
+				+---+---+---+---+---+---+---+---+
+				|   |   |   |   |   |   |   | X |
+				+---+---+---+---+---+---+---+---+
+				|   |   |   |   |   |   |   | X |
+				+---+---+---+---+---+---+---+---+
+				|   |   |   |   |   |   |   | X |
+				+---+---+---+---+---+---+---+---+
+				|   |   |   |   |   |   |   | X |
+				+---+---+---+---+---+---+---+---+
+				|   |   |   |   |   |   |   | X |
+				+---+---+---+---+---+---+---+---+
+				| X | X | X | X | X | X | X | X |
+				+---+---+---+---+---+---+---+---+
+				*/
         edges = ((Rank1BB | Rank8BB) & ~rank_bb(s)) | ((FileABB | FileHBB) & ~file_bb(s));
-
+				/*
+				printf("edges:%d\n", s);
+				Bitboards::print(edges);
+				*/
         // Given a square 's', the mask is the bitboard of sliding attacks from
         // 's' computed on an empty board. The index must be big enough to contain
         // all the attacks for each possible subset of the mask and so is 2 power
         // the number of 1s of the mask. Hence we deduce the size of the shift to
         // apply to the 64 or 32 bits word to get the index.
+				/*
+				sliding_attack関数は渡したbitboardにおいて
+				指定した座標から届く限りの利きのbitboardを作って返す。渡すbitboardは0なので盤内一杯の
+				bitboardを返す。これをedgesと組み合わせることでmask bitboardができる
+				shift配列をつくる,以下にshift配列の作り方を書くがこれは64bit機であることを前提にした
+				説明でIs64Bit=trueであることを前提としている。
+				CPW(chess programming wiki)からの説明を転記している
+				
+				bishopがb1にいて5bitの利きbitがあったする（左図）利き座標を便宜上C,D,E,F,Gとする
+				これに適切なMagic Number（中図）を掛けて上位bitに単写像する（右図）
+				現在利きbitは上位bitにあるのでbitCountするために右シフトして下位bitに下ろす
+				これがshift配列の役目でどれだけ右シフトさせるのかはshift配列にはいっている
+				計算式は一番右側で64-5となる
+				プログラムでは(Is64Bit ? 64 : 32)=>64,popcount<Max15>(masks[s])=>5となる
+				. . . . . . . .     . . . . . . . .     . . .[C D E F G]
+				. . . . . . . .     . 1 . . . . . .     . . . . . . . .
+				. . . . . . G .     . 1 . . . . . .     . . . . . . . .
+				. . . . . F . .     . 1 . . . . . .     . . . . . . . .
+				. . . . E . . .  *  . 1 . . . . . .  =  . . . . . . . .    >> (64- 5)
+				. . . D . . . .     . 1 . . . . . .     . . . . . . . .
+				. . C . . . . .     . . . . . . . .     . . . . . . . .
+				. . . . . . . .     . . . . . . . .     . . . . . . . .
+				*/
         masks[s]  = sliding_attack(deltas, s, 0) & ~edges;
         shifts[s] = (Is64Bit ? 64 : 32) - popcount<Max15>(masks[s]);
 
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
         // store the corresponding sliding attack bitboard in reference[].
+				/*
+				ここで使われているテクニックを解説しているページ
+				https://chessprogramming.wikispaces.com/Traversing+Subsets+of+a+Set
+				ここではいろんな駒配置に応じたreference[]を作る
+				たとえば座標SQ_A1にROOKがいる場合、横方向に6bit(利きが利くのはB1,C1,D1,E1,F1,G1の座標）
+				2^6とおりのパターンがある=64,縦方向に6bit(利きが利くのがA2,A3,A4,A5,A6,A7の座標）
+				なんで2^64とおり全部で64 * 64 = 4096とおり
+				この時の駒の配置を記録したのがoccupancy[],その時の利きのbitboardを記録したのが
+				reference[]になる.
+				6bit+6bitが最大bitになる。BISHOPでもこれを超えることはない。
+				おそらくQUEENはROOKとBISHOPの組み合わせで処理しているので問題ないと思われる
+				*/
         b = size = 0;
         do {
             occupancy[size] = b;
             reference[size++] = sliding_attack(deltas, s, b);
             b = (b - masks[s]) & masks[s];
-        } while (b);
+						/*
+						printf("Carry-Rippler:%d\n", s);
+						Bitboards::print(b);
+						Bitboards::print(occupancy[size-1]);
+						Bitboards::print(reference[size-1]);
+						*/
+				} while (b);
 
         // Set the offset for the table of the next square. We have individual
         // table sizes for each square with "Fancy Magic Bitboards".
+				/*
+				上のoccupancy[],reference[]はいつも64*64=4096必要なわけではなく４隅は4096必要だが
+				端は2048とうり、行端、列端合わせて４か所なので2048*6*4＝49,152
+				隅と端を除く中央部は36升で動くことのできるのは縦、横とも5bitなので2^5*2^5=1024
+				全部合わせて4096*4+49152+1024*36=102400(0x19000)これがRTable配列の大きさになる
+				つまりRTableはROOKの全ての座標での、全ての駒配置に対応した利きのbitboardを持っている
+				*/
         if (s < SQ_H8)
             attacks[s + 1] = attacks[s] + size;
-
+				/*
+				32bit,64bitでは乱数シードは異なる？
+				*/
         booster = MagicBoosters[Is64Bit][rank_of(s)];
 
         // Find a magic for square 's' picking up an (almost) random number
         // until we find the one that passes the verification test.
+				/*
+				おそらくmagic numberを乱数で生成している
+				で、生成した乱数をmaskにかけて上位bitに写像している
+				popcount<Max15>((magics[s] * masks[s]) >> 56) < 6のところは
+				乱数生成したmagic　numberがチャンと写像していればそのbit数は6bitになるはずなので
+				６より小さい場合はNGなので再度乱数を発生させ、チャンとしたmagic numberができるまで
+				ループさせる。
+				*/
         do {
             do magics[s] = pick_random(rk, booster);
             while (popcount<Max15>((magics[s] * masks[s]) >> 56) < 6);
@@ -1046,6 +1180,13 @@ namespace {
             // looks up the correct sliding attack in the attacks[s] database.
             // Note that we build up the database for square 's' as a side
             // effect of verifying the magic.
+						/*
+						attacks[s][index(s,occupancy[i])のindexはmagic_index関数ポインタです。
+						magic_index関数は最大で12bitのbit列を最上位bitから最下位bitに写像する（単射）ので
+						4096(0-4095)のインデックスを返す関数ともいえる
+						それを座標ごとのアドレスにreference[](座標ごとのbitboard)を記録させている
+						RTableのアドレスは座標と駒の配置によって決まるindexでそのindexにそのbitboard（利きbotboard)を記録させる
+						*/
             for (i = 0; i < size; ++i)
             {
                 Bitboard& attack = attacks[s][index(s, occupancy[i])];

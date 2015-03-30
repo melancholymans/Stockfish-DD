@@ -51,7 +51,11 @@
 用途不明
 */
 #define unlikely(x) (x) // For code annotation purposes
-
+/*
+bitScanでハードウエアで行う方法とソフトウエアで行う方法がある
+https://chessprogramming.wikispaces.com/BitScan
+_WIN64 && 
+*/
 #if defined(_WIN64) && !defined(IS_64BIT)
 #  include <intrin.h> // MSVC popcnt and bsfq instrinsics
 #  define IS_64BIT

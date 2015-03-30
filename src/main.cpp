@@ -997,7 +997,6 @@ H8	20
 	Bitboards::print(bb);
 	printf("%d\n", pop_lsb(&bb));		//o—Í‚Í2
 	Bitboards::print(bb);
-
 	return;
 }
 

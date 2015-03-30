@@ -69,6 +69,8 @@ namespace {
   // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
 	/*
 	https://chessprogramming.wikispaces.com/BitScan
+	2進数だと
+	0011 1111 0111 1001 1101 0111 0001 1011 0100 1100 1011 0000 1010 1000 1001
 	*/
   const uint64_t DeBruijn_64 = 0x3F79D71B4CB0A89ULL;
 	/*
@@ -93,15 +95,13 @@ namespace {
   https://chessprogramming.wikispaces.com/De+Bruijn+Sequence+Generator
 	わかっているのはBSFTable配列と組み合わせて使い、このbsf_index関数にbitboardを渡したら
 	BSFTable配列経由でbitboardのindexを返してくる
-
-
-
+	返してくるのは下位bitからスキャンして最初にbitが立っているindex（0オリジン）
+	たとえば0x03は２進数で0011なので0を返してくる、0x02は0010なので1を返してくる
+	なお0x00はbitが立っていないので63を返してくる
   */
   FORCE_INLINE unsigned bsf_index(Bitboard b) {
 
     // Matt Taylor's folding for 32 bit systems, extended to 64 bits by Kim Walisch
-		/********************************************************************************こここここここまで
-		*/
     b ^= (b - 1);
     return Is64Bit ? (b * DeBruijn_64) >> 58
                    : ((unsigned(b) ^ unsigned(b >> 32)) * DeBruijn_32) >> 26;
@@ -898,6 +898,37 @@ void Bitboards::init() {
               PieceType pt = (PseudoAttacks[BISHOP][s1] & s2) ? BISHOP : ROOK;
               LineBB[s1][s2] = (PseudoAttacks[pt][s1] & PseudoAttacks[pt][s2]) | s1 | s2;
           }
+	/*test start*/
+	/*
+	BSFTable配列
+	*/
+	Bitboard bb;
+	printf("BSFTable\n");
+
+	bb = 0x00;
+	printf("%d\n", BSFTable[bsf_index(bb)]);
+	//返してきた数は:63
+	bb = 0x01;		//２進数で 0001
+	printf("%d\n", BSFTable[bsf_index(bb)]);
+	//返してきた数は:0
+	bb = 0x02;		//２進数で 0010
+	printf("%d\n", BSFTable[bsf_index(bb)]);
+	//返してきた数は:1
+	bb = 0x03;		//２進数で 0011
+	printf("%d\n", BSFTable[bsf_index(bb)]);
+	//返してきた数は:0
+	bb = 0x04;		//２進数で 0100
+	printf("%d\n", BSFTable[bsf_index(bb)]);
+	//返してきた数は:2
+	bb = 0x05;		//２進数で 0101
+	printf("%d\n", BSFTable[bsf_index(bb)]);
+	//返してきた数は:0
+	bb = 0x06;		//２進数で 0110
+	printf("%d\n", BSFTable[bsf_index(bb)]);
+	//返してきた数は:1
+
+	int j;
+	/*test end*/
 }
 
 

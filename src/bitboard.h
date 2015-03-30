@@ -34,7 +34,6 @@ bitboardを表形式で表示
 void print(Bitboard b);
 
 }
-
 namespace Bitbases {
 	/*
 	bitbase.cppのための宣言、bitbase.hはなくこのbitboard.hが兼任している

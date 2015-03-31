@@ -79,11 +79,25 @@ namespace {
   const uint32_t DeBruijn_32 = 0x783A9B23;
 
   CACHE_LINE_ALIGNMENT
-
+	/*
+	MS1BTable配列はmsb（上位ビットからBitScanする）をハートウエア命令ではなくソフトウエアで行うときに
+	必要になってくる配列で、添え字のbitboard値から上位側からScanしたときの最初のbitが立っているindexを
+	返す（0オリジン）
+	*/
   int MS1BTable[256];
+	/*
+	bsf_index関数の返り値を添え字にして、そのbitが立っている座標を返す
+	BSFTable配列はMS1BTable配列と違って下位側からスキャンした座標が返る
+	*/
   Square BSFTable[SQUARE_NB];
+	/*
+	ROOKの全座標位置での全駒配置パターンごとのbitboard配列
+	*/
   Bitboard RTable[0x19000]; // Storage space for rook attacks
-  Bitboard BTable[0x1480];  // Storage space for bishop attacks
+	/*
+	BISHIOPの全座標位置での全駒配置パターンごとのbitboard配列
+	*/
+	Bitboard BTable[0x1480];  // Storage space for bishop attacks
 
   typedef unsigned (Fn)(Square, Bitboard);
 
@@ -265,7 +279,7 @@ void Bitboards::print(Bitboard b) {
 */
 void Bitboards::init() {
 	/*
-	MS1BTableは不明
+	MS1BTableは
 	このような数列になる
 	00112222333333334444444444444444
 	55555555555555555555555555555555
@@ -306,7 +320,7 @@ void Bitboards::init() {
       BSFTable[bsf_index(1ULL << i)] = Square(i);
 	/*
 	SquareBBは指定した座標にbitが立っているbitboard
-	SquareBB[SQ_A1]の表示、内部データとは上下坂窯に
+	SquareBB[SQ_A1]の表示、内部データとは上下逆さま
 
 	+---+---+---+---+---+---+---+---+
 	| X |   |   |   |   |   |   |   |
@@ -595,7 +609,6 @@ void Bitboards::init() {
 	DistanceRingsBB変数の初期化
 	DistanceRingsBBはチェビシェフ距離を表している
 	*/
-
   for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
       for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
       {

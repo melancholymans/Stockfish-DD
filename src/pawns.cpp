@@ -31,11 +31,23 @@ namespace {
   #define S(mg, eg) make_score(mg, eg)
 
   // Doubled pawn penalty by file
+	/*
+	2PAWNのペナルティ？
+	同列にPAWNが２つ以上いると防御上の弱点とされる（ルール違反ではない）
+	同一列にいるとPAWN同士で守ることができないから
+	このpawns.cppに定義してあるevaluate関数で使用されている
+	http://en.wikipedia.org/wiki/Doubled_pawns
+	*/
   const Score Doubled[FILE_NB] = {
     S(13, 43), S(20, 48), S(23, 48), S(23, 48),
     S(23, 48), S(23, 48), S(20, 48), S(13, 43) };
 
   // Isolated pawn penalty by opposed flag and file
+	/*
+	孤立したpawnへのペナルティ
+	このpawns.cppに定義してあるevaluate関数で使用されている
+	http://en.wikipedia.org/wiki/Isolated_pawn
+	*/
   const Score Isolated[2][FILE_NB] = {
   { S(37, 45), S(54, 52), S(60, 52), S(60, 52),
     S(60, 52), S(60, 52), S(54, 52), S(37, 45) },
@@ -43,6 +55,12 @@ namespace {
     S(40, 35), S(40, 35), S(36, 35), S(25, 30) } };
 
   // Backward pawn penalty by opposed flag and file
+	/*
+	PAWNの斜め利きから守られているPAWNは強いが
+	守っている後ろのPAWN（Backward pawn）自体は弱い
+	このpawns.cppに定義してあるevaluate関数で使用されている
+	http://en.wikipedia.org/wiki/Backward_pawn
+	*/
   const Score Backward[2][FILE_NB] = {
   { S(30, 42), S(43, 46), S(49, 46), S(49, 46),
     S(49, 46), S(49, 46), S(43, 46), S(30, 42) },
@@ -50,19 +68,33 @@ namespace {
     S(33, 31), S(33, 31), S(29, 31), S(20, 28) } };
 
   // Pawn chain membership bonus by file and rank (initialized by formula)
+	/*
+	下のURLに書いてあるような配置になればボーナスがでる
+	https://chessprogramming.wikispaces.com/Pawn+chain
+	*/
   Score ChainMember[FILE_NB][RANK_NB];
 
   // Candidate passed pawn bonus by rank
+	/*
+	用途不明だが、この評価項目はプラスされているのでペナリティではなくボーナスのようだ
+	https://chessprogramming.wikispaces.com/Candidate+Passed+Pawn
+	*/
   const Score CandidatePassed[RANK_NB] = {
     S( 0, 0), S( 6, 13), S(6,13), S(14,29),
     S(34,68), S(83,166), S(0, 0), S( 0, 0) };
 
   // Weakness of our pawn shelter in front of the king indexed by [rank]
+	/*
+	用途不明
+	*/
   const Value ShelterWeakness[RANK_NB] =
   { V(100), V(0), V(27), V(73), V(92), V(101), V(101) };
 
   // Danger of enemy pawns moving toward our king indexed by
   // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
+	/*
+	king周辺の危険、用途不明
+	*/
   const Value StormDanger[3][RANK_NB] = {
   { V( 0),  V(64), V(128), V(51), V(26) },
   { V(26),  V(32), V( 96), V(38), V(20) },
@@ -70,11 +102,28 @@ namespace {
 
   // Max bonus for king safety. Corresponds to start position with all the pawns
   // in front of the king and no enemy pawn on the horizon.
+	/*
+	kingの安全？、用途不明
+	*/
   const Value MaxSafetyBonus = V(263);
 
   #undef S
   #undef V
+	/*
+	PAWNは非対称な駒なので関数入口で方向子を揃えている
+	手番のカラーはUs,敵はThem
+	WHITEにとって：Upは座標値大きくなる方向、つまりBLACK側に向かっている
+	RightはBLACK側に向かいながら右側（相手から見て右側？）
+	LeftはBLACK側に向かいながら左側（相手から見て左側）
 
+	BLACKにとってUpは座標が少なくなる方向、つまりWHITE側に向かっている
+	RightはWHITE側に向かいながら右側（相手からみて右側？）
+	leftはWHITE側に向かいながら左側（相手からみて左側？）
+
+	ここでPAWN特有の評価項目を加算して（減算）していく
+	最終value値に集約して返す
+
+	*/
   template<Color Us>
   Score evaluate(const Position& pos, Pawns::Entry* e) {
 

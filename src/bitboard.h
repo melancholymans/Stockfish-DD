@@ -512,6 +512,14 @@ DELTA_Nは８bit右シフトするので座標でいうと大きくなる
 	 3|   |   |   |   |   |   |   |   |
 	 +---+---+---+---+---+---+---+---+
 	 */
+/*
+shift_bbは渡したbitboardの駒を一斉に動かす関数
+DELTA_Nを渡すとBLACK側に進み、DELTA_Sを渡すとWHITE側に進む
+同様にDELTA_NEを渡すとNE方向にDELTA_SEを渡すとSE方向に一斉に進む
+DELTA_NW,DELTA_SWも指定した方向に一斉に動く
+PAWNのbitboardを渡して斜め方向に動かしたbitboardと敵bitboardの
+bit ANDを取ることでPAWNが獲得できる駒のbitboardを作ることができる
+*/
 template<Square Delta>
 inline Bitboard shift_bb(Bitboard b) {
 

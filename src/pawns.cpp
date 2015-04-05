@@ -122,7 +122,6 @@ namespace {
 
 	ここでPAWN特有の評価項目を加算して（減算）していく
 	最終value値に集約して返す
-
 	*/
   template<Color Us>
   Score evaluate(const Position& pos, Pawns::Entry* e) {
@@ -137,9 +136,17 @@ namespace {
     File f;
     bool passed, isolated, doubled, opposed, chain, backward, candidate;
     Score value = SCORE_ZERO;
+		/*
+		手番側のPAWNの座標のリスト
+		*/
     const Square* pl = pos.list<PAWN>(Us);
-
+		/*
+		手番側のPAWNのbitboard
+		*/
     Bitboard ourPawns = pos.pieces(Us, PAWN);
+		/*
+		敵側のPAWNのbitboard
+		*/
     Bitboard theirPawns = pos.pieces(Them, PAWN);
 
     e->passedPawns[Us] = e->candidatePawns[Us] = 0;

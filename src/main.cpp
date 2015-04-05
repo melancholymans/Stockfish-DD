@@ -997,6 +997,16 @@ H8	20
 	Bitboards::print(bb);
 	printf("%d\n", pop_lsb(&bb));		//出力は2
 	Bitboards::print(bb);
+	/*
+	DarkSquaresのbitboardを調べる
+	0xAA55AA55AA55AA55ULL
+	これを表示させると本物のchess盤のDark升が違うように
+	見えるがstockfishは上下が逆さまになっている。１行が８行に
+	８行が１行になっている
+	*/
+	printf("DarkSquares\n");
+	bb = 0xAA55AA55AA55AA55;
+	Bitboards::print(bb);
 	return;
 }
 

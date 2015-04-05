@@ -152,25 +152,49 @@ namespace {
     e->passedPawns[Us] = e->candidatePawns[Us] = 0;
     e->kingSquares[Us] = SQ_NONE;
     e->semiopenFiles[Us] = 0xFF;
+		/*
+		手番側のPAWNを取る方向（両斜め前）に動かしたあとのbitboardを入れておく
+		pawnAttacks=PAWNのアタッカー駒
+		*/
     e->pawnAttacks[Us] = shift_bb<Right>(ourPawns) | shift_bb<Left>(ourPawns);
+		/*
+		DarkSquares（ダーク升：盤の升の色が暗い色になっている升のこと）にいる手番側のPAWNの数
+		*/
     e->pawnsOnSquares[Us][BLACK] = popcount<Max15>(ourPawns & DarkSquares);
+		/*
+		DarkSquares（ダーク升）に乗っていない手番側のPAWNの数
+		*/
     e->pawnsOnSquares[Us][WHITE] = pos.count<PAWN>(Us) - e->pawnsOnSquares[Us][BLACK];
 
     // Loop through all pawns of the current color and score each pawn
+		/*
+		手番側のPAWNの座標をs変数に入れて
+		*/
     while ((s = *pl++) != SQ_NONE)
     {
         assert(pos.piece_on(s) == make_piece(Us, PAWN));
-
+				/*手番側のPAWNの列番号*/
         f = file_of(s);
 
         // This file cannot be semi-open
+				/*
+				semiopenFiles[]配列の初期値は0xFF、８bitが全て立っている状態に設定される
+				ここではPAWNがいる列のbitを反転させビットANDをとることでPAWNがいる列を０に
+				いない列を１として表現している
+				*/
         e->semiopenFiles[Us] &= ~(1 << f);
 
         // Our rank plus previous one. Used for chain detection
+				/*
+				PAWNがいる座標の行のbitboardとそのすぐ後ろの行（PAWNの進行方向とは逆）のbitboardをOR結合
+				*/
         b = rank_bb(s) | rank_bb(s - pawn_push(Us));
 
         // Flag the pawn as passed, isolated, doubled or member of a pawn
         // chain (but not the backward one).
+				/*
+				pawn chainを検出
+				*/
         chain    =   ourPawns   & adjacent_files_bb(f) & b;
         isolated = !(ourPawns   & adjacent_files_bb(f));
         doubled  =   ourPawns   & forward_bb(Us, s);

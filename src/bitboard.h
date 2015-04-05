@@ -384,6 +384,11 @@ extern int SquareDistance[SQUARE_NB][SQUARE_NB];
 /*
 盤の市松模様をbitboardにしたもの
 Color of a Square
+
+これを表示させると本物のchess盤のDark升と位置が違うように
+見えるがstockfishは上下が逆さまになっている。１行が８行に
+８行が１行になっているためです。
+
 https://chessprogramming.wikispaces.com/Color+of+a+Square
 +---+---+---+---+---+---+---+---+
 | X |   | X |   | X |   | X |   |

@@ -194,10 +194,23 @@ namespace {
         // chain (but not the backward one).
 				/*
 				pawn chainを検出
+				chainに手番側のPAWNのbitboardと現在着目しているPAWNがいる列の両脇の列を示すadjacent_files_bbとPAWNがいる行の
+				一つ後ろの行のbitboardとのbit ANDによって、注目しているPAWNの左斜め後ろか右斜め後ろにいるPAWNを入れる
 				*/
         chain    =   ourPawns   & adjacent_files_bb(f) & b;
+				/*
+				isolated＝孤立したという意味
+				注目しているPAWNの両脇にPAWNがいない時,isolated変数はtrueになり、いる時はfalseとなる
+				*/
         isolated = !(ourPawns   & adjacent_files_bb(f));
+				/*
+				注目しているPAWNの前方に同カラーのPAWNがいたらtrue、いなかったらfalse
+				*/
         doubled  =   ourPawns   & forward_bb(Us, s);
+				/*
+				doubled＝対立と言う意味
+				注目しているPAWNの前方にいる敵PAWNがいればtrue,いなければfalse
+				*/
         opposed  =   theirPawns & forward_bb(Us, s);
         passed   = !(theirPawns & passed_pawn_mask(Us, s));
 

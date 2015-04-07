@@ -212,12 +212,38 @@ namespace {
 				注目しているPAWNの前方にいる敵PAWNがいればtrue,いなければfalse
 				*/
         opposed  =   theirPawns & forward_bb(Us, s);
+				/*
+				手番側のPAWNが敵PAWNをとれるならfalse、取れないならtrue
+				*/
         passed   = !(theirPawns & passed_pawn_mask(Us, s));
 
         // Test for backward pawn.
         // If the pawn is passed, isolated, or member of a pawn chain it cannot
         // be backward. If there are friendly pawns behind on adjacent files
         // or if can capture an enemy pawn it cannot be backward either.
+				/*
+				敵PAWNをとれない　||　味方のPAWNから孤立している（同じ行にいない）　||　後方のPAWNとチエインでつながっている　||
+				注目のPAWNの後方に味方のPAWNがいる　||　敵のPAWNを取ることが可能
+				ならbackward変数はfalse
+				+---+---+---+---+---+---+---+---+
+				|   |   |   |   |   |   |   |   |
+				+---+---+---+---+---+---+---+---+
+				|   |   |   |   |   |   |   |   |
+				+---+---+---+---+---+---+---+---+
+				|   |   |   |   |   |   |   |   |
+				+---+---+---+---+---+---+---+---+
+				|   |   |   | P |   |   |   |   |
+				+---+---+---+---+---+---+---+---+
+				|   |   | P |   |   |   |   |   |
+				+---+---+---+---+---+---+---+---+
+				|   |   |   |   |   |   |   |   |
+				+---+---+---+---+---+---+---+---+
+				|   |   |   |   |   |   |   |   |
+				+---+---+---+---+---+---+---+---+
+				|   |   |   |   |   |   |   |   |
+				+---+---+---+---+---+---+---+---+
+				P->PAWN
+				*/
         if (   (passed | isolated | chain)
             || (ourPawns & pawn_attack_span(Them, s))
             || (pos.attacks_from<PAWN>(s, Us) & theirPawns))
@@ -228,11 +254,21 @@ namespace {
             // pawn on adjacent files. We now check whether the pawn is
             // backward by looking in the forward direction on the adjacent
             // files, and picking the closest pawn there.
+					/*
+					上のif文の条件が成立しない時（おそらくまだPAWNを余り動かしていなくPAWN同士が隣接しているような状態を想定？）
+					注目しているPAWNの利きの中にいる全てのPAWN（敵、味方全て）をbitboardにいれ、その手番側からビットスキャンして
+					そのPAWNがいる行bitboardと注目のPAWNの利きのビットアンドを取る
+					ここの処理の目的がよくわからん
+					https://chessprogramming.wikispaces.com/Backward+Pawn
+					*/
             b = pawn_attack_span(Us, s) & (ourPawns | theirPawns);
             b = pawn_attack_span(Us, s) & rank_bb(backmost_sq(Us, b));
 
             // If we have an enemy pawn in the same or next rank, the pawn is
             // backward because it cannot advance without being captured.
+						/*
+						ここの処理もよくわからんが、最終的にbackward変数をtrueにするのかfalseにするのかが目的
+						*/
             backward = (b | shift_bb<Up>(b)) & theirPawns;
         }
 
@@ -242,6 +278,11 @@ namespace {
         // advance and if the number of friendly pawns beside or behind this
         // pawn on adjacent files is higher or equal than the number of
         // enemy pawns in the forward direction on the adjacent files.
+				/*
+				（前方に敵PAWNがいる　||　直進できる　||　backward（？）　|| 孤立したPAWNである）でないこと　&&
+				注目しているPAWNの直前にいる敵PAWNが味方のPAWNを取ることができる
+
+				*/
         candidate =   !(opposed | passed | backward | isolated)
                    && (b = pawn_attack_span(Them, s + pawn_push(Us)) & ourPawns) != 0
                    &&  popcount<Max15>(b) >= popcount<Max15>(pawn_attack_span(Us, s) & theirPawns);

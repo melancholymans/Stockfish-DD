@@ -32,7 +32,6 @@ namespace {
 
   // Doubled pawn penalty by file
 	/*
-	2PAWNのペナルティ？
 	同列にPAWNが２つ以上いると防御上の弱点とされる（ルール違反ではない）
 	同一列にいるとPAWN同士で守ることができないから
 	このpawns.cppに定義してあるevaluate関数で使用されている
@@ -280,8 +279,9 @@ namespace {
         // enemy pawns in the forward direction on the adjacent files.
 				/*
 				（前方に敵PAWNがいる　||　直進できる　||　backward（？）　|| 孤立したPAWNである）でないこと　&&
-				注目しているPAWNの直前にいる敵PAWNが味方のPAWNを取ることができる
-
+				注目しているPAWNの直前にいる敵PAWNが味方のPAWNを取ることができる &&
+				前方にいる敵PAWNの数より後方にいる味方PAWNの数が同数以上
+				ならcandidateはtrue
 				*/
         candidate =   !(opposed | passed | backward | isolated)
                    && (b = pawn_attack_span(Them, s + pawn_push(Us)) & ourPawns) != 0
@@ -290,26 +290,48 @@ namespace {
         // Passed pawns will be properly scored in evaluation because we need
         // full attack info to evaluate passed pawns. Only the frontmost passed
         // pawn on each file is considered a true passed pawn.
+				/*
+				敵PAWNを取れる　&&　味方同士のPAWNが縦列になっていないなら
+				passedPawns bitboardに注目しているPAWNを追加する
+				このbitboardはこの関数内では活用しないがevaluate.cppの関数で使用されている
+				*/
         if (passed && !doubled)
             e->passedPawns[Us] |= s;
 
         // Score this pawn
+				/*
+				孤立したPAWNならIsolated配列に設定してある値を評価値から引く（ペナルティ）
+				列によってペナルティは異なる。端は小さく中央は大きくなる。値は中盤と終盤のセットになっている
+				*/
         if (isolated)
             value -= Isolated[opposed][f];
-
+				/*
+				味方のPAWN同士が縦列になっている場合のペナルティ
+				列によってペナルティ値は異なる。端より中央がペナルティがきつい
+				*/
         if (doubled)
             value -= Doubled[f];
-
+				/*
+				注目しているPAWNに後続する味方のPAWNがいない、両脇に味方のPAWNがいない時のペナルティ
+				列によってペナルティ値は異なる。端より中央がペナルティがきつい
+				*/
         if (backward)
             value -= Backward[opposed][f];
-
+				/*
+				味方のPAWNがチエーン状になっていればボーナス
+				ChainMember配列はinit関数内で設定
+				*/
         if (chain)
             value += ChainMember[f][relative_rank(Us, s)];
-
+				/*
+				敵PAWNを取って有利になりそうなPAWNの可能性がある場合はボーナス
+				*/
         if (candidate)
         {
             value += CandidatePassed[relative_rank(Us, s)];
-
+						/*
+						このbitboardはこの関数内では活用しないがevaluate.cppの関数で使用されている
+						*/
             if (!doubled)
                 e->candidatePawns[Us] |= s;
         }
@@ -323,7 +345,9 @@ namespace {
 namespace Pawns {
 
 /// init() initializes some tables by formula instead of hard-code their values
-
+/*
+ChainMember配列の初期化
+*/
 void init() {
 
   const int chainByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
@@ -341,7 +365,8 @@ void init() {
 /// probe() takes a position object as input, computes a Entry object, and returns
 /// a pointer to it. The result is also stored in a hash table, so we don't have
 /// to recompute everything when the same pawn structure occurs again.
-
+/*
+*/
 Entry* probe(const Position& pos, Table& entries) {
 
   Key key = pos.pawn_key();

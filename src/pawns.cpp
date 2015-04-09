@@ -366,6 +366,11 @@ void init() {
 /// a pointer to it. The result is also stored in a hash table, so we don't have
 /// to recompute everything when the same pawn structure occurs again.
 /*
+misc.hで定義してあるHashTableテンプレートでHashTableを作っている
+この関数は名前からわかるとおりそのHashTableを局面のpawn_keyで探索して
+すでに同一のkeyがあれば返る。なければkeyを登録し、BLACK側の評価値を基準とした
+評価値を１valueに登録する。
+probe（探索）ではなくappend（追加）機能のような気がする
 */
 Entry* probe(const Position& pos, Table& entries) {
 

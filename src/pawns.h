@@ -44,7 +44,9 @@ struct Entry {
 
     return semiopenFiles[c] & (left ? ((1 << int(f)) - 1) : ~((1 << int(f+1)) - 1));
   }
-
+	/*
+	evaluate_kingŠÖ”‚©‚ç‚Ì‚ÝŒÄ‚Î‚ê‚é
+	*/
   template<Color Us>
   Score king_safety(const Position& pos, Square ksq)  {
 

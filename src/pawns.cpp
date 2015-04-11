@@ -388,19 +388,36 @@ Entry* probe(const Position& pos, Table& entries) {
 
 /// Entry::shelter_storm() calculates shelter and storm penalties for the file
 /// the king is on, as well as the two adjacent files.
-
+/*
+update_safety関数からのみ呼ばれる
+*/
 template<Color Us>
 Value Entry::shelter_storm(const Position& pos, Square ksq) {
 
   const Color Them = (Us == WHITE ? BLACK : WHITE);
 
-  Value safety = MaxSafetyBonus;
+  Value safety = MaxSafetyBonus;		//MaxSafetyBonus=263
+	/*
+	KINGがいる行とその行から敵側の方向全てがbitが立っている　＆　敵味方関係なくPAWNがいるbitboard
+	*/
   Bitboard b = pos.pieces(PAWN) & (in_front_bb(Us, rank_of(ksq)) | rank_bb(ksq));
+	/*
+	そのうち手番側のPAWNのみ
+	*/
   Bitboard ourPawns = b & pos.pieces(Us);
+	/*
+	敵側PAWNのbitboard
+	*/
   Bitboard theirPawns = b & pos.pieces(Them);
+	/*
+
+	*/
   Rank rkUs, rkThem;
   File kf = std::max(FILE_B, std::min(FILE_G, file_of(ksq)));
-
+	/*
+	列をスキャンしていく
+	何らかのペナルティ？
+	*/
   for (File f = kf - File(1); f <= kf + File(1); ++f)
   {
       b = ourPawns & file_bb(f);
@@ -418,7 +435,9 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
 
 /// Entry::update_safety() calculates and caches a bonus for king safety. It is
 /// called only when king square changes, about 20% of total king_safety() calls.
-
+/*
+king_safety関数からのみ呼ばれる
+*/
 template<Color Us>
 Score Entry::update_safety(const Position& pos, Square ksq) {
 
@@ -427,21 +446,34 @@ Score Entry::update_safety(const Position& pos, Square ksq) {
   minKPdistance[Us] = 0;
 
   Bitboard pawns = pos.pieces(Us, PAWN);
+	/*
+	手番側のPAWNがあるなら、ｋINGを中心にチエビシエフ距離を伸ばしていき最初にPAWNがあったらそこでストップ
+	minKPdistance配列にはKINGと至近PAWNとのチエビシエフ距離数が入る
+	*/
   if (pawns)
       while (!(DistanceRingsBB[ksq][minKPdistance[Us]++] & pawns)) {}
-
+	/*
+	KINGがいる行が４より大きい場合（WHITE側なら、BLACK側ならRANK5）
+	KINGとPAWNとの離れ具合に応じてペナルティが設定される
+	*/	
   if (relative_rank(Us, ksq) > RANK_4)
       return kingSafety[Us] = make_score(0, -16 * minKPdistance[Us]);
 
   Value bonus = shelter_storm<Us>(pos, ksq);
 
   // If we can castle use the bonus after the castle if it is bigger
+	/*
+	キャスリング関係？不明
+	*/
   if (pos.can_castle(make_castle_right(Us, KING_SIDE)))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_G1)));
 
   if (pos.can_castle(make_castle_right(Us, QUEEN_SIDE)))
       bonus = std::max(bonus, shelter_storm<Us>(pos, relative_square(Us, SQ_C1)));
-
+	/*
+	KINGがRANK4よりでていなかったら
+	KINGとPAWNとの離れ具合に応じてとbonus値（？）ペナルティが設定される
+	*/
   return kingSafety[Us] = make_score(bonus, -16 * minKPdistance[Us]);
 }
 

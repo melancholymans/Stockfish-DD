@@ -106,6 +106,10 @@ namespace {
   // parameters at 100, which looks prettier.
   //
   // Values modified by Joona Kiiski
+	/*
+	Joona Kiiskiというのは人の名前らしい
+	https://chessprogramming.wikispaces.com/Joona+Kiiski
+	*/
   const Score WeightsInternal[] = {
       S(289, 344), S(233, 201), S(221, 273), S(46, 0), S(271, 0), S(307, 0)
   };
@@ -282,19 +286,29 @@ namespace Eval {
 
   /// init() computes evaluation weights from the corresponding UCI parameters
   /// and setup king tables.
-
+	/*
+	main関数から１度だけ呼び出される.
+	UCI::init(Options)関数からon_eval関数経由で呼び出される、多重に呼び出されているような？
+	*/
   void init() {
-
+		/*
+		ucioptの項目（Mobility,PawnStructure....）ごと、評価値を取り出して、WeightsInternalで重みづけする
+		uciopt項目の意味は分かっていない
+		*/
     Weights[Mobility]       = weight_option("Mobility (Midgame)", "Mobility (Endgame)", WeightsInternal[Mobility]);
     Weights[PawnStructure]  = weight_option("Pawn Structure (Midgame)", "Pawn Structure (Endgame)", WeightsInternal[PawnStructure]);
     Weights[PassedPawns]    = weight_option("Passed Pawns (Midgame)", "Passed Pawns (Endgame)", WeightsInternal[PassedPawns]);
     Weights[Space]          = weight_option("Space", "Space", WeightsInternal[Space]);
     Weights[KingDangerUs]   = weight_option("Cowardice", "Cowardice", WeightsInternal[KingDangerUs]);
     Weights[KingDangerThem] = weight_option("Aggressiveness", "Aggressiveness", WeightsInternal[KingDangerThem]);
-
+		/*
+		MaxSlope,Peakともわかっていない
+		*/
     const int MaxSlope = 30;
     const int Peak = 1280;
+		/*
 
+		*/
     for (int t = 0, i = 1; i < 100; ++i)
     {
         t = std::min(Peak, std::min(int(0.4 * i * i), t + MaxSlope));
@@ -961,6 +975,10 @@ Value do_evaluate(const Position& pos) {
   }
 
   // apply_weight() weights score v by score w trying to prevent overflow
+	/*
+	引数v(Value?)と引数w(Weight?)のミドルゲーム部同士、エンドゲーム同士を掛け合わせて
+	256（0x100）で割ったものを再び32bit変数、上位16bit部と下位16bit部に組み合わせて返す
+	*/
   Score apply_weight(Score v, Score w) {
     return make_score((int(mg_value(v)) * mg_value(w)) / 0x100,
                       (int(eg_value(v)) * eg_value(w)) / 0x100);
@@ -968,7 +986,10 @@ Value do_evaluate(const Position& pos) {
 
   // weight_option() computes the value of an evaluation weight, by combining
   // two UCI-configurable weights (midgame and endgame) with an internal weight.
-
+	/*
+	引数mgOpt,引数egOptでucioptのオプションを指定してその評価値とinternalWeight（この数値もmgとegに分けることができる）
+	を掛けた数値を返す
+	*/
   Score weight_option(const std::string& mgOpt, const std::string& egOpt, Score internalWeight) {
 
     // Scale option value from 100 to 256

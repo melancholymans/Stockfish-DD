@@ -47,6 +47,9 @@ namespace {
 
   // Struct EvalInfo contains various information computed and collected
   // by the evaluation functions.
+	/*
+	evaluation関数が集めて来る情報をここに集積する
+	*/
   struct EvalInfo {
 
     // Pointers to material and pawn hash table entries
@@ -318,9 +321,15 @@ Value do_evaluate(const Position& pos) {
   // Initialize score by reading the incrementally updated scores included
   // in the position object (material + piece square tables) and adding
   // Tempo bonus. Score is computed from the point of view of white.
+	/*
+	まず現局面での位置評価値とTempo（固定値）
+	*/
   score = pos.psq_score() + (pos.side_to_move() == WHITE ? Tempo : -Tempo);
 
   // Probe the material hash table
+	/*
+	不明
+	*/
   ei.mi = Material::probe(pos, th->materialTable, th->endgames);
   score += ei.mi->material_value();
 

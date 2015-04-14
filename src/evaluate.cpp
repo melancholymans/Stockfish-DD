@@ -307,7 +307,7 @@ namespace Eval {
     const int MaxSlope = 30;
     const int Peak = 1280;
 		/*
-
+		用途不明
 		*/
     for (int t = 0, i = 1; i < 100; ++i)
     {
@@ -342,25 +342,43 @@ Value do_evaluate(const Position& pos) {
 
   // Probe the material hash table
 	/*
-	不明
+	終盤固有の評価値を計算
 	*/
   ei.mi = Material::probe(pos, th->materialTable, th->endgames);
   score += ei.mi->material_value();
 
   // If we have a specialized evaluation function for the current material
   // configuration, call it and return.
+	/*
+	ei.mi->evaluate(pos)でよびだしているのは
+	Material::probe関数で設定される関数でsearch関数から呼び出されるevaluate関数ではない
+	Material::probe関数で設定される関数は条件によって３タイプある
+	EvaluateKXK[WHITE]
+	EvaluateKXK[BLACK]
+	EvaluateKmmKm[pos.side_to_move()]
+	がそれぞれ設定されている。material.cppに記述されているが詳細不明
+	*/
   if (ei.mi->specialized_eval_exists())
       return ei.mi->evaluate(pos);
 
   // Probe the pawn hash table
+	/*
+	Pawn固有の評価値を加える
+	*/
   ei.pi = Pawns::probe(pos, th->pawnsTable);
   score += apply_weight(ei.pi->pawns_value(), Weights[PawnStructure]);
 
   // Initialize attack and king safety bitboards
+	/*
+	相手のKINGを攻撃するための情報をeiに入れておく
+	*/
   init_eval_info<WHITE>(pos, ei);
   init_eval_info<BLACK>(pos, ei);
 
   // Evaluate pieces and mobility
+	/*
+
+	*/
   score +=  evaluate_pieces_of_color<WHITE, Trace>(pos, ei, mobility)
           - evaluate_pieces_of_color<BLACK, Trace>(pos, ei, mobility);
 
@@ -454,6 +472,12 @@ Value do_evaluate(const Position& pos) {
     ei.attackedBy[Us][PAWN] = ei.pi->pawn_attacks(Us);
 
     // Init king safety tables only if we are going to use them
+		/*
+		手番側にQueenが残っている　＆＆　残っている駒が豊富？なら
+		敵のKINGと手番側のPAWNの利きが重なるようなら、そのPAWNの駒数をkingAttackersCount[Us]に入れる
+
+		そうでないならkingAttackersCount[Us]には0を入れておく
+		*/
     if (pos.count<QUEEN>(Us) && pos.non_pawn_material(Us) > QueenValueMg + PawnValueMg)
     {
         ei.kingRing[Them] = b | shift_bb<Down>(b);

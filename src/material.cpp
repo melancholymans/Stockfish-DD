@@ -158,6 +158,7 @@ namespace Material {
 /*
 一度計算したものはMaterialEntryに保存しておき、あればそれを返す
 なければ計算して保存する。
+なにを計算している？
 */
 Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
 

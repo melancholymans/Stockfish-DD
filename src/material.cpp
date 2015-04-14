@@ -155,7 +155,10 @@ namespace Material {
 /// object, and returns a pointer to it. If the material configuration is not
 /// already present in the table, it is computed and stored there, so we don't
 /// have to recompute everything when the same material configuration occurs again.
-
+/*
+一度計算したものはMaterialEntryに保存しておき、あればそれを返す
+なければ計算して保存する。
+*/
 Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
 
   Key key = pos.material_key();

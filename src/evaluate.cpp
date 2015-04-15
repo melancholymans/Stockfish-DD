@@ -59,6 +59,9 @@ namespace {
     // attackedBy[color][piece type] is a bitboard representing all squares
     // attacked by a given color and piece type, attackedBy[color][ALL_PIECES]
     // contains all squares attacked by the given color.
+		/*
+		指定したカラーの指定した駒種の利きbitboard
+		*/
     Bitboard attackedBy[COLOR_NB][PIECE_TYPE_NB];
 
     // kingRing[color] is the zone around the king which is considered
@@ -518,7 +521,9 @@ Value do_evaluate(const Position& pos) {
 
 
   // evaluate_pieces() assigns bonuses and penalties to the pieces of a given color
-
+	/*
+	ボーナスまたはペナルティーを与える、指定した駒種、カラーに応じて。
+	*/
   template<PieceType Piece, Color Us, bool Trace>
   Score evaluate_pieces(const Position& pos, EvalInfo& ei, Score* mobility, Bitboard mobilityArea) {
 
@@ -534,15 +539,33 @@ Value do_evaluate(const Position& pos) {
     while ((s = *pl++) != SQ_NONE)
     {
         // Find attacked squares, including x-ray attacks for bishops and rooks
+				/*
+				x-rayはchessの技法の１つのようである
+				http://en.wikipedia.org/wiki/X-ray_%28chess%29
+				意味は分からない（影の利き？）
+				テンプレートパラメータで渡した駒種がBISHOPなら、手番側のQUEENを抜いたbitboardで生成するBISHOPの利きbitboardを返す
+				テンプレートパラメータで渡した駒種がROOKなら、手番側のROOKとQUEENを抜いたbitboardで生成するROOKの利きを設定する
+				ROOKでもBISHOPでもなかったら、テンプレートパラメータで渡した駒種の利きbitboardを返す
+
+				つまり今着目している座標ｓに届いているBISHOPの利きを調べている
+				またはROOKの利きを調べている
+				*/
         b = Piece == BISHOP ? attacks_bb<BISHOP>(s, pos.pieces() ^ pos.pieces(Us, QUEEN))
           : Piece ==   ROOK ? attacks_bb<  ROOK>(s, pos.pieces() ^ pos.pieces(Us, ROOK, QUEEN))
                             : pos.attacks_from<Piece>(s);
-
+				/*
+				いま着目している座標がPINされている駒なら、座標とKINGが横、縦、斜めの直線上にいればその直線のbitboardを
+				重ねる
+				*/
         if (ei.pinnedPieces[Us] & s)
             b &= LineBB[pos.king_square(Us)][s];
-
+				/*
+				bのbitboardを手番側のPAWNの利きbitboardと重ねる
+				*/
         ei.attackedBy[Us][Piece] |= b;
+				/*
 
+				*/
         if (b & ei.kingRing[Them])
         {
             ei.kingAttackersCount[Us]++;
@@ -648,13 +671,18 @@ Value do_evaluate(const Position& pos) {
 
   // evaluate_pieces_of_color() assigns bonuses and penalties to all the
   // pieces of a given color.
+	/*
 
+	*/
   template<Color Us, bool Trace>
   Score evaluate_pieces_of_color(const Position& pos, EvalInfo& ei, Score* mobility) {
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
     // Do not include in mobility squares protected by enemy pawns or occupied by our pieces
+		/*
+		mobilityAreaに敵PAWNの利きと手番側のPAWNとKING駒のbitboard以外の座標bitboardを入れておく
+		*/
     const Bitboard mobilityArea = ~(ei.attackedBy[Them][PAWN] | pos.pieces(Us, PAWN, KING));
 
     Score score =  evaluate_pieces<KNIGHT, Us, Trace>(pos, ei, mobility, mobilityArea)

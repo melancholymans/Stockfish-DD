@@ -564,7 +564,7 @@ Value do_evaluate(const Position& pos) {
 				*/
         ei.attackedBy[Us][Piece] |= b;
 				/*
-
+				bのbitboardと敵のKINGの利きbitboardのbit ANDがあるなら、ボーナスを与える
 				*/
         if (b & ei.kingRing[Them])
         {
@@ -574,10 +574,14 @@ Value do_evaluate(const Position& pos) {
             if (bb)
                 ei.kingAdjacentZoneAttacksCount[Us] += popcount<Max15>(bb);
         }
-
+				/*
+				渡されたテンプレート駒種がQUEENでないなら？mobilityAreaとは？
+				*/
         int mob = Piece != QUEEN ? popcount<Max15>(b & mobilityArea)
                                  : popcount<Full >(b & mobilityArea);
+				/*
 
+				*/
         mobility[Us] += MobilityBonus[Piece][mob];
 
         // Decrease score if we are attacked by an enemy pawn. Remaining part

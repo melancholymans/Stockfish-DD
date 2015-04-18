@@ -38,6 +38,10 @@ struct Entry {
   Bitboard pawn_attacks(Color c) const { return pawnAttacks[c]; }
   Bitboard passed_pawns(Color c) const { return passedPawns[c]; }
   Bitboard candidate_pawns(Color c) const { return candidatePawns[c]; }
+	/*
+	‚Q“x”Û’è(!!)‚µ‚Ä‚¢‚é‚Ì‚Í‰½ŒÌ
+
+	*/
   int pawns_on_same_color_squares(Color c, Square s) const { return pawnsOnSquares[c][!!(DarkSquares & s)]; }
   int semiopen(Color c, File f) const { return semiopenFiles[c] & (1 << int(f)); }
   int semiopen_on_side(Color c, File f, bool left) const {

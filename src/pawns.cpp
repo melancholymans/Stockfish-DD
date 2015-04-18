@@ -180,6 +180,7 @@ namespace {
 				semiopenFiles[]配列の初期値は0xFF、８bitが全て立っている状態に設定される
 				ここではPAWNがいる列のbitを反転させビットANDをとることでPAWNがいる列を０に
 				いない列を１として表現している
+				オープンファイル、セミオープンファイルの判定に使う
 				*/
         e->semiopenFiles[Us] &= ~(1 << f);
 

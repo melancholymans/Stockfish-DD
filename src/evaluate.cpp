@@ -120,6 +120,8 @@ namespace {
   // MobilityBonus[PieceType][attacked] contains bonuses for middle and end
   // game, indexed by piece type and number of attacked squares not occupied by
   // friendly pieces.
+	/*
+	*/
   const Score MobilityBonus[][32] = {
      {}, {},
      { S(-35,-30), S(-22,-20), S(-9,-10), S( 3,  0), S(15, 10), S(27, 20), // Knights
@@ -177,12 +179,30 @@ namespace {
 
   const Score Tempo            = make_score(24, 11);
   const Score BishopPin        = make_score(66, 11);
+	/*
+	ROOKがRank7に（white側ROOKからみた）いるときにもらえるボーナス
+	*/
   const Score RookOn7th        = make_score(11, 20);
-  const Score QueenOn7th       = make_score( 3,  8);
+	/*
+	QUEENがRank7に（white側QUEENからみた）いるときにもらえるボーナス
+	*/
+	const Score QueenOn7th = make_score(3, 8);
+	/*
+	ROOKの利きまたは影の利きが敵PAWNに利きているならでるボーナス
+	*/
   const Score RookOnPawn       = make_score(10, 28);
+	/*
+	QUEENの利きまたは影の利きが敵PAWNに利いているならでるボーナス
+	*/
   const Score QueenOnPawn      = make_score( 4, 20);
+	/*
+	列がオープンファイル（両側にPAWNがいない列）に当たれられるボーナス
+	*/
   const Score RookOpenFile     = make_score(43, 21);
-  const Score RookSemiopenFile = make_score(19, 10);
+	/*
+	列がセミオープンファイル（型側だけにPAWNがいない列）に当たれられるボーナス
+	*/
+	const Score RookSemiopenFile = make_score(19, 10);
   const Score BishopPawns      = make_score( 8, 12);
   const Score KnightPawns      = make_score( 8,  4);
   const Score MinorBehindPawn  = make_score(16,  0);
@@ -494,7 +514,9 @@ Value do_evaluate(const Position& pos) {
 
 
   // evaluate_outposts() evaluates bishop and knight outposts squares
+	/*
 
+	*/
   template<PieceType Piece, Color Us>
   Score evaluate_outposts(const Position& pos, EvalInfo& ei, Square s) {
 
@@ -580,30 +602,47 @@ Value do_evaluate(const Position& pos) {
         int mob = Piece != QUEEN ? popcount<Max15>(b & mobilityArea)
                                  : popcount<Full >(b & mobilityArea);
 				/*
-
+				MobilityBonus[piece Type][]は駒種ごとにミドル評価値とエンド評価値が入っている
+				modがなにを示すのか分からないがプラスなのでボーナス？
 				*/
         mobility[Us] += MobilityBonus[Piece][mob];
 
         // Decrease score if we are attacked by an enemy pawn. Remaining part
         // of threat evaluation must be done later when we have full attack info.
+				/*
+				現在着目している駒が敵のPAWNの利きに入っているならペナルテイがある
+				*/
         if (ei.attackedBy[Them][PAWN] & s)
             score -= ThreatenedByPawn[Piece];
 
         // Otherwise give a bonus if we are a bishop and can pin a piece or can
         // give a discovered check through an x-ray attack.
+				/*
+				そうでなく（PAWNの利きに入っていない）　かつ　PieceがBISHOPで　かつ　敵のKINGとの間に邪魔な駒が１しかなかった
+				らBishopPin点ボーナスを与える
+				*/
         else if (    Piece == BISHOP
                  && (PseudoAttacks[Piece][pos.king_square(Them)] & s)
                  && !more_than_one(BetweenBB[s][pos.king_square(Them)] & pos.pieces()))
                  score += BishopPin;
 
         // Penalty for bishop with same coloured pawns
+				/*
+				PIeceがBISHOPで？
+				*/
         if (Piece == BISHOP)
             score -= BishopPawns * ei.pi->pawns_on_same_color_squares(Us, s);
 
         // Penalty for knight when there are few enemy pawns
+				/*
+				PIeceがKNIGHTであるとき敵のPAWNの数（上限を５とする）に比例したペナルテイをとる
+				*/
         if (Piece == KNIGHT)
             score -= KnightPawns * std::max(5 - pos.count<PAWN>(Them), 0);
-
+				/*
+				KNIGHTとBISHOPのボーナスを計算している
+				詳細不明
+				*/
         if (Piece == BISHOP || Piece == KNIGHT)
         {
             // Bishop and knight outposts squares
@@ -615,7 +654,10 @@ Value do_evaluate(const Position& pos) {
                 && (pos.pieces(PAWN) & (s + pawn_push(Us))))
                 score += MinorBehindPawn;
         }
-
+				/*
+				PIeceがROOKまたはQUEENでwhite側からみて着目している駒のいる行がRank５よりBLACK側なら
+				いる行がRANK7で　かつ　敵のKINGがいる行がRANK8にいればボーナスがもらえる
+				*/
         if (  (Piece == ROOK || Piece == QUEEN)
             && relative_rank(Us, s) >= RANK_5)
         {
@@ -625,25 +667,52 @@ Value do_evaluate(const Position& pos) {
                 score += Piece == ROOK ? RookOn7th : QueenOn7th;
 
             // Major piece attacking enemy pawns on the same rank/file
-            Bitboard pawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
+						/*
+						pawnsには着目している駒がROOKまたはQuennだったときその利きが敵PAWNに利きている、または影の利きがあたっているとき
+						その敵PAWN座標bitboardが入っている
+						そしてそのようなpawnsがあるならそのpawnsの数に応じてボーナス
+						*/
+						Bitboard pawns = pos.pieces(Them, PAWN) & PseudoAttacks[ROOK][s];
+
             if (pawns)
                 score += popcount<Max15>(pawns) * (Piece == ROOK ? RookOnPawn : QueenOnPawn);
         }
 
         // Special extra evaluation for rooks
+				/*
+				ROOKのための特別なボーナス？
+				*/
         if (Piece == ROOK)
         {
             // Give a bonus for a rook on a open or semi-open file
+						/*
+						お互いにPAWNがいない列をオープンファイルという
+						片側だけPAWNがいない列をセミオープンファイルまたはハーフオープンファイルと言う
+						オープンファイル、セミオープンファイルはROOKの利きが敵にとどくので得点につながりやすい
+						semiopenFiles関数は指定したカラーで指定した列がオープンになっていればtrueを返してくる
+						オープンファイル、セミオープンファイルならボーナスがある
+						*/
             if (ei.pi->semiopen(Us, file_of(s)))
-                score += ei.pi->semiopen(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
 
+							score += ei.pi->semiopen(Them, file_of(s)) ? RookOpenFile : RookSemiopenFile;
+						/*
+						mobが不明
+						*/
             if (mob > 3 || ei.pi->semiopen(Us, file_of(s)))
                 continue;
+						/*
+						ROOKに対する」ペナルテイ
 
+						*/
             Square ksq = pos.king_square(Us);
 
             // Penalize rooks which are trapped inside a king. Penalize more if
             // king has lost right to castle.
+						/*
+						手番側のKINGの列がE列より左側にいる（つまり居KINGではなく移動すみ）　かつ　着目の駒の列がKINGのいる列より左側にいる
+						かつ　（KINGと同じ行にいる　｜｜　KINGがRANK1にいる（White基準）　　かつ　KINGがいる列がセミオープンになっていない
+						ならペナルテイ
+						*/
             if (   ((file_of(ksq) < FILE_E) == (file_of(s) < file_of(ksq)))
                 && (rank_of(ksq) == rank_of(s) || relative_rank(Us, ksq) == RANK_1)
                 && !ei.pi->semiopen_on_side(Us, file_of(ksq), file_of(ksq) < FILE_E))
@@ -653,6 +722,9 @@ Value do_evaluate(const Position& pos) {
         // An important Chess960 pattern: A cornered bishop blocked by a friendly
         // pawn diagonally in front of it is a very serious problem, especially
         // when that pawn is also blocked.
+				/*
+				chess960の評価と思われるのでパス
+				*/
         if (   Piece == BISHOP
             && pos.is_chess960()
             && (s == relative_square(Us, SQ_A1) || s == relative_square(Us, SQ_H1)))
@@ -665,7 +737,10 @@ Value do_evaluate(const Position& pos) {
                                                            : TrappedBishopA1H1;
         }
     }
-
+		/*
+		通常の評価ならここは実行されない
+		do_trace関数から呼ばれる時だけTraceがtrueにして呼ばれる
+		*/
     if (Trace)
         Tracing::scores[Us][Piece] = score;
 

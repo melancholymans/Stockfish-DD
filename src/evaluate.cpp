@@ -74,6 +74,9 @@ namespace {
 
     // kingAttackersCount[color] is the number of pieces of the given color
     // which attack a square in the kingRing of the enemy king.
+		/*
+		KINGの周辺に利いているPAWNの数
+		*/
     int kingAttackersCount[COLOR_NB];
 
     // kingAttackersWeight[color] is the sum of the "weight" of the pieces of the
@@ -81,6 +84,9 @@ namespace {
     // weights of the individual piece types are given by the variables
     // QueenAttackWeight, RookAttackWeight, BishopAttackWeight and
     // KnightAttackWeight in evaluate.cpp
+		/*
+		不明
+		*/
     int kingAttackersWeight[COLOR_NB];
 
     // kingAdjacentZoneAttacksCount[color] is the number of attacks to squares
@@ -88,6 +94,8 @@ namespace {
     // more than one square are counted multiple times. For instance, if black's
     // king is on g8 and there's a white knight on g5, this knight adds
     // 2 to kingAdjacentZoneAttacksCount[BLACK].
+		/*
+		*/
     int kingAdjacentZoneAttacksCount[COLOR_NB];
 
     Bitboard pinnedPieces[COLOR_NB];
@@ -97,6 +105,10 @@ namespace {
   const int GrainSize = 4;
 
   // Evaluation weights, initialized from UCI options
+	/*
+	評価項目の重み係数でinit関数（main関数から呼ばれる）でucioptionからの設定値を
+	Weights配列に設定する
+	*/
   enum { Mobility, PawnStructure, PassedPawns, Space, KingDangerUs, KingDangerThem };
   Score Weights[6];
 
@@ -293,7 +305,9 @@ namespace Eval {
   /// evaluate() is the main evaluation function. It always computes two
   /// values, an endgame score and a middle game score, and interpolates
   /// between them based on the remaining material.
-
+	/*
+	外部から呼ばれるのはこの関数
+	*/
   Value evaluate(const Position& pos) {
     return do_evaluate<false>(pos);
   }
@@ -302,6 +316,10 @@ namespace Eval {
   /// trace() is like evaluate() but instead of a value returns a string suitable
   /// to be print on stdout with the detailed descriptions and values of each
   /// evaluation term. Used mainly for debugging.
+	/*
+	その局面での評価項目ごとの評価値を表示させる
+	uciインターフェイスから"eval"コマンドから呼ばれる
+	*/
   std::string trace(const Position& pos) {
     return Tracing::do_trace(pos);
   }
@@ -460,6 +478,34 @@ Value do_evaluate(const Position& pos) {
   Value v = interpolate(score, ei.mi->game_phase(), sf);
 
   // In case of tracing add all single evaluation contributions for both white and black
+	/*
+	通常Traceはfalseであるがtrace関数からのみtrueで呼ばれる
+	このtrace関数を呼び出すのはuciインターフィスから"eval"コマンドを打った時のみ
+	表示される。ここでは表示させる評価値を保存している。
+	＜初期局面でevalコマンドで表示させたもの＞
+	Eval term							|    White    |    Black    |     Total
+												|   MG    EG  |   MG    EG  |   MG     EG
+	---------------------+-------------+-------------+---------------
+	Material, PST, Tempo	|   ---   --- |   ---   --- |   0.00   0.00
+	Material imbalance		|   ---   --- |   ---   --- |   0.00   0.00
+	Pawns									|   ---   --- |   ---   --- |   0.00   0.00
+	Knights								|  0.16  0.00 |  0.16  0.00 |  +0.00  +0.00
+	Bishops								| -0.16 -0.48 | -0.16 -0.48 |  +0.00  +0.00
+	Rooks									| -0.41  0.00 | -0.41  0.00 |  +0.00  +0.00
+	Queens								|  0.00  0.00 |  0.00  0.00 |  +0.00  +0.00
+	Mobility							| -0.52 -0.80 | -0.52 -0.80 |  +0.00  +0.00
+	King safety						|  1.33 -0.08 |  1.33 -0.08 |  +0.00  +0.00
+	Threats								|  0.00  0.00 |  0.00  0.00 |  +0.00  +0.00
+	Passed pawns					|  0.00  0.00 |  0.00  0.00 |  +0.00  +0.00
+	Space									|  0.46  0.00 |  0.46  0.00 |  +0.00  +0.00
+	---------------------+-------------+-------------+---------------
+	Total									|   ---   --- |   ---   --- |  +0.12  +0.06
+
+	Scaling: 100.00% MG,   0.00% * 100.00% EG.
+	Total evaluation: 0.12
+
+
+	*/
   if (Trace)
   {
       Tracing::add(PST, pos.psq_score());
@@ -482,7 +528,10 @@ Value do_evaluate(const Position& pos) {
 
   // init_eval_info() initializes king bitboards for given color adding
   // pawn attacks. To be done at the beginning of the evaluation.
-
+	/*
+	do_evaluate関数から呼び出される
+	KINGを攻撃するための基礎情報を設定する
+	*/
   template<Color Us>
   void init_eval_info(const Position& pos, EvalInfo& ei) {
 
@@ -515,7 +564,8 @@ Value do_evaluate(const Position& pos) {
 
   // evaluate_outposts() evaluates bishop and knight outposts squares
 	/*
-
+	詳細不明
+	evaluate_pieces関数から呼ばれている
 	*/
   template<PieceType Piece, Color Us>
   Score evaluate_outposts(const Position& pos, EvalInfo& ei, Square s) {
@@ -545,6 +595,7 @@ Value do_evaluate(const Position& pos) {
   // evaluate_pieces() assigns bonuses and penalties to the pieces of a given color
 	/*
 	ボーナスまたはペナルティーを与える、指定した駒種、カラーに応じて。
+	evaluate_pieces_of_color関数から呼ばれている
 	*/
   template<PieceType Piece, Color Us, bool Trace>
   Score evaluate_pieces(const Position& pos, EvalInfo& ei, Score* mobility, Bitboard mobilityArea) {
@@ -751,7 +802,8 @@ Value do_evaluate(const Position& pos) {
   // evaluate_pieces_of_color() assigns bonuses and penalties to all the
   // pieces of a given color.
 	/*
-
+	do_evaluate関数から呼ばれている
+	do_evaluate->evaluate_pieces_of_color->evaluate_pieces呼び出しの連鎖
 	*/
   template<Color Us, bool Trace>
   Score evaluate_pieces_of_color(const Position& pos, EvalInfo& ei, Score* mobility) {
@@ -781,7 +833,10 @@ Value do_evaluate(const Position& pos) {
 
 
   // evaluate_king() assigns bonuses and penalties to a king of a given color
-
+	/*
+	do_evaluate関数のみから呼ばれる
+	kingに関するボーナス＋ペナルティを与える
+	*/
   template<Color Us, bool Trace>
   Score evaluate_king(const Position& pos, const EvalInfo& ei) {
 
@@ -792,9 +847,16 @@ Value do_evaluate(const Position& pos) {
     const Square ksq = pos.king_square(Us);
 
     // King shelter and enemy pawns storm
+		/*
+		手番側のKINGの安全評価値？
+		*/
     Score score = ei.pi->king_safety<Us>(pos, ksq);
 
     // Main king safety evaluation
+		/*
+		kingAttackersCount配列はking周辺に利きているPAWNの数が２より大きく　かつ
+		？
+		*/
     if (   ei.kingAttackersCount[Them] >= 2
         && ei.kingAdjacentZoneAttacksCount[Them])
     {
@@ -1132,9 +1194,12 @@ Value do_evaluate(const Position& pos) {
 
 
   // Tracing functions definitions
-
+	/*
+	与えられた評価値がPAWN評価何個分を変換
+	*/
   double to_cp(Value v) { return double(v) / double(PawnValueMg); }
-
+	/*
+	*/
   void Tracing::add(int idx, Score wScore, Score bScore) {
 
     scores[WHITE][idx] = wScore;

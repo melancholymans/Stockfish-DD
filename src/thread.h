@@ -35,7 +35,9 @@ const int MAX_THREADS = 64; // Because SplitPoint::slavesMask is a uint64_t
 const int MAX_SPLITPOINTS_PER_THREAD = 8;
 
 struct Thread;
-
+/*
+探索が分岐したあとデーターを保持するためのクラス
+*/
 struct SplitPoint {
 
   // Const data after split point has been setup
@@ -66,7 +68,9 @@ struct SplitPoint {
 
 /// ThreadBase struct is the base of the hierarchy from where we derive all the
 /// specialized thread classes.
-
+/*
+全てのスレッドクラスのベースクラス
+*/
 struct ThreadBase {
 
   ThreadBase() : exit(false) {}
@@ -74,10 +78,21 @@ struct ThreadBase {
   virtual void idle_loop() = 0;
   void notify_one();
   void wait_for(volatile const bool& b);
-
+	/*
+	標準ライブラリのスレッドクラス
+	*/
   std::thread nativeThread;
+	/*
+	標準ライブラリのミューテックスクラス
+	*/
   std::mutex mutex;
+	/*
+	標準ライブラリの条件変数クラス
+	*/
   std::condition_variable sleepCondition;
+	/*
+	クラス生成時はfalseで設定される
+	*/
   volatile bool exit;
 };
 
@@ -86,7 +101,10 @@ struct ThreadBase {
 /// and especially split points. We also use per-thread pawn and material hash
 /// tables so that once we get a pointer to an entry its life time is unlimited
 /// and we don't have to care about someone changing the entry under our feet.
-
+/*
+ThreadBaseクラスから派生するクラスでこのクラスを土台にThreadPool,MainThread,TimerThreadが派生していく
+ThreadBaseクラスがThread制御に必要な機能を実装したの比べこのクラスには探索に必要な関数、データーを実装している
+*/
 struct Thread : public ThreadBase {
 
   Thread();

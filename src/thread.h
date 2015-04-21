@@ -131,13 +131,17 @@ struct Thread : public ThreadBase {
 
 /// MainThread and TimerThread are derived classes used to characterize the two
 /// special threads: the main one and the recurring timer.
-
+/*
+Threadクラスから派生したMainThreadでこれが探索開始時に動く最初のスレッド
+*/
 struct MainThread : public Thread {
   MainThread() : thinking(true) {} // Avoid a race with start_thinking()
   virtual void idle_loop();
   volatile bool thinking;
 };
-
+/*
+タイマー用スレッド
+*/
 struct TimerThread : public ThreadBase {
   TimerThread() : run(false) {}
   virtual void idle_loop();
@@ -149,7 +153,10 @@ struct TimerThread : public ThreadBase {
 /// ThreadPool struct handles all the threads related stuff like init, starting,
 /// parking and, the most important, launching a slave thread at a split point.
 /// All the access to shared thread data is done through this class.
-
+/*
+探索分岐するスレッドはここにプールされているスレッドを使う
+ThreadPoolクラスはThread.cpp内でグローバル宣言されている
+*/
 struct ThreadPool : public std::vector<Thread*> {
 
   void init(); // No c'tor and d'tor, threads rely on globals that should

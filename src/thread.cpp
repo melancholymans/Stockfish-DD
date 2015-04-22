@@ -233,25 +233,38 @@ void ThreadPool::exit() {
 // UCI options and creates/destroys threads to match the requested number. Thread
 // objects are dynamically allocated to avoid creating in advance all possible
 // threads, with included pawns and material tables, if only few are used.
-
+/*
+*/
 void ThreadPool::read_uci_options() {
 
-  maxThreadsPerSplitPoint = Options["Max Threads per Split Point"];
-  minimumSplitDepth       = Options["Min Split Depth"] * ONE_PLY;
-  size_t requested        = Options["Threads"];
+  maxThreadsPerSplitPoint = Options["Max Threads per Split Point"];	//デフォルトで設定されているのは5スレッド
+  minimumSplitDepth       = Options["Min Split Depth"] * ONE_PLY;		//デフォルトで設定されているのは0
+  size_t requested        = Options["Threads"];											//デフォルトで設定されているのは1、設定可能スレッド数は1~64
 
   assert(requested > 0);
 
   // Value 0 has a special meaning: We determine the optimal minimum split depth
   // automatically. Anyhow the minimumSplitDepth should never be under 4 plies.
+	/*
+	minimumSplitDepthが0なら4*ONE_PLYとし決して４より小さくならないようにしている
+	*/
   if (!minimumSplitDepth)
       minimumSplitDepth = (requested < 8 ? 4 : 7) * ONE_PLY;
   else
       minimumSplitDepth = std::max(4 * ONE_PLY, minimumSplitDepth);
-
+	/*
+	ThreadPoolはvectorを継承しているのでsize()はプールしているスレッド数となる
+	uci optionで設定されたrequested数がプールされたスレッド数より大きい場合は
+	スレッドをここで生成する。
+	このread_uci_options関数が呼ばれた時点ではプールにためているスレッドはMainThreadだけなので
+	requestedが１より多ければここで生成して準備しておく
+	*/
   while (size() < requested)
       push_back(new_thread<Thread>());
+	/*
+	反対に少なかったら作儒する
 
+	*/
   while (size() > requested)
   {
       delete_thread(back());

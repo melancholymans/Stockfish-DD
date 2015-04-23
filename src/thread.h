@@ -79,7 +79,7 @@ struct ThreadBase {
   void notify_one();
   void wait_for(volatile const bool& b);
 	/*
-	標準ライブラリのスレッドクラス
+	標準ライブラリのスレッドクラスのポインタを生成時この変数に入れておく
 	*/
   std::thread nativeThread;
 	/*
@@ -92,6 +92,11 @@ struct ThreadBase {
   std::condition_variable sleepCondition;
 	/*
 	クラス生成時はfalseで設定される
+	MainThread,timerThreadのアイドルループから抜け出す時trueにする
+	delete_thread関数だけがこの変数をtrueにできる
+	そしてそのdelete_thread関数はThreadPool::exit()関数だけから呼ばれている
+	そのexit()関数はmain関数が終了するタイミングで呼ばれるだけなので
+	一旦作成されたスレッドはゲームが終了するまで止まらない
 	*/
   volatile bool exit;
 };

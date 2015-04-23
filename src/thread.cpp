@@ -45,12 +45,21 @@ namespace {
  // Helpers to launch a thread after creation and joining before delete. Must be
  // outside Thread c'tor and d'tor because object shall be fully initialized
  // when virtual idle_loop() is called and when joining.
+/*
+ThreadPool：：init関数からTimerThread,MainThreadを作る時に呼ばれる
+スレッドを作るヘルパー関数
+テンプレートパラメータで渡されたスレッドクラスを生成して標準スレッドライブラリにidle_loop関数を
+登録することによって一旦スレッドを待機状態に設定し、生成したスレッドクラスのポインタを返す
+*/
  template<typename T> T* new_thread() {
    T* th = new T();
    th->nativeThread = std::thread(&ThreadBase::idle_loop, th); // Will go to sleep
    return th;
  }
+ /*
+ ThreadPool::read_uci_option関数,ThreadPool::exit関数から呼ばれる
 
+ */
  void delete_thread(ThreadBase* th) {
    th->exit = true; // Search must be already finished
    th->notify_one();
@@ -234,6 +243,9 @@ void ThreadPool::exit() {
 // objects are dynamically allocated to avoid creating in advance all possible
 // threads, with included pawns and material tables, if only few are used.
 /*
+ThreadPoolのinit関数から呼ばれる（これは１回だけ）、あとuci option からMin Split Depth,Max Threads per Split Point,Threadsの
+オプションが変更されたら随時呼ばれる。
+uci option設定に従ってプールするスレッド数を決める
 */
 void ThreadPool::read_uci_options() {
 
@@ -262,8 +274,7 @@ void ThreadPool::read_uci_options() {
   while (size() < requested)
       push_back(new_thread<Thread>());
 	/*
-	反対に少なかったら作儒する
-
+	反対に少なかったら削除する
 	*/
   while (size() > requested)
   {

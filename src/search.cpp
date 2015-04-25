@@ -2234,7 +2234,10 @@ void Thread::idle_loop() {
 /// check_time() is called by the timer thread when the timer triggers. It is
 /// used to print debug info and, more important, to detect when we are out of
 /// available time and so stop the search.
-
+/*
+TimerThread::idle_loop()からのみ呼ばれる
+探索開始から所定の時間を超えたら（他にも条件はあるが詳細不明）探索停止のフラグを立てる
+*/
 void check_time() {
 
   static Time::point lastInfoTime = Time::now();
@@ -2278,7 +2281,12 @@ void check_time() {
 
       Threads.mutex.unlock();
   }
-
+	/*
+	SearchTimeはstart_thking関数で時刻をセットして、ここで経過時間elapsedを測る
+	この経過時間がTimeMgr.available_time()に設定してある時間を超えたらなどの条件で
+	探索停止のフラグを立てる
+	停止の詳細は不明
+	*/
   Time::point elapsed = Time::now() - SearchTime;
   bool stillAtFirstMove =    Signals.firstRootMove
                          && !Signals.failedLowAtRoot

@@ -61,8 +61,11 @@ ThreadPool：：init関数からTimerThread,MainThreadを作る時に呼ばれる
 
  */
  void delete_thread(ThreadBase* th) {
+	 //exitフラグをセット
    th->exit = true; // Search must be already finished
+	 //寝ているスレッドは起こしておく
    th->notify_one();
+	 //ここでスレッドの終了を待つ
    th->nativeThread.join(); // Wait for thread termination
    delete th;
  }
@@ -71,18 +74,17 @@ ThreadPool：：init関数からTimerThread,MainThreadを作る時に呼ばれる
 
 // ThreadBase::notify_one() wakes up the thread when there is some search to do
 /*
-notify_oneはThreadBaseクラスが持っているEvent変数を
-シグナルにする
+notify_oneはThreadBaseクラスが持っているミューテック変数をロックして
+寝ているスレッドを起こす
 */
 void ThreadBase::notify_one() {
-
   std::unique_lock<std::mutex>(this->mutex);
   sleepCondition.notify_one();
 }
 
 
 // ThreadBase::wait_for() set the thread to sleep until condition 'b' turns true
-
+//渡したｂ変数が条件変数となる
 void ThreadBase::wait_for(volatile const bool& b) {
 
   std::unique_lock<std::mutex> lk(mutex);
@@ -92,7 +94,11 @@ void ThreadBase::wait_for(volatile const bool& b) {
 
 // Thread c'tor just inits data but does not launch any thread of execution that
 // instead will be started only upon c'tor returns.
-
+/*
+スレッドクラスのコンストラクタ
+スレッドはtimerThread以外は全てThreadPoolに保持されるので（Threads[0]がMainThreadになる）
+スレッド固有IDはPool内の配列Indexになる
+*/
 Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
 
   searching = false;
@@ -106,13 +112,20 @@ Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
 // TimerThread::idle_loop() is where the timer thread waits msec milliseconds
 // and then calls check_time(). If msec is 0 thread sleeps until is woken up.
 extern void check_time();
-
+/*
+タイマースレッドのアイドルループ
+5msごとに探索停止判断をする関数(check_time)を呼び出している
+*/
 void TimerThread::idle_loop() {
 
   while (!exit)
   {
       std::unique_lock<std::mutex> lk(mutex);
-
+			/*
+			runは探索中はtrueになっている（探索終了後はfalseに）
+			Resolution=5msになっているので5msごと起きてcheck_time関数を呼び出して
+			探索停止すべきか判断している
+			*/
       if (!exit)
           sleepCondition.wait_for(lk, std::chrono::milliseconds(run ? Resolution : INT_MAX));
 

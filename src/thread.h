@@ -72,11 +72,22 @@ struct SplitPoint {
 全てのスレッドクラスのベースクラス
 */
 struct ThreadBase {
-
+	/*
+	exitはfalseで初期化する、exitはスレッドを破壊するときのフラグ
+	*/
   ThreadBase() : exit(false) {}
   virtual ~ThreadBase() {}
+	/*
+	idle_loopはMainThread,TimerThreadでオーバーロードするのでここでは仮想関数
+	*/
   virtual void idle_loop() = 0;
+	/*
+	この関数を呼んだスレッドを起こす
+	*/
   void notify_one();
+	/*
+	条件変数bool bがtrueになるまでスレッドを寝かせる
+	*/
   void wait_for(volatile const bool& b);
 	/*
 	標準ライブラリのスレッドクラスのポインタを生成時この変数に入れておく
@@ -113,23 +124,44 @@ ThreadBaseクラスがThread制御に必要な機能を実装したの比べこのクラスには探索に必要
 struct Thread : public ThreadBase {
 
   Thread();
+	/*
+	スレッド待機関数
+	*/
   virtual void idle_loop();
+	/*
+	用途不明
+	*/
   bool cutoff_occurred() const;
+	/*
+	用途不明
+	*/
   bool available_to(const Thread* master) const;
-
+	/*
+	探索分岐
+	*/
   template <bool Fake>
   void split(Position& pos, const Search::Stack* ss, Value alpha, Value beta, Value* bestValue, Move* bestMove,
              Depth depth, Move threatMove, int moveCount, MovePicker* movePicker, int nodeType, bool cutNode);
-
+	/*
+	探索分岐の情報（スレッド固有、共有）
+	*/
   SplitPoint splitPoints[MAX_SPLITPOINTS_PER_THREAD];
   Material::Table materialTable;
   Endgames endgames;
   Pawns::Table pawnsTable;
   Position* activePosition;
+	/*
+	スレッド固有ID
+	*/
   size_t idx;
   int maxPly;
   SplitPoint* volatile activeSplitPoint;
   volatile int splitPointsSize;
+	/*
+	初期化ではfalseが設定され
+	idle_loop関数でスレッドを目覚めさせたときにtrueとなり(Search::think()を呼び出し探索させるため）
+	探索終了後再びfalseとなりidle_loopの中で寝る
+	*/
   volatile bool searching;
 };
 
@@ -140,8 +172,16 @@ struct Thread : public ThreadBase {
 Threadクラスから派生したMainThreadでこれが探索開始時に動く最初のスレッド
 */
 struct MainThread : public Thread {
+	/*
+	thinkingはgo関数から呼ばれたstart_thmking関数でtrueにされMainThread::idle_loop関数で寝ていた
+	スレッドを探索に行かせるためのフラグ
+	*/
   MainThread() : thinking(true) {} // Avoid a race with start_thinking()
+	/*
+	MainThread専用idle_loopで探索以外ではここで寝ている
+	*/
   virtual void idle_loop();
+
   volatile bool thinking;
 };
 /*
@@ -166,22 +206,48 @@ struct ThreadPool : public std::vector<Thread*> {
 
   void init(); // No c'tor and d'tor, threads rely on globals that should
   void exit(); // be initialized and valid during the whole thread lifetime.
-
+	/*
+	ThreadPoolからMainThreadクラスをインスタンスを返す
+	*/
   MainThread* main() { return static_cast<MainThread*>((*this)[0]); }
 	/*
-
+	uci_optionからスレッドに関するオプションを処理する
 	*/
   void read_uci_options();
+	/*
+	用途不明
+	*/
   Thread* available_slave(const Thread* master) const;
+	/*
+	MainThreadを寝かせるためのスレッド
+	多分思考を開始させるために念のためのスレッドを強制的に寝かせる関数？
+	*/
   void wait_for_think_finished();
+	/*
+	uciコマンドから呼び出されMainThreadに探索を開始させる、この関数を読んだスレッドはuciコマンドループに戻る
+	*/
   void start_thinking(const Position&, const Search::LimitsType&,
                       const std::vector<Move>&, Search::StateStackPtr&);
-
+	/*
+	用途不明
+	*/
   bool sleepWhileIdle;
+	/*
+	用途不明
+	*/
   Depth minimumSplitDepth;
+	/*
+	用途不明
+	*/
   size_t maxThreadsPerSplitPoint;
+	/*
+	スレッドのスリープの制御に必要なミューテックと条件変数
+	*/
   std::mutex mutex;
   std::condition_variable sleepCondition;
+	/*
+	タイマー用スレッドクラスのインスタンス
+	*/
   TimerThread* timer;
 };
 

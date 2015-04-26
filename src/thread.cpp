@@ -46,7 +46,7 @@ namespace {
  // outside Thread c'tor and d'tor because object shall be fully initialized
  // when virtual idle_loop() is called and when joining.
 /*
-ThreadPool：：init関数からTimerThread,MainThreadを作る時に呼ばれる
+ThreadPool::init関数からTimerThread,MainThreadを作る時に呼ばれる
 スレッドを作るヘルパー関数
 テンプレートパラメータで渡されたスレッドクラスを生成して標準スレッドライブラリにidle_loop関数を
 登録することによって一旦スレッドを待機状態に設定し、生成したスレッドクラスのポインタを返す
@@ -58,7 +58,7 @@ ThreadPool：：init関数からTimerThread,MainThreadを作る時に呼ばれる
  }
  /*
  ThreadPool::read_uci_option関数,ThreadPool::exit関数から呼ばれる
-
+ スレッドを殺す
  */
  void delete_thread(ThreadBase* th) {
 	 //exitフラグをセット
@@ -140,12 +140,8 @@ void TimerThread::idle_loop() {
 // MainThread::idle_loop() is where the main thread is parked waiting to be started
 // when there is a new search. Main thread will launch all the slave threads.
 /*
-ここの説明はちょっと間違っている、あとで修正
-
 最初main関数からThreads::init()を呼ぶ
 ThreadsはThreadPoolクラスなのでinit関数からnew_thread<MainThread>を呼ぶ
-new_thread関数からthreadcreate関数（platform.hに定義してある関数でwindowsでは実質CreateThread関数を呼んでいる
-start_routine関数がに行き、idle_loop関数つまりここにくる
 最初に来た時はsearchingフラグがfalseなのでsleep状態に遷移
 
 UCIのgoコマンドからThreads.start_thinking(pos, limits, SetupStates)が呼ばれると
@@ -202,7 +198,9 @@ bool Thread::cutoff_occurred() const {
 // the master of some split point, it is only available as a slave to the slaves
 // which are busy searching the split point at the top of slaves split point
 // stack (the "helpful master concept" in YBWC terminology).
-
+/*
+用途不明
+*/
 bool Thread::available_to(const Thread* master) const {
 
   if (searching)
@@ -229,19 +227,23 @@ void ThreadPool::init() {
   timer = new_thread<TimerThread>();
   push_back(new_thread<MainThread>());
 	/*
-	ここの説明は間違っているかも、あとで修正
-
 	Option["Threads"]に複数設定してあればnew_thread<Thread>で設定数だけスレッドを生成する
 	生成されたスレッドはsearch.cppのThread::idle_loop関数に行く
+	ただしnew_threadに渡しているテンプレートパラメータ<TimerThread,MainThread>によって
+	idle_loopは異なる。
+	TimerThread::idle_loop,MainThread::idle_loopとThread::split関数から呼ばれるThread::idle_loopがある。
+	そのidle_loopはこのすぐ下にあるread_uci_option関数内で生成されたスレッドとリンクされる
 	一旦sleepCondition.wait(mutex)で待機させられる
-	探索自体はMainThread::idle_loop関数->think関数->id_loop関数->search関数と呼ばれて行くが
+	探索自体はMainThread::idle_loop関数->think関数->id_loop関数->search関数と呼ばれて行く
 	*/
 	read_uci_options();
 }
 
 
 // exit() cleanly terminates the threads before the program exits
-
+/*
+このプログラムが終了するとき呼ばれスレッドを破壊する
+*/
 void ThreadPool::exit() {
 
   delete_thread(timer); // As first because check_time() accesses threads data
@@ -299,9 +301,13 @@ void ThreadPool::read_uci_options() {
 
 // slave_available() tries to find an idle thread which is available as a slave
 // for the thread 'master'.
-
+/*
+search関数,split関数から呼ばれる
+*/
 Thread* ThreadPool::available_slave(const Thread* master) const {
-
+	/*
+	available_to関数用途不明
+	*/
   for (Thread* th : *this)
       if (th->available_to(master))
           return th;
@@ -321,6 +327,7 @@ Thread* ThreadPool::available_slave(const Thread* master) const {
 /*
 search関数のstep19から呼び出される（呼び出し条件いろいろ）
 Fakeはfalseで呼び出される
+探索分岐のスレッド用であるが完全には理解できていない
 */
 template <bool Fake>
 void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Value* bestValue,
@@ -431,7 +438,11 @@ template void Thread::split< true>(Position&, const Stack*, Value, Value, Value*
 
 
 // wait_for_think_finished() waits for main thread to go to sleep then returns
-
+/*
+呼んでいるのはbenchmark関数、start_thinking関数、UCI::loop関数のコマンドループを終了した時点で呼ばれる
+MainThreadのthinkingがfalseになったら（つまり終了したら）
+MainThreadを寝かせる
+*/
 void ThreadPool::wait_for_think_finished() {
 
   std::unique_lock<std::mutex> lk(main()->mutex);
@@ -442,11 +453,13 @@ void ThreadPool::wait_for_think_finished() {
 // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
 // so to start a new search, then returns immediately.
 /*
-MainThread::idle_loop関数->think関数->id_loop関数->search関数と呼ばれるようになっている
+go関数->MainThread::idle_loop関数->think関数->id_loop関数->search関数と呼ばれるようになっている
 */
-void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,
-                                const std::vector<Move>& searchMoves, StateStackPtr& states) {
-  wait_for_think_finished();
+void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,const std::vector<Move>& searchMoves, StateStackPtr& states) {
+	/*
+	ここでwait_for_think_finishedを呼んでいるのは探索を実行する前にスレッド完全に初期化させるためでは？
+	*/
+	wait_for_think_finished();
 
   SearchTime = Time::now(); // As early as possible
 

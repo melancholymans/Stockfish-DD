@@ -49,7 +49,7 @@ namespace {
 ThreadPool::init関数からTimerThread,MainThreadを作る時に呼ばれる
 スレッドを作るヘルパー関数
 テンプレートパラメータで渡されたスレッドクラスを生成して標準スレッドライブラリにidle_loop関数を
-登録することによって一旦スレッドを待機状態に設定し、生成したスレッドクラスのポインタを返す
+登録することによって一旦スレッドを待機状態に設定し、生成したスレッドクラスのインスタンスを返す
 */
  template<typename T> T* new_thread() {
    T* th = new T();
@@ -84,7 +84,8 @@ void ThreadBase::notify_one() {
 
 
 // ThreadBase::wait_for() set the thread to sleep until condition 'b' turns true
-//渡したｂ変数が条件変数となる
+//渡したｂ変数が条件変数となる。
+//この関数を呼び出したスレッドを寝かせる
 void ThreadBase::wait_for(volatile const bool& b) {
 
   std::unique_lock<std::mutex> lk(mutex);
@@ -97,11 +98,14 @@ void ThreadBase::wait_for(volatile const bool& b) {
 /*
 スレッドクラスのコンストラクタ
 スレッドはtimerThread以外は全てThreadPoolに保持されるので（Threads[0]がMainThreadになる）
-スレッド固有IDはPool内の配列Indexになる
+スレッド固有IDはPool内の配列のIndexになる
 */
 Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
 
   searching = false;
+	/*
+	このmaxPly,splitPointsSize,activeSplitPoint,activePositionの用途は不明
+	*/
   maxPly = splitPointsSize = 0;
   activeSplitPoint = nullptr;
   activePosition = nullptr;
@@ -181,7 +185,9 @@ void MainThread::idle_loop() {
 
 // Thread::cutoff_occurred() checks whether a beta cutoff has occurred in the
 // current active split point, or in some ancestor of the split point.
-
+/*
+用途不明
+*/
 bool Thread::cutoff_occurred() const {
 
   for (SplitPoint* sp = activeSplitPoint; sp; sp = sp->parentSplitPoint)
@@ -220,7 +226,9 @@ bool Thread::available_to(const Thread* master) const {
 // go immediately to sleep due to 'sleepWhileIdle' set to true. We cannot use
 // a c'tor becuase Threads is a static object and we need a fully initialized
 // engine at this point due to allocation of Endgames in Thread c'tor.
-
+/*
+スレッドの初期化
+*/
 void ThreadPool::init() {
 
   sleepWhileIdle = true;

@@ -186,6 +186,7 @@ void MainThread::idle_loop() {
 // Thread::cutoff_occurred() checks whether a beta cutoff has occurred in the
 // current active split point, or in some ancestor of the split point.
 /*
+search関数のStep 18（Check for new best move）からのみ呼ばれている
 用途不明
 */
 bool Thread::cutoff_occurred() const {

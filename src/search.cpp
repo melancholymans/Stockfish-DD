@@ -1450,7 +1450,8 @@ moves_loop: // When in check and at SpNode search starts from here
       // ran out of time. In this case, the return value of the search cannot
       // be trusted, and we don't update the best move and/or PV.
 			/*
-			—p“r•s–¾
+			’Tõ’†Ž~‚È‚ç•]‰¿’l‚ðŽ‚Á‚Ä•Ô‚è‚Ü‚·@‚à‚µ‚­‚Ícutoff_occurredŠÖ”‚ª•Ô‚·’l‚ªtrue‚È‚ç•Ô‚è‚Ü‚·
+			cutoff_occurredŠÖ”‚Ì‹@”\‚Í•s–¾
 			*/
 			if (Signals.stop || thisThread->cutoff_occurred())
           return value; // To avoid returning VALUE_INFINITE

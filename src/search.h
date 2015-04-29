@@ -56,12 +56,22 @@ struct Stack {
 struct RootMove {
 
   RootMove(Move m) : score(-VALUE_INFINITE), prevScore(-VALUE_INFINITE) {
-    pv.push_back(m); pv.push_back(MOVE_NONE);
+    pv.push_back(m); 
+		pv.push_back(MOVE_NONE);
   }
-
+	/*
+	引数のRootMoveクラスが保持している評価値と自分が保持している評価値を比較して、自分の評価値が大きかったらtrueを返す
+	score変数をどのように更新していくのかは現時点で不明
+	*/
   bool operator<(const RootMove& m) const { return score > m.score; } // Ascending sort
+	/*
+	引数のMove形式の指し手とRootMove内Move形式配列の最初の指し手が同じであればtrueを返す
+	*/
   bool operator==(const Move& m) const { return pv[0] == m; }
 
+	/*
+	現時点で不明
+	*/
   void extract_pv_from_tt(Position& pos);
   void insert_pv_in_tt(Position& pos);
 
@@ -91,6 +101,12 @@ struct SignalsType {
   bool stopOnPonderhit, firstRootMove, stop, failedLowAtRoot;
 };
 
+/*
+StateInfoクラスを保持しているスタック
+unique_ptr(スマートポインタ）で宣言されているのでコピーはできない
+http://cpprefjp.github.io/reference/memory/unique_ptr.html
+
+*/
 typedef std::unique_ptr<std::stack<StateInfo>> StateStackPtr;
 
 extern volatile SignalsType Signals;

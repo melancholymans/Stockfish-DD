@@ -206,6 +206,8 @@ bool Thread::cutoff_occurred() const {
 // which are busy searching the split point at the top of slaves split point
 // stack (the "helpful master concept" in YBWC terminology).
 /*
+available_slave関数のみから呼び出されている
+探索中は即ないと返事
 用途不明
 */
 bool Thread::available_to(const Thread* master) const {
@@ -312,6 +314,9 @@ void ThreadPool::read_uci_options() {
 // for the thread 'master'.
 /*
 search関数,split関数から呼ばれる
+利用可能な奴隷（空いているスレッド）を探してあったらそのスレッドのインスタンスを返す
+なかったらnullptr(C++11で導入）
+available_to関数がどのように探しているのかわからないのでいまいちわからない
 */
 Thread* ThreadPool::available_slave(const Thread* master) const {
 	/*
@@ -469,15 +474,39 @@ void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,co
 	ここでwait_for_think_finishedを呼んでいるのは探索を実行する前にスレッド完全に初期化させるためでは？
 	*/
 	wait_for_think_finished();
-
+	/*
+	経過時間の測定基準点
+	*/
   SearchTime = Time::now(); // As early as possible
-
+	/*
+	Signals.stopOnPonderhitは不明
+	Signals.firstRootMoveは探索の最初の手順が行われたかのフラグ
+	*/
   Signals.stopOnPonderhit = Signals.firstRootMove = false;
-  Signals.stop = Signals.failedLowAtRoot = false;
-
+  /*
+	Signals.stopは探索を停止するためのフラグなのでここでfalseに設定
+	Signals.failedLowAtRootはWinodw探索のLow失敗になるとtrueになる
+	*/
+	Signals.stop = Signals.failedLowAtRoot = false;
+	
+	/*
+	RootMovesはvector変数でRootMoveクラスを配列で保持している
+	vectorのclaer関数でクリア
+	*/
   RootMoves.clear();
+	/*
+	局面を渡される
+	*/
   RootPos = pos;
+	/*
+	探索制限を設定、Limits変数はグローバル変数
+	*/
   Limits = limits;
+	/*
+	states.get()はunique_ptr(スマートポインタ）が持っている関数でスマートポインタが保持しているポインタを返す
+	http://cpprefjp.github.io/reference/memory/unique_ptr/get.html
+	つまりポインタが有効であればSetupStatesに引数のstatesがムーブされる
+	*/
   if (states.get()) // If we don't set a new position, preserve current state
   {
       SetupStates = std::move(states); // Ownership transfer here
@@ -486,10 +515,13 @@ void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,co
 	/*
 	RootMoveはクラスでそれをRootMovesというvectorに格納している
 	渡されたMove形式の指し手はこれまたRootMoveクラス内にあるstd::vector<Move> pv変数に入れている
+
+	合法手リストを作ってsearchMovesが空もしくはsearchMovesの着手リストと合法手が同じなら
+	RootMoves着手リストに追加する
+	(searchMovesはユーザーが指定した指し手をコマンドラインから指定した着手リスト)
 	*/
 	for (const ExtMove& ms : MoveList<LEGAL>(pos))
-      if (   searchMoves.empty()
-          || std::count(searchMoves.begin(), searchMoves.end(), ms.move))
+      if (searchMoves.empty() || std::count(searchMoves.begin(), searchMoves.end(), ms.move))
           RootMoves.push_back(RootMove(ms.move));
 
   main()->thinking = true;

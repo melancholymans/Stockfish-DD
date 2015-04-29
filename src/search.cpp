@@ -43,7 +43,7 @@ namespace Search {
 	/*
 	Signals.stop‚Í’Tõ‚ğ~‚ß‚éƒtƒ‰ƒO
 	stopOnPonderhit—p“r•s–¾
-	firstRootMove—p“r•s–¾
+	firstRootMove	’Tõ‚ÌÅ‰‚Ìè‡
 	failedLowAtRoot;
 	stackfish‚Í”½•œ[‰»{Window{alpha-beta’Tõ‚ğ‚µ‚Ä‚¢‚é‚Æv‚í‚ê‚é
 	failedLowAtRoot‚ÍWinodw’Tõ‚ÌLow¸”s‚É‚È‚é‚Ætrue‚É‚È‚é

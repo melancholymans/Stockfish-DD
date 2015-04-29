@@ -36,7 +36,10 @@ namespace Search {
 /// The Stack struct keeps track of the information we need to remember from
 /// nodes shallower and deeper in the tree during the search. Each search thread
 /// has its own array of Stack objects, indexed by the current ply.
-
+/*
+応手手順を保持しておくもの
+たぶんちがう、StateInfo構造体と勘違いしている？
+*/
 struct Stack {
   SplitPoint* splitPoint;
   int ply;
@@ -105,7 +108,6 @@ struct SignalsType {
 StateInfoクラスを保持しているスタック
 unique_ptr(スマートポインタ）で宣言されているのでコピーはできない
 http://cpprefjp.github.io/reference/memory/unique_ptr.html
-
 */
 typedef std::unique_ptr<std::stack<StateInfo>> StateStackPtr;
 

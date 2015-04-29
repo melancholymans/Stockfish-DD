@@ -183,6 +183,11 @@ namespace {
         return;
 
     pos.set(fen, Options["UCI_Chess960"], Threads.main());
+		/*
+		StateInfoをテンプレートパラメータにしてstackコンテナを生成している
+		それをStateStackPtrに変換している。
+		StateStackPtrはスマートポインタ
+		*/
     SetupStates = Search::StateStackPtr(new std::stack<StateInfo>());
 
     // Parse move list (if any)

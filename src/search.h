@@ -87,7 +87,9 @@ struct RootMove {
 /// The LimitsType struct stores information sent by GUI about available time
 /// to search the current move, maximum depth/time, if we are in analysis mode
 /// or if we have to ponder while is our opponent's side to move.
-
+/*
+’Tõ‚É§ŒÀ‚ğ‚©‚¯‚é‚à‚Ì
+*/
 struct LimitsType {
 
   LimitsType() { std::memset(this, 0, sizeof(LimitsType)); }

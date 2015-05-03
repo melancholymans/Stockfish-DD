@@ -119,6 +119,10 @@ extern std::vector<RootMove> RootMoves;
 extern Position RootPos;
 extern Color RootColor;
 extern Time::point SearchTime;
+/*
+‹î‚Ì‰èè‡‚ğstack\‘¢‚Å•Û‘¶‚µ‚Ä‚¨‚­‚à‚Ì
+Šû•ˆ‚É•Û‘¶‚³‚ê‚Ä‚¢‚éè‚à‹L‰¯‚·‚é
+*/
 extern StateStackPtr SetupStates;
 
 extern void init();

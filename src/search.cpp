@@ -443,7 +443,7 @@ namespace {
     Gains.clear();
     Countermoves.clear();
 		/*
-		デフォルトならMultiPVに１を返す
+		デフォルトならMultiPVに１を返す（MultiPVを２以上にすると、複数の応手手順を許す）
 		デフォルトならskill.levelに２０を返す
 		*/
 		PVSize = Options["MultiPV"];
@@ -452,19 +452,21 @@ namespace {
     // Do we have to play with skill handicap? In this case enable MultiPV search
     // that we will use behind the scenes to retrieve a set of possible moves.
 		/*
-		デフォルトならMultiPVは1のまま
+		デフォルトならskill.levelは20になるのでskill.enabled()はfalseをかえすのでMultiPVは1のまま
+		但しskill.levelが20未満であれば、PVSize最低でも４以上になる
 		*/
 		if (skill.enabled() && PVSize < 4)
         PVSize = 4;
-
+		/*
+		応手手順はRoot局面の可能指し手数より大きくはできない
+		*/
     PVSize = std::min(PVSize, RootMoves.size());
 
     // Iterative deepening loop until requested to stop or target depth reached
 		/*
 		反復深化法（Iterative deepening loop）
 		指定の深度（MAX_PLY）まで達するか、stopが掛るまで反復探索を行う
-		Limits.depthはUCIプロトコルから探索深度を指定してあればそちらに従うがしかしMAX_PLYより大きな深度は
-		意味なし
+		Limits.depthはUCIプロトコルから探索深度を指定してあればそちらに従うがしかしMAX_PLYより大きな深度は意味なし
 		depth=1から開始されるMAX_PLYは120
 		*/
 		while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
@@ -472,7 +474,7 @@ namespace {
         // Age out PV variability metric
 			/*
 			最初は0.0に初期化（このid_loop関数の冒頭で）
-			用途不明
+			なので0にいくら0.8を掛けても0では？
 			*/
 			BestMoveChanges *= 0.8;
 
@@ -482,10 +484,13 @@ namespace {
 			RootMovesはコンストラクタのときprevScore変数,score変数とも
 			-VALUE_INFINITE(32001)に初期設定されている
 			prevScoreはこのあとで変更されるのでここで再初期化されるのかな
+
+			RootMoves自体はstart_thinking関数で初期化されている
+			このfor文記法はC++11から
 			*/
 			for (RootMove& rm : RootMoves)
-            rm.prevScore = rm.score;
-
+        rm.prevScore = rm.score;
+				/////////////////////////////////////////////////////////////////////////////////////////////////koko
         // MultiPV loop. We perform a full root search for each PV line
         for (PVIdx = 0; PVIdx < PVSize && !Signals.stop; ++PVIdx)
         {

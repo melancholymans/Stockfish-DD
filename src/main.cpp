@@ -66,6 +66,7 @@ int main(int argc, char* argv[]) {
 
   std::cout << engine_info() << std::endl;
 
+
   UCI::init(Options);
   Bitboards::init();
   Position::init();

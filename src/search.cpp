@@ -52,11 +52,11 @@ namespace Search {
 	volatile SignalsType Signals;
   LimitsType Limits;
 	/*
-	ルート
+	ルートでの着手リスト
 	*/
 	std::vector<RootMove> RootMoves;
 	/*
-	ルートでの手番
+	ルートでの鏡面
 	*/
 	Position RootPos;
 	/*
@@ -91,7 +91,8 @@ namespace {
 
   // Dynamic razoring margin based on depth
 	/*
-	用途不明
+	Razoring枝刈りの時のマージンを計算する、深度が深くなるとマージンは小さくなる
+	sockfishのsearch関数内ではdepthは減っていく
 	*/
 	inline Value razor_margin(Depth d) { return Value(512 + 16 * int(d)); }
 
@@ -101,7 +102,7 @@ namespace {
 	*/
 	int FutilityMoveCounts[2][32]; // [improving][depth]
 	/*
-	枝刈り（Futility Pruning）のときのマージンを決める
+	枝刈り（Futility Pruning）のときのマージンを決める　100*depth
 	*/
 	inline Value futility_margin(Depth d) {
     return Value(100 * int(d));
@@ -424,45 +425,46 @@ namespace {
 	think関数から呼び出されている
 	ここからsearch関数をNodeType(Root, PV, NonPV)を設定して呼び出す
 	*/
-	void id_loop(Position& pos) {
+	void id_loop(Position& pos) 
+	{
 
-    Stack stack[MAX_PLY_PLUS_6], *ss = stack+2; // To allow referencing (ss-2)
-    int depth;
-    Value bestValue, alpha, beta, delta;
+		Stack stack[MAX_PLY_PLUS_6], *ss = stack+2; // To allow referencing (ss-2)
+		int depth;
+		Value bestValue, alpha, beta, delta;
 
-    std::memset(ss-2, 0, 5 * sizeof(Stack));
-    (ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
+		std::memset(ss-2, 0, 5 * sizeof(Stack));
+		(ss-1)->currentMove = MOVE_NULL; // Hack to skip update gains
 
-    depth = 0;
-    BestMoveChanges = 0;
-    bestValue = delta = alpha = -VALUE_INFINITE;
-    beta = VALUE_INFINITE;
+		depth = 0;
+		BestMoveChanges = 0;
+		bestValue = delta = alpha = -VALUE_INFINITE;
+		beta = VALUE_INFINITE;
 
-    TT.new_search();
-    History.clear();
-    Gains.clear();
-    Countermoves.clear();
+		TT.new_search();
+		History.clear();
+		Gains.clear();
+		Countermoves.clear();
 		/*
 		デフォルトならMultiPVに１を返す（MultiPVを２以上にすると、複数の応手手順を許す）
 		デフォルトならskill.levelに２０を返す
 		*/
 		PVSize = Options["MultiPV"];
-    Skill skill(Options["Skill Level"]);
+		Skill skill(Options["Skill Level"]);
 
-    // Do we have to play with skill handicap? In this case enable MultiPV search
-    // that we will use behind the scenes to retrieve a set of possible moves.
+		// Do we have to play with skill handicap? In this case enable MultiPV search
+		// that we will use behind the scenes to retrieve a set of possible moves.
 		/*
 		デフォルトならskill.levelは20になるのでskill.enabled()はfalseをかえすのでMultiPVは1のまま
 		但しskill.levelが20未満であれば、PVSize最低でも４以上になる
 		*/
 		if (skill.enabled() && PVSize < 4)
-        PVSize = 4;
+			PVSize = 4;
 		/*
 		応手手順はRoot局面の可能指し手数より大きくはできない
 		*/
-    PVSize = std::min(PVSize, RootMoves.size());
+		PVSize = std::min(PVSize, RootMoves.size());
 
-    // Iterative deepening loop until requested to stop or target depth reached
+		// Iterative deepening loop until requested to stop or target depth reached
 		/*
 		反復深化法（Iterative deepening loop）
 		指定の深度（MAX_PLY）まで達するか、stopが掛るまで反復探索を行う
@@ -470,16 +472,16 @@ namespace {
 		depth=1から開始されるMAX_PLYは120
 		*/
 		while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
-    {
-        // Age out PV variability metric
+		{
+			// Age out PV variability metric
 			/*
 			最初は0.0に初期化（このid_loop関数の冒頭で）
 			なので0にいくら0.8を掛けても0では？
 			*/
 			BestMoveChanges *= 0.8;
 
-        // Save last iteration's scores before first PV line is searched and all
-        // the move scores but the (new) PV are set to -VALUE_INFINITE.
+			// Save last iteration's scores before first PV line is searched and all
+			// the move scores but the (new) PV are set to -VALUE_INFINITE.
 			/*
 			RootMovesはコンストラクタのときprevScore変数,score変数とも
 			-VALUE_INFINITE(32001)に初期設定されている
@@ -489,203 +491,204 @@ namespace {
 			このfor文記法はC++11から
 			*/
 			for (RootMove& rm : RootMoves)
-        rm.prevScore = rm.score;
-				/////////////////////////////////////////////////////////////////////////////////////////////////koko
-        // MultiPV loop. We perform a full root search for each PV line
-        for (PVIdx = 0; PVIdx < PVSize && !Signals.stop; ++PVIdx)
-        {
-            // Reset aspiration window starting size
+				rm.prevScore = rm.score;
+
+			// MultiPV loop. We perform a full root search for each PV line
+			//複数の応手手順数（MultiPVが有効なら４以上MultiPVがfalseなら1）だけ繰り返す
+			for (PVIdx = 0; PVIdx < PVSize && !Signals.stop; ++PVIdx)
+			{
+				// Reset aspiration window starting size
+				/*
+				prevScoreは-32001なので
+				alpha=max(-32001-16,-32001)= -32001
+				beta=min(-32001+16,+32001)=  -31985
+				*/
+				if (depth >= 5)
+				{
+					delta = Value(16);
+					alpha = std::max(RootMoves[PVIdx].prevScore - delta,-VALUE_INFINITE);
+					beta  = std::min(RootMoves[PVIdx].prevScore + delta, VALUE_INFINITE);
+				}
+
+				// Start with a small aspiration window and, in case of fail high/low,
+				// research with bigger window until not failing high/low anymore.
+				//https://chessprogramming.wikispaces.com/Aspiration+Windows
+				/*
+				aspiration windowという手法らしい、探索窓を狭くして探索速度を上げるが
+				探索失敗（真の評価値が窓の外にあった場合fail high/low)の時、再探索コストが掛るのがデメリット
+				*/
+				while (true)
+				{
+					bestValue = search<Root>(pos, ss, alpha, beta, depth * ONE_PLY, false);
+
+					// Bring to front the best move. It is critical that sorting is
+					// done with a stable algorithm because all the values but the first
+					// and eventually the new best one are set to -VALUE_INFINITE and
+					// we want to keep the same order for all the moves but the new
+					// PV that goes to the front. Note that in case of MultiPV search
+					// the already searched PV lines are preserved.
 					/*
-					prevScoreは-32001なので
-					alpha=max(-32001-16,-32001)= -32001
-					beta=min(-32001+16,+32001)=  -31985
-					window = 16
+					RootMoves配列を安定ソートを使っている
+					ソート数によりインサートソートとマージソートを使い分けているが
+					比較関数を指定していないので標準のless関数で比較しているが
+					標準のless関数からRootMovesのbool operator<(const RootMove& m) const { return score > m.score; }
+					を使ってscore同士を比較している
 					*/
-					if (depth >= 5)
-            {
-                delta = Value(16);
-                alpha = std::max(RootMoves[PVIdx].prevScore - delta,-VALUE_INFINITE);
-                beta  = std::min(RootMoves[PVIdx].prevScore + delta, VALUE_INFINITE);
-            }
+					std::stable_sort(RootMoves.begin() + PVIdx, RootMoves.end());
 
-            // Start with a small aspiration window and, in case of fail high/low,
-            // research with bigger window until not failing high/low anymore.
-            while (true)
-            {
-                bestValue = search<Root>(pos, ss, alpha, beta, depth * ONE_PLY, false);
+					// Write PV back to transposition table in case the relevant
+					// entries have been overwritten during the search.
+					/*
+					得られたｐｖ（最善手手順）をTTに登録している
+					*/
+					for (size_t i = 0; i <= PVIdx; ++i)
+						RootMoves[i].insert_pv_in_tt(pos);
 
-                // Bring to front the best move. It is critical that sorting is
-                // done with a stable algorithm because all the values but the first
-                // and eventually the new best one are set to -VALUE_INFINITE and
-                // we want to keep the same order for all the moves but the new
-                // PV that goes to the front. Note that in case of MultiPV search
-                // the already searched PV lines are preserved.
-								/*
-								RootMoves配列を安定ソートを使っている
-								ソート数によりインサートソートとマージソートを使い分けているが
-								比較関数を指定していないので標準のless関数で比較しているが
-								標準のless関数からRootMovesのbool operator<(const RootMove& m) const { return score > m.score; }
-								を使ってscore同士を比較している
-								*/
-								std::stable_sort(RootMoves.begin() + PVIdx, RootMoves.end());
+					// If search has been stopped break immediately. Sorting and
+					// writing PV back to TT is safe becuase RootMoves is still
+					// valid, although refers to previous iteration.
+					/*
+					stopがかかればこの永久ループからでる
+					*/
+					if (Signals.stop)
+						break;
 
-                // Write PV back to transposition table in case the relevant
-                // entries have been overwritten during the search.
-								/*
-								得られたｐｖ（最善手手順）をTTに登録している
-								*/
-								for (size_t i = 0; i <= PVIdx; ++i)
-                    RootMoves[i].insert_pv_in_tt(pos);
+					// When failing high/low give some update (without cluttering
+					// the UI) before to research.
+					/*
+					high/low失敗したとき
+					uci_pv関数の内容を標準出力に出す
+					*/
+					if ((bestValue <= alpha || bestValue >= beta) && Time::now() - SearchTime > 3000)
+						sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
 
-                // If search has been stopped break immediately. Sorting and
-                // writing PV back to TT is safe becuase RootMoves is still
-                // valid, although refers to previous iteration.
-								/*
-								stopがかかればこの永久ループからでる
-								*/
-								if (Signals.stop)
-                    break;
-
-                // When failing high/low give some update (without cluttering
-                // the UI) before to research.
-								/*
-								high/low失敗したとき
-								uci_pv関数の内容を標準出力に出す
-								*/
-								if ((bestValue <= alpha || bestValue >= beta)
-                    && Time::now() - SearchTime > 3000)
-                    sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
-
-                // In case of failing low/high increase aspiration window and
-                // research, otherwise exit the loop.
-								/*
-								Low失敗した場合の再探索のための評価値設定
-								*/
-								if (bestValue <= alpha)
-                {
-										/*
-										alpha値を返ってきた値からさらにdelta(16)下げる、つまりWindowを広げて再探索する、ただしVALUE_INFINITEよりは下げない
-										*/
-										alpha = std::max(bestValue - delta, -VALUE_INFINITE);
-										/*
-										failedLowAtRootはLow失敗のフラグ
-										check_time関数内で使用されている
-										*/
-										Signals.failedLowAtRoot = true;
-                    Signals.stopOnPonderhit = false;
-                }
-								/*
-								High失敗した場合の再探索のための評価値設定
-								alphaの反対でbeta値をdelta(16)だけ上げる、つまりWindowを広げて再探索する、ただしVALUE_INFINITEよりは上げない
-								*/
-								else if (bestValue >= beta)
-                    beta = std::min(bestValue + delta, VALUE_INFINITE);
-								/*
-								Low,High失敗がないので真の評価値がWindow内で返ってきたので次の反復深化に移る
-								*/
-								else
-                    break;
-								/*
-								Low,High失敗した場合は１６から
-								16->24.0->36.0->54.0->81.0->121.5
-								と徐々にdeltaを広げて失敗しない探索を行う
-								*/
-								delta += delta / 2;
-
-                assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
-            }//while(true)終了
-
-            // Sort the PV lines searched so far and update the GUI
+					// In case of failing low/high increase aspiration window and
+					// research, otherwise exit the loop.
+					/*
+					Low失敗した場合の再探索のための評価値設定
+					*/
+					if (bestValue <= alpha)
+					{
 						/*
-						RootMoveをRootMoveクラスのscore値で安定ソートする
+						alpha値を返ってきた値からさらにdelta(16)下げる、つまりWindowを広げて再探索する、ただしVALUE_INFINITEよりは下げない
 						*/
-						std::stable_sort(RootMoves.begin(), RootMoves.begin() + PVIdx + 1);
-
-            if (PVIdx + 1 == PVSize || Time::now() - SearchTime > 3000)
-                sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
-        }//MultiPV終了
-
-        // Do we need to pick now the sub-optimal best move ?
-        if (skill.enabled() && skill.time_to_pick(depth))
-            skill.pick_move();
-				/*
-				search Logが設定してあれば(デフォルトではfalse）SearchLog.txtにログを残す
-				*/
-				if (Options["Write Search Log"])
-        {
-            RootMove& rm = RootMoves[0];
-            if (skill.best != MOVE_NONE)
-                rm = *std::find(RootMoves.begin(), RootMoves.end(), skill.best);
-
-            Log log(Options["Search Log Filename"]);
-            log << pretty_pv(pos, depth, rm.score, Time::now() - SearchTime, &rm.pv[0])
-                << std::endl;
-        }
-
-        // Do we have found a "mate in x"?
-				/*
-				Limits.mateは王手を探す手を制限するオプションで
-				ここにかいてある条件が成立したら探索中止であるが
-				その条件の意味がよくわからん
-				*/
-				if (Limits.mate
-            && bestValue >= VALUE_MATE_IN_MAX_PLY
-            && VALUE_MATE - bestValue <= 2 * Limits.mate)
-            Signals.stop = true;
-
-        // Do we have time for the next iteration? Can we stop searching now?
-				/*
-				探索にLimitsによる制限、探索を停止するstopフラグなどが掛っていなければ
-				*/
-				if (Limits.use_time_management() && !Signals.stop && !Signals.stopOnPonderhit)
-        {
-            bool stop = false; // Local variable, not the volatile Signals.stop
-
-            // Take in account some extra time if the best move has changed
+						alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 						/*
-						用途不明
+						failedLowAtRootはLow失敗のフラグ
+						check_time関数内で使用されている
 						*/
-						if (depth > 4 && depth < 50 && PVSize == 1)
-                TimeMgr.pv_instability(BestMoveChanges);
+						Signals.failedLowAtRoot = true;
+						Signals.stopOnPonderhit = false;
+					}
+					/*
+					High失敗した場合の再探索のための評価値設定
+					alphaの反対でbeta値をdelta(16)だけ上げる、つまりWindowを広げて再探索する、ただしVALUE_INFINITEよりは上げない
+					*/
+					else if (bestValue >= beta)
+						beta = std::min(bestValue + delta, VALUE_INFINITE);
+					/*
+					Low,High失敗がないので真の評価値がWindow内で返ってきたので次の反復深化に移る
+					*/
+					else
+						break;
+					/*
+					Low,High失敗した場合は１６から
+					16->24.0->36.0->54.0->81.0->121.5
+					と徐々にdeltaを広げて失敗しない探索を行う
+					*/
+					delta += delta / 2;
 
-            // Stop search if most of available time is already consumed. We
-            // probably don't have enough time to search the first move at the
-            // next iteration anyway.
-            if (Time::now() - SearchTime > (TimeMgr.available_time() * 62) / 100)
-                stop = true;
+					assert(alpha >= -VALUE_INFINITE && beta <= VALUE_INFINITE);
+				}//while(true)終了
 
-            // Stop search early if one move seems to be much better than others
-            if (    depth >= 12
-                &&  BestMoveChanges <= DBL_EPSILON
-                && !stop
-                &&  PVSize == 1
-                &&  bestValue > VALUE_MATED_IN_MAX_PLY
-                && (   RootMoves.size() == 1
-                    || Time::now() - SearchTime > (TimeMgr.available_time() * 20) / 100))
-            {
-                Value rBeta = bestValue - 2 * PawnValueMg;
-                ss->excludedMove = RootMoves[0].pv[0];
-                ss->skipNullMove = true;
-                Value v = search<NonPV>(pos, ss, rBeta - 1, rBeta, (depth - 3) * ONE_PLY, true);
-                ss->skipNullMove = false;
-                ss->excludedMove = MOVE_NONE;
+				// Sort the PV lines searched so far and update the GUI
+				/*
+				RootMoveをRootMoveクラスのscore値で安定ソートする
+				*/
+				std::stable_sort(RootMoves.begin(), RootMoves.begin() + PVIdx + 1);
 
-                if (v < rBeta)
-                    stop = true;
-            }
+				if (PVIdx + 1 == PVSize || Time::now() - SearchTime > 3000)
+					sync_cout << uci_pv(pos, depth, alpha, beta) << sync_endl;
+			}//MultiPV終了
 
-            if (stop)
-            {
-                // If we are allowed to ponder do not stop the search now but
-                // keep pondering until GUI sends "ponderhit" or "stop".
-                if (Limits.ponder)
-                    Signals.stopOnPonderhit = true;
-                else
-                    Signals.stop = true;
-            }
-        }
-    }//反復深化終了
-  }
+			// Do we need to pick now the sub-optimal best move ?
+			if (skill.enabled() && skill.time_to_pick(depth))
+				skill.pick_move();
+			/*
+			search Logが設定してあれば(デフォルトではfalse）SearchLog.txtにログを残す
+			*/
+			if (Options["Write Search Log"])
+			{
+				RootMove& rm = RootMoves[0];
+				if (skill.best != MOVE_NONE)
+					rm = *std::find(RootMoves.begin(), RootMoves.end(), skill.best);
+
+				Log log(Options["Search Log Filename"]);
+				log << pretty_pv(pos, depth, rm.score, Time::now() - SearchTime, &rm.pv[0]) << std::endl;
+			}
+
+			// Do we have found a "mate in x"?
+			/*
+			Limits.mateは王手を探す手を制限するオプションで
+			ここにかいてある条件が成立したら探索中止であるが
+			その条件の意味がよくわからん
+			*/
+			if (Limits.mate && bestValue >= VALUE_MATE_IN_MAX_PLY && VALUE_MATE - bestValue <= 2 * Limits.mate)
+				Signals.stop = true;
+
+			// Do we have time for the next iteration? Can we stop searching now?
+			/*
+			探索にLimitsによる制限、探索を停止するstopフラグなどが掛っていなければ
+			*/
+			if (Limits.use_time_management() && !Signals.stop && !Signals.stopOnPonderhit)
+			{
+				bool stop = false; // Local variable, not the volatile Signals.stop
+
+				// Take in account some extra time if the best move has changed
+				/*
+				用途不明
+				*/
+				if (depth > 4 && depth < 50 && PVSize == 1)
+					TimeMgr.pv_instability(BestMoveChanges);
+
+				// Stop search if most of available time is already consumed. We
+				// probably don't have enough time to search the first move at the
+				// next iteration anyway.
+				if (Time::now() - SearchTime > (TimeMgr.available_time() * 62) / 100)
+					stop = true;
+
+				// Stop search early if one move seems to be much better than others
+				if (    depth >= 12
+				&&  BestMoveChanges <= DBL_EPSILON
+				&& !stop
+				&&  PVSize == 1
+				&&  bestValue > VALUE_MATED_IN_MAX_PLY
+				&& (   RootMoves.size() == 1
+				|| Time::now() - SearchTime > (TimeMgr.available_time() * 20) / 100))
+				{
+					Value rBeta = bestValue - 2 * PawnValueMg;
+					ss->excludedMove = RootMoves[0].pv[0];
+					ss->skipNullMove = true;
+					Value v = search<NonPV>(pos, ss, rBeta - 1, rBeta, (depth - 3) * ONE_PLY, true);
+					ss->skipNullMove = false;
+					ss->excludedMove = MOVE_NONE;
+
+					if (v < rBeta)
+					stop = true;
+				}
+
+				if (stop)
+				{
+					// If we are allowed to ponder do not stop the search now but
+					// keep pondering until GUI sends "ponderhit" or "stop".
+					if (Limits.ponder)
+					Signals.stopOnPonderhit = true;
+					else
+					Signals.stop = true;
+				}
+			}
+		}//反復深化終了
+	}
 
 
   // search<>() is the main search function for both PV and non-PV nodes and for
@@ -703,7 +706,8 @@ namespace {
 	探索中search,qsearch関数内ではdepthはONE_PLY(=2)づつ減っていき
 	*/
 	template <NodeType NT>
-  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) {
+  Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) 
+	{
 
     const bool PvNode   = (NT == PV || NT == Root || NT == SplitPointPV || NT == SplitPointRoot);
     const bool SpNode   = (NT == SplitPointPV || NT == SplitPointNonPV || NT == SplitPointRoot);
@@ -730,9 +734,13 @@ namespace {
 		ここはノードの初期化？
 		*/
 		Thread* thisThread = pos.this_thread();
+		/*
+		pos.checkers()は手番側のKINGに王手をかけている駒のbitboardを返す
+		つまりinCheckがtrueなら手番側に王手がかかっている
+		*/
     inCheck = pos.checkers();
 		/*
-		Rootの時はここはとおらない
+		Root、PvNodeの時はここはとおらない
 		探索分岐するときにとおると思われる
 		*/
 		if (SpNode)
@@ -762,6 +770,15 @@ namespace {
 		int skipNullMove;
 		};
 		ssは最初の２つはカットしてindex２からsearch関数に渡される
+		ここでstruct Stackの残りの初期化（探索分岐に関係のない部分）
+		ss->currentMoveは現在着目されている指し手を示す指し手であるが最初はMOVE_NONE
+		(ss+1)->excludedMoveこの指し手は何を示しているのかは現地時点で不明
+		ss->plyは一つ前の深度に+１する。
+		(ss+1)->skipNullMove = falseはnull_moveの時２手連続でnull_moveにならないようにするフラグ、なので１つ次の深度になっている
+		(ss+1)->reduction = DEPTH_ZERO;は不明、reduction（削減）
+		moveCountは不明
+		quietCountは不明
+		(ss+2)->killers[0] = (ss+2)->killers[1] = MOVE_NONEキラー手を初期化しているがなぜ２手先のキラー手を初期化する
 		*/
 		moveCount = quietCount = 0;
     bestValue = -VALUE_INFINITE;
@@ -772,7 +789,7 @@ namespace {
 
     // Used to send selDepth info to GUI
 		/*
-		用途不明
+		PｖNodeでかつこのスレッドが持っているmaxPlyよりss->plyが深い場合ss->plyに合わせる
 		*/
 		if (PvNode && thisThread->maxPly < ss->ply)
         thisThread->maxPly = ss->ply;
@@ -805,7 +822,9 @@ namespace {
 		/*
 		ttMoveとはトランスポジションテーブルから取り出した指し手
 		但しルートノードではRootMoves[PVIdx].pv[0]から取り出した指し手
-		RootMoves[PVIdx].pv[0]の詳細は不明
+		これはルートノードではまだトランスポジションテーブルに手が登録されていないからかな
+		Rootノードでなくトランスポジションテーブルに手がなかった場合はMOVE_NONE
+		トランスポジションテーブルの手の評価値はvalue_from_tt関数で設定、手自体がなかった場合はVALUE_NONE
 		*/
 		excludedMove = ss->excludedMove;
     posKey = excludedMove ? pos.exclusion_key() : pos.key();
@@ -843,6 +862,8 @@ namespace {
     }
 
     // Step 5. Evaluate the position statically and update parent's gain statistics
+		//Step5はこの局面の静止評価値をトランスポジションテーブルのエントリーと比較して決める
+		//さらにこの局面の親のGainを更新する（Gainはなんなのかわかっていない）
 		/*
 		王手がかかているならmoves_loppラベルにとんで探索を始めろ
 		ここからmoves_loppラベルまでは枝刈りの処理なので王手がかかっている場合は無意味
@@ -853,7 +874,8 @@ namespace {
         goto moves_loop;
     }
 		/*
-		王手がかかっていなくて定跡手があるなら
+		王手がかかっていなくて定跡手があり、その評価値がVALUE_NONEなら現局面の評価値を
+		evalとss->staticEvalに与える。
 		*/
 		else if (tte)
     {
@@ -862,16 +884,36 @@ namespace {
             eval = ss->staticEval = evaluate(pos);
 
         // Can ttValue be used as a better position evaluation?
+				/*
+				トランスポジションテーブルに登録してあったエントリーの評価値が現局面の評価値より大きくてトランスポジションテーブルに
+				登録された時のbound値がBOUND_LOWER(下限値）ならトランスポジションテーブルの評価値を信用する
+
+				トランスポジションテーブルに登録してあったエントリーの評価値が現局面の評価値より小さくトランスポジションテーブルに
+				登録された時のbound値がBOUND_UPPER(上限値）ならトランスポジションテーブルの評価値を採用する
+				*/
         if (ttValue != VALUE_NONE)
             if (tte->bound() & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER))
                 eval = ttValue;
     }
     else
     {
+				/*
+				現局面がトランスポジションテーブルのエントリーになかった場合評価値は評価関数を呼んで設定する
+				と同時にトランスポジションテーブルに現局面を登録しておく、この時評価値はVALUE_NONEに設定してあるのは
+				この局面の探索がまだ済んでいなく（静止評価値はss->staticEvalで与えてあるこの静止評価値を取り出す関数はtte->eval_value()）
+				*/
         eval = ss->staticEval = evaluate(pos);
         TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->staticEval);
     }
+		/*
+		直前の手が捕獲手でない（手の指し手パターンがノーマルであることをチエックしているのならこのチエックはいらないのでは）
+		現局面の静止評価がVALUE_NONEでない
+		ひとつ前の手の静止評価値がVALUE_NONEでない
+		一つ前の手をmoveに代入しておきさらにそれがMOVE_NULLでないこと（null_moveでない）
+		直前の手が捕獲でもなく只の移動であったとき
 
+		Gainsのアップデートを行う、Gainsってなに
+		*/
     if (   !pos.captured_piece_type()
         &&  ss->staticEval != VALUE_NONE
         && (ss-1)->staticEval != VALUE_NONE
@@ -884,9 +926,18 @@ namespace {
 
     // Step 6. Razoring (skipped when in check)
 		/*
-		なにかの枝刈り？
-		ここが末端処理では->qsearch関数から評価関数へいくのでは
-		PvNodeはPVかRootのときtrueになる逆にそうでない時NonPVのときfalse
+		Razoring枝刈り条件
+		PvNodeでないこと
+		残り深さが4*ONE_PLY(=2)をきっていること（そういう末端に近いノードをプレフロンティアノードと呼んでいる？）
+		現在の評価値にマージン（razor_margin=512+depth*16 残り深さが少なくなっていくつまり末端になっていくほど枝刈りの条件は緩くなる）
+		トランスポジションテーブルの手がない
+		ベータ値がVALUE_MATE_IN_MAX_PLY(=29900)より小さい
+		手番側のPAWNがあと一歩でQUEENにならない
+
+		ベータ値よりマージン値（razor_margin）だけ下げてqsearch関数を呼び出している（窓を狭くして）
+		つまり本来であればあと数手探索木を展開してqsearch関数を呼び出さなくてはならないが
+		現在の評価値がベータ値より離れていれば省略して良いという枝切り？
+		https://chessprogramming.wikispaces.com/Razoring
 		*/
 		if (!PvNode
         &&  depth < 4 * ONE_PLY
@@ -921,7 +972,9 @@ namespace {
 		evalは現局面の評価値これよりfutility_margin関数が返すマージンを引いた値
 		が予想評価値でこの予想評価値がbeta値を超えるのでカットする
 
-		この枝刈りは現深さが2*7 = 14 より小さいこと（末端に近いこと）が条件のひとつ
+		PvNodeでないこと
+		この枝刈りは残り深さが2*7 = 14 より小さいこと（末端に近いこと）が条件のひとつ
+		現在の評価値（あくまで静止評価値、探索後の評価値ではない）がfutility_margin値を引いてもベータ値より高いー＞ならベータカットしてもOK
 		*/
 		if (!PvNode
         && !ss->skipNullMove
@@ -935,8 +988,11 @@ namespace {
     // Step 8. Null move search with verification search (is omitted in PV nodes)
 		/*
 		ヌルムーブ（枝刈り）
-		ヌルムーブの条件、現深度が2*ONE_PLYより多きこと、つまり末端局面以外ではヌルムーブOK
-		non_pawn_materialはPAWN以外の駒評価値の合計を返す
+		ヌルムーブの条件：
+		PvNodeでないこと
+		前の手がnull_Moveでないこと（２回null_moveでは意味がない）
+		のこり探索深さが2*ONE_PLYより多きこと、つまり末端局面（フロントノード）以外でヌルムーブＯＫ
+		non_pawn_materialはPAWN以外の駒評価値の合計を返すー＞つまり駒が極端にすくなった局面ではないことー＞駒が少ない局面でnull_Moveすると極端な評価になる
 		*/
 		if (!PvNode
         && !ss->skipNullMove
@@ -954,6 +1010,10 @@ namespace {
 				Depth R = 3 * ONE_PLY + depth / 4;
 
         // Null move dynamic reduction based on value
+				/*
+				現在の静止評価値からPawn１個分の駒評価値を引いてもベーター値より十分大きいなら探索深さをONE_PLY増やす
+				浅い探索だとnull_moveが影響してbetacutしてしまうので慎重にもう一段深くする？
+				*/
         if (eval - PawnValueMg > beta)
             R += ONE_PLY;
 
@@ -988,21 +1048,21 @@ namespace {
             if (nullValue >= VALUE_MATE_IN_MAX_PLY)
                 nullValue = beta;
 						/*
-						現深度が12*ONE_PLAYより小さいなら遠慮なく枝切り（末端局面に近いなら）
+						残り深さが12*ONE_PLAYより小さいなら遠慮なく枝切り（末端局面に近いなら）
 						*/
 						if (depth < 12 * ONE_PLY)
                 return nullValue;
 
             // Do verification search at high depths
 						/*
-						12*ONE_PLY>depth（Root局面に近い場合）
-						再度探索しているがcutNodeの条件がどのように探索に影響を与えているのか詳細不明
+						残り深さが12*ONE_PLYより高い位置でnull_moveに成功した場合
+						再度探索させている
 						*/
 						ss->skipNullMove = true;
             Value v = search<NonPV>(pos, ss, alpha, beta, depth-R, false);
             ss->skipNullMove = false;
 						/*
-						条件を変えて探索してもbeta値を超えるようであれば遠慮なくNull Move Cut
+						条件を変えて再探索して,それでもbeta値を超えるようであれば遠慮なくNull Move Cut
 						*/
 						if (v >= beta)
                 return nullValue;
@@ -1015,6 +1075,11 @@ namespace {
             // move which was reduced. If a connection is found, return a fail
             // low score (which will cause the reduced move to fail high in the
             // parent node, which will trigger a re-search with full depth).
+						/*
+						null_moveに失敗した場合
+						(ss+1)->currentにはこちらの優位をひっくり返す手（敵側の）が入っているはずなので
+						その手をthreatMove（脅威の手）に入れておく
+						*/
             threatMove = (ss+1)->currentMove;
 
             if (   depth < 5 * ONE_PLY
@@ -1601,7 +1666,8 @@ moves_loop: // When in check and at SpNode search starts from here
 	search関数に比べるとだいぶ行数が少ない
 	*/
 	template <NodeType NT, bool InCheck>
-  Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth) {
+  Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth) 
+	{
 
     const bool PvNode = (NT == PV);
 
@@ -1847,7 +1913,12 @@ moves_loop: // When in check and at SpNode search starts from here
   // from the transposition table (where refers to the plies to mate/be mated
   // from current position) to "plies to mate/be mated from the root".
 	/*
-	用途不明
+	トランスポジションテーブルから取り出した指し手についていた評価値と、トランスポジションテーブルを呼び出したときの
+	探索深さを引数として、再評価した評価値を返す
+	評価値がVALUE_NONEならVALUE_NONEのまま、VALUE_MATE_IN_MAX_PLY（29900）より大きければ
+	評価値より現在深度を引く、VALUE_MATED_IN_MAX_PLY(-29900)より小さければ現在深度を評価値に加算する
+	29900>v>-29900ならそのまま評価値を返す
+	しかし29900のような大きな数値に現在深度を表すような小さな数字を加算、減算してなにか効果があるのか不明
 	*/
 	Value value_from_tt(Value v, int ply) {
 

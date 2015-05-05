@@ -805,7 +805,7 @@ inline Score Position::psq_score() const {
   return m_st->psq;
 }
 /*
-PAWN‚ðœ‚¢‚½‹î•]‰¿’l
+PAWN‚ÆKING‚ðœ‚¢‚½‹î•]‰¿’l
 */
 inline Value Position::non_pawn_material(Color c) const {
   return m_st->npMaterial[c];

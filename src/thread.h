@@ -125,7 +125,7 @@ struct Thread : public ThreadBase {
 
   Thread();
 	/*
-	スレッド待機関数
+	スレッド待機関数,仮想関数なのでThreadのidle_loop関数にも、MainThreadのidle_loop関数にも,TimerThreadのidle_loop関数にオーバライドされる
 	*/
   virtual void idle_loop();
 	/*

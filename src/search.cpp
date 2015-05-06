@@ -212,7 +212,8 @@ namespace {
 main関数から呼ばれている
 search系の初期化
 */
-void Search::init() {
+void Search::init() 
+{
 
   int d;  // depth (ONE_PLY == 2)
   int hd; // half depth (ONE_PLY == 1)
@@ -252,7 +253,8 @@ void Search::init() {
 展開できるノードの数を返す。
 benchmarkから使用される
 */
-static size_t perft(Position& pos, Depth depth) {
+static size_t perft(Position& pos, Depth depth) 
+{
 
   StateInfo st;
   size_t cnt = 0;
@@ -268,7 +270,8 @@ static size_t perft(Position& pos, Depth depth) {
   return cnt;
 }
 
-size_t Search::perft(Position& pos, Depth depth) {
+size_t Search::perft(Position& pos, Depth depth) 
+{
   return depth > ONE_PLY ? ::perft(pos, depth) : MoveList<LEGAL>(pos).size();
 }
 
@@ -279,7 +282,8 @@ size_t Search::perft(Position& pos, Depth depth) {
 idle_loop関数->think関数->id_loop関数->search関数と呼ばれるようになっている
 グローバル変数のRootPos変数はwait_for_think_finished関数で現在の局面をコピーしてもらっている
 */
-void Search::think() {
+void Search::think() 
+{
 
   static PolyglotBook book; // Defined static to initialize the PRNG only once
 
@@ -1900,7 +1904,8 @@ moves_loop: // When in check and at SpNode search starts from here
 	/*
 	用途不明
 	*/
-	Value value_to_tt(Value v, int ply) {
+	Value value_to_tt(Value v, int ply) 
+	{
 
     assert(v != VALUE_NONE);
 
@@ -1920,7 +1925,8 @@ moves_loop: // When in check and at SpNode search starts from here
 	29900>v>-29900ならそのまま評価値を返す
 	しかし29900のような大きな数値に現在深度を表すような小さな数字を加算、減算してなにか効果があるのか不明
 	*/
-	Value value_from_tt(Value v, int ply) {
+	Value value_from_tt(Value v, int ply) 
+	{
 
     return  v == VALUE_NONE             ? VALUE_NONE
           : v >= VALUE_MATE_IN_MAX_PLY  ? v - ply
@@ -1933,7 +1939,8 @@ moves_loop: // When in check and at SpNode search starts from here
   // both moves. Normally the second move is the threat (the best move returned
   // from a null search that fails low).
 
-  bool allows(const Position& pos, Move first, Move second) {
+  bool allows(const Position& pos, Move first, Move second) 
+	{
 
     assert(is_ok(first));
     assert(is_ok(second));
@@ -1976,7 +1983,8 @@ moves_loop: // When in check and at SpNode search starts from here
   // opponent's move. In this case will not be pruned. Normally the second move
   // is the threat (the best move returned from a null search that fails low).
 
-  bool refutes(const Position& pos, Move first, Move second) {
+  bool refutes(const Position& pos, Move first, Move second) 
+	{
 
     assert(is_ok(first));
     assert(is_ok(second));
@@ -2026,7 +2034,8 @@ moves_loop: // When in check and at SpNode search starts from here
 	/*
 	用途不明
 	*/
-	Move Skill::pick_move() {
+	Move Skill::pick_move() 
+	{
 
     static RKISS rk;
 
@@ -2122,7 +2131,8 @@ moves_loop: // When in check and at SpNode search starts from here
 /*
 用途不明
 */
-void RootMove::extract_pv_from_tt(Position& pos) {
+void RootMove::extract_pv_from_tt(Position& pos) 
+{
 
   StateInfo state[MAX_PLY_PLUS_6], *st = state;
   const TTEntry* tte;
@@ -2160,7 +2170,8 @@ pvには１つづのRootMoveに対して最善手手順が登録されている
 ここではｐｖに入っている手をTT（トランスポジションテーブル）に登録している
 初手だけではなくPV全てTTに登録している
 */
-void RootMove::insert_pv_in_tt(Position& pos) {
+void RootMove::insert_pv_in_tt(Position& pos) 
+{
 
   StateInfo state[MAX_PLY_PLUS_6], *st = state;
   const TTEntry* tte;
@@ -2194,7 +2205,8 @@ Thread::split関数から呼ばれる
 optionのo["Threads"]を複数にしないと呼ばれない、デフォルトは1
 つまり通常では呼ばれない
 */
-void Thread::idle_loop() {
+void Thread::idle_loop() 
+{
 
   // Pointer 'this_sp' is not null only if we are called from split(), and not
   // at the thread creation. So it means we are the split point's master.
@@ -2315,7 +2327,8 @@ void Thread::idle_loop() {
 TimerThread::idle_loop()からのみ呼ばれる
 探索開始から所定の時間を超えたら（他にも条件はあるが詳細不明）探索停止のフラグを立てる
 */
-void check_time() {
+void check_time() 
+{
 
   static Time::point lastInfoTime = Time::now();
   int64_t nodes = 0; // Workaround silly 'uninitialized' gcc warning

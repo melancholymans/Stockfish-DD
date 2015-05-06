@@ -50,8 +50,10 @@ ThreadPool::init関数からTimerThread,MainThreadを作る時に呼ばれる
 スレッドを作るヘルパー関数
 テンプレートパラメータで渡されたスレッドクラスを生成して標準スレッドライブラリにidle_loop関数を
 登録することによって一旦スレッドを待機状態に設定し、生成したスレッドクラスのインスタンスを返す
+ThreadBase::idle_loopは
 */
- template<typename T> T* new_thread() {
+ template<typename T> T* new_thread() 
+ {
    T* th = new T();
    th->nativeThread = std::thread(&ThreadBase::idle_loop, th); // Will go to sleep
    return th;
@@ -60,7 +62,8 @@ ThreadPool::init関数からTimerThread,MainThreadを作る時に呼ばれる
  ThreadPool::read_uci_option関数,ThreadPool::exit関数から呼ばれる
  スレッドを殺す
  */
- void delete_thread(ThreadBase* th) {
+ void delete_thread(ThreadBase* th) 
+ {
 	 //exitフラグをセット
    th->exit = true; // Search must be already finished
 	 //寝ているスレッドは起こしておく
@@ -77,7 +80,8 @@ ThreadPool::init関数からTimerThread,MainThreadを作る時に呼ばれる
 notify_oneはThreadBaseクラスが持っているミューテック変数をロックして
 寝ているスレッドを起こす
 */
-void ThreadBase::notify_one() {
+void ThreadBase::notify_one() 
+{
   std::unique_lock<std::mutex>(this->mutex);
   sleepCondition.notify_one();
 }
@@ -86,7 +90,8 @@ void ThreadBase::notify_one() {
 // ThreadBase::wait_for() set the thread to sleep until condition 'b' turns true
 //渡したｂ変数が条件変数となる。
 //この関数を呼び出したスレッドを寝かせる
-void ThreadBase::wait_for(volatile const bool& b) {
+void ThreadBase::wait_for(volatile const bool& b) 
+{
 
   std::unique_lock<std::mutex> lk(mutex);
   sleepCondition.wait(lk, [&]{ return b; });
@@ -100,7 +105,8 @@ void ThreadBase::wait_for(volatile const bool& b) {
 スレッドはtimerThread以外は全てThreadPoolに保持されるので（Threads[0]がMainThreadになる）
 スレッド固有IDはPool内の配列のIndexになる
 */
-Thread::Thread() /* : splitPoints() */ { // Value-initialization bug in MSVC
+Thread::Thread() /* : splitPoints() */ 
+{ // Value-initialization bug in MSVC
 
   searching = false;
 	/*
@@ -120,7 +126,8 @@ extern void check_time();
 タイマースレッドのアイドルループ
 5msごとに探索停止判断をする関数(check_time)を呼び出している
 */
-void TimerThread::idle_loop() {
+void TimerThread::idle_loop() 
+{
 
   while (!exit)
   {
@@ -153,7 +160,8 @@ notify_one関数を呼びsleep状態から抜け
 
 MainThread::idle_loop関数->think関数->id_loop関数->search関数と呼ばれるようになっている
 */
-void MainThread::idle_loop() {
+void MainThread::idle_loop() 
+{
 
   while (true)
   {
@@ -189,7 +197,8 @@ void MainThread::idle_loop() {
 search関数のStep 18（Check for new best move）からのみ呼ばれている
 用途不明
 */
-bool Thread::cutoff_occurred() const {
+bool Thread::cutoff_occurred() const 
+{
 
   for (SplitPoint* sp = activeSplitPoint; sp; sp = sp->parentSplitPoint)
       if (sp->cutoff)
@@ -210,7 +219,8 @@ available_slave関数のみから呼び出されている
 探索中は即ないと返事
 用途不明
 */
-bool Thread::available_to(const Thread* master) const {
+bool Thread::available_to(const Thread* master) const 
+{
 
   if (searching)
       return false;
@@ -232,7 +242,8 @@ bool Thread::available_to(const Thread* master) const {
 /*
 スレッドの初期化
 */
-void ThreadPool::init() {
+void ThreadPool::init() 
+{
 
   sleepWhileIdle = true;
   timer = new_thread<TimerThread>();
@@ -255,7 +266,8 @@ void ThreadPool::init() {
 /*
 このプログラムが終了するとき呼ばれスレッドを破壊する
 */
-void ThreadPool::exit() {
+void ThreadPool::exit() 
+{
 
   delete_thread(timer); // As first because check_time() accesses threads data
 
@@ -273,7 +285,8 @@ ThreadPoolのinit関数から呼ばれる（これは１回だけ）、あとuci option からMin Split
 オプションが変更されたら随時呼ばれる。
 uci option設定に従ってプールするスレッド数を決める
 */
-void ThreadPool::read_uci_options() {
+void ThreadPool::read_uci_options() 
+{
 
   maxThreadsPerSplitPoint = Options["Max Threads per Split Point"];	//デフォルトで設定されているのは5スレッド
   minimumSplitDepth       = Options["Min Split Depth"] * ONE_PLY;		//デフォルトで設定されているのは0
@@ -318,7 +331,8 @@ search関数,split関数から呼ばれる
 なかったらnullptr(C++11で導入）
 available_to関数がどのように探しているのかわからないのでいまいちわからない
 */
-Thread* ThreadPool::available_slave(const Thread* master) const {
+Thread* ThreadPool::available_slave(const Thread* master) const 
+{
 	/*
 	available_to関数用途不明
 	*/
@@ -346,7 +360,8 @@ Fakeはfalseで呼び出される
 template <bool Fake>
 void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Value* bestValue,
                    Move* bestMove, Depth depth, Move threatMove, int moveCount,
-                   MovePicker* movePicker, int nodeType, bool cutNode) {
+                   MovePicker* movePicker, int nodeType, bool cutNode) 
+{
 
   assert(pos.pos_is_ok());
   assert(*bestValue <= alpha && alpha < beta && beta <= VALUE_INFINITE);
@@ -359,6 +374,7 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
 	/*
 	MAX_SPLITPOINTS_PER_THREAD=8だけの配列
 	おそらくスレッド単位で必要な情報を入れるものと思われる
+	splitPointsSizeはThreadクラスが生成された時点で0に初期化する
 	*/
 	SplitPoint& sp = splitPoints[splitPointsSize];
 
@@ -387,7 +403,9 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
   sp.mutex.lock();
 	/*
 	ここのsplitPointsSizeはThreads[0].splitPointsSizeです（つまりMainThread用の変数なので
-	共有変数となるのでmutexのロックがか掛っている
+	共有変数となるのでmutexのロックがか掛っている(補足：最初にsplit関数をsearch関数から呼び出している
+	this_thread->split(...)と呼び出している.このsplit関数もMainThreadの関数で
+	当然splitPointsSize変数もMainThreadのものである
 	splitPointsSize変数は探索分岐をしているスレッドの数
 	*/
 	++splitPointsSize;
@@ -396,12 +414,19 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
 
   size_t slavesCnt = 1; // This thread is always included
   Thread* slave;
-
+	/*
+	ThreadPoolで、余っているスレッドをThreads.available_slave関数が見つけてslave変数に返す、なければnullptrを返す
+	それぞれのスレッドは異なっているが、SplitPointは同じで、同じアドレスを渡している
+	つまりここの探索分岐はMainThreadを長男とする同じ親を持つ兄弟ノードを探索するスレッド
+	searchingフラグをtrueにしてもらい、notify_one関数でidle_loop関数で目覚めさせて探索を開始させる
+	ここで発生した
+	*/
   while (    (slave = Threads.available_slave(this)) != nullptr
          && ++slavesCnt <= Threads.maxThreadsPerSplitPoint && !Fake)
   {
       sp.slavesMask |= 1ULL << slave->idx;
       slave->activeSplitPoint = &sp;
+			//取得したスレッドはThread::idle_loop関数内にいるので、searching=trueで探索を開始する
       slave->searching = true; // Slave leaves idle_loop()
       slave->notify_one(); // Could be sleeping
   }
@@ -410,6 +435,10 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
   // it will instantly launch a search, because its 'searching' flag is set.
   // The thread will return from the idle loop when all slaves have finished
   // their work at this split point.
+	/*
+	兄弟ノードを探索分岐しているスレッドがあれば
+	Main
+	*/
   if (slavesCnt > 1 || Fake)
   {
       sp.mutex.unlock();
@@ -457,7 +486,8 @@ template void Thread::split< true>(Position&, const Stack*, Value, Value, Value*
 MainThreadのthinkingがfalseになったら（つまり終了したら）
 MainThreadを寝かせる
 */
-void ThreadPool::wait_for_think_finished() {
+void ThreadPool::wait_for_think_finished() 
+{
 
   std::unique_lock<std::mutex> lk(main()->mutex);
   sleepCondition.wait(lk, [&]{ return !main()->thinking; });
@@ -469,7 +499,8 @@ void ThreadPool::wait_for_think_finished() {
 /*
 go関数->MainThread::idle_loop関数->think関数->id_loop関数->search関数と呼ばれるようになっている
 */
-void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,const std::vector<Move>& searchMoves, StateStackPtr& states) {
+void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,const std::vector<Move>& searchMoves, StateStackPtr& states) 
+{
 	/*
 	ここでwait_for_think_finishedを呼んでいるのは探索を実行する前にスレッド完全に初期化させるためでは？
 	*/

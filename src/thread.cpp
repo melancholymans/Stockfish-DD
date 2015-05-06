@@ -419,7 +419,6 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
 	それぞれのスレッドは異なっているが、SplitPointは同じで、同じアドレスを渡している
 	つまりここの探索分岐はMainThreadを長男とする同じ親を持つ兄弟ノードを探索するスレッド
 	searchingフラグをtrueにしてもらい、notify_one関数でidle_loop関数で目覚めさせて探索を開始させる
-	ここで発生した
 	*/
   while (    (slave = Threads.available_slave(this)) != nullptr
          && ++slavesCnt <= Threads.maxThreadsPerSplitPoint && !Fake)
@@ -436,8 +435,9 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
   // The thread will return from the idle loop when all slaves have finished
   // their work at this split point.
 	/*
+	ここを走っているのはMainThreadです
 	兄弟ノードを探索分岐しているスレッドがあれば
-	Main
+	MainThreadはThread::idle_loop関数の中に入っていき再びsearch関数に戻る
 	*/
   if (slavesCnt > 1 || Fake)
   {

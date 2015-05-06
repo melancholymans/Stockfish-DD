@@ -2291,9 +2291,7 @@ void Thread::idle_loop()
 
           // Wake up master thread so to allow it to return from the idle loop
           // in case we are the last slave of the split point.
-          if (    Threads.sleepWhileIdle
-              &&  this != sp->masterThread
-              && !sp->slavesMask)
+          if (Threads.sleepWhileIdle &&  this != sp->masterThread && !sp->slavesMask)
           {
               assert(!sp->masterThread->searching);
               sp->masterThread->notify_one();
@@ -2316,7 +2314,7 @@ void Thread::idle_loop()
           if (finished)
               return;
       }
-  }
+  }//while(true)èIóπ
 }
 
 

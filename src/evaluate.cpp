@@ -308,7 +308,8 @@ namespace Eval {
 	/*
 	外部から呼ばれるのはこの関数
 	*/
-  Value evaluate(const Position& pos) {
+  Value evaluate(const Position& pos) 
+	{
     return do_evaluate<false>(pos);
   }
 
@@ -320,7 +321,8 @@ namespace Eval {
 	その局面での評価項目ごとの評価値を表示させる
 	uciインターフェイスから"eval"コマンドから呼ばれる
 	*/
-  std::string trace(const Position& pos) {
+  std::string trace(const Position& pos) 
+	{
     return Tracing::do_trace(pos);
   }
 
@@ -331,7 +333,8 @@ namespace Eval {
 	main関数から１度だけ呼び出される.
 	UCI::init(Options)関数からon_eval関数経由で呼び出される、多重に呼び出されているような？
 	*/
-  void init() {
+  void init() 
+	{
 		/*
 		ucioptの項目（Mobility,PawnStructure....）ごと、評価値を取り出して、WeightsInternalで重みづけする
 		uciopt項目の意味は分かっていない
@@ -365,7 +368,8 @@ namespace Eval {
 namespace {
 
 template<bool Trace>
-Value do_evaluate(const Position& pos) {
+Value do_evaluate(const Position& pos) 
+{
 
   assert(!pos.checkers());
 
@@ -533,7 +537,8 @@ Value do_evaluate(const Position& pos) {
 	KINGを攻撃するための基礎情報を設定する
 	*/
   template<Color Us>
-  void init_eval_info(const Position& pos, EvalInfo& ei) {
+  void init_eval_info(const Position& pos, EvalInfo& ei) 
+	{
 
     const Color  Them = (Us == WHITE ? BLACK : WHITE);
     const Square Down = (Us == WHITE ? DELTA_S : DELTA_N);
@@ -568,7 +573,8 @@ Value do_evaluate(const Position& pos) {
 	evaluate_pieces関数から呼ばれている
 	*/
   template<PieceType Piece, Color Us>
-  Score evaluate_outposts(const Position& pos, EvalInfo& ei, Square s) {
+  Score evaluate_outposts(const Position& pos, EvalInfo& ei, Square s) 
+	{
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -598,7 +604,8 @@ Value do_evaluate(const Position& pos) {
 	evaluate_pieces_of_color関数から呼ばれている
 	*/
   template<PieceType Piece, Color Us, bool Trace>
-  Score evaluate_pieces(const Position& pos, EvalInfo& ei, Score* mobility, Bitboard mobilityArea) {
+  Score evaluate_pieces(const Position& pos, EvalInfo& ei, Score* mobility, Bitboard mobilityArea) 
+	{
 
     Bitboard b;
     Square s;
@@ -806,7 +813,8 @@ Value do_evaluate(const Position& pos) {
 	do_evaluate->evaluate_pieces_of_color->evaluate_pieces呼び出しの連鎖
 	*/
   template<Color Us, bool Trace>
-  Score evaluate_pieces_of_color(const Position& pos, EvalInfo& ei, Score* mobility) {
+  Score evaluate_pieces_of_color(const Position& pos, EvalInfo& ei, Score* mobility) 
+	{
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -838,7 +846,8 @@ Value do_evaluate(const Position& pos) {
 	kingに関するボーナス＋ペナルティを与える
 	*/
   template<Color Us, bool Trace>
-  Score evaluate_king(const Position& pos, const EvalInfo& ei) {
+  Score evaluate_king(const Position& pos, const EvalInfo& ei) 
+	{
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -955,7 +964,8 @@ Value do_evaluate(const Position& pos) {
   // and the type of attacked one.
 
   template<Color Us, bool Trace>
-  Score evaluate_threats(const Position& pos, const EvalInfo& ei) {
+  Score evaluate_threats(const Position& pos, const EvalInfo& ei) 
+	{
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -997,7 +1007,8 @@ Value do_evaluate(const Position& pos) {
   // evaluate_passed_pawns() evaluates the passed pawns of the given color
 
   template<Color Us, bool Trace>
-  Score evaluate_passed_pawns(const Position& pos, const EvalInfo& ei) {
+  Score evaluate_passed_pawns(const Position& pos, const EvalInfo& ei) 
+	{
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -1110,7 +1121,8 @@ Value do_evaluate(const Position& pos) {
   // candidate pawns. In case opponent has no pieces but pawns, this is somewhat
   // related to the possibility pawns are unstoppable.
 
-  Score evaluate_unstoppable_pawns(const Position& pos, Color us, const EvalInfo& ei) {
+  Score evaluate_unstoppable_pawns(const Position& pos, Color us, const EvalInfo& ei) 
+	{
 
     Bitboard b = ei.pi->passed_pawns(us) | ei.pi->candidate_pawns(us);
 
@@ -1183,7 +1195,8 @@ Value do_evaluate(const Position& pos) {
 	引数mgOpt,引数egOptでucioptのオプションを指定してその評価値とinternalWeight（この数値もmgとegに分けることができる）
 	を掛けた数値を返す
 	*/
-  Score weight_option(const std::string& mgOpt, const std::string& egOpt, Score internalWeight) {
+  Score weight_option(const std::string& mgOpt, const std::string& egOpt, Score internalWeight) 
+	{
 
     // Scale option value from 100 to 256
     int mg = Options[mgOpt] * 256 / 100;
@@ -1206,7 +1219,8 @@ Value do_evaluate(const Position& pos) {
     scores[BLACK][idx] = bScore;
   }
 
-  void Tracing::row(const char* name, int idx) {
+  void Tracing::row(const char* name, int idx) 
+	{
 
     Score wScore = scores[WHITE][idx];
     Score bScore = scores[BLACK][idx];
@@ -1229,7 +1243,8 @@ Value do_evaluate(const Position& pos) {
     }
   }
 
-  std::string Tracing::do_trace(const Position& pos) {
+  std::string Tracing::do_trace(const Position& pos) 
+	{
 
     stream.str("");
     stream << std::showpoint << std::showpos << std::fixed << std::setprecision(2);

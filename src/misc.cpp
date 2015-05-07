@@ -43,7 +43,8 @@ static const string Version = "DD";
 /*
 stackfishÇÃä»íPÇ»è–âÓ
 */
-const string engine_info(bool to_uci) {
+const string engine_info(bool to_uci) 
+{
 
   const string months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
   string month, day, year;
@@ -68,7 +69,8 @@ const string engine_info(bool to_uci) {
 
 /// Convert system time to milliseconds. That's all we need.
 
-Time::point Time::now() {
+Time::point Time::now() 
+{
   return duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
 }
 

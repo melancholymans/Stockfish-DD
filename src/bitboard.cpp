@@ -131,13 +131,15 @@ BitScanをソフトウエアで行うときはここが有効になる、ハードウエアで行う場合はbitbo
 */
 #ifndef USE_BSFQ
 
-Square lsb(Bitboard b) { return BSFTable[bsf_index(b)]; }
+Square lsb(Bitboard b) 
+{ return BSFTable[bsf_index(b)]; }
 
 /*
 pop_lsbは下位ビットから数え始めて最初の1bitのインデックスを返す,indexは0から始まる
 その数えたbitは抜いてしまい(pop)0にする
 */
-Square pop_lsb(Bitboard* b) {
+Square pop_lsb(Bitboard* b) 
+{
 
   Bitboard bb = *b;
   *b = bb & (bb - 1);
@@ -189,7 +191,8 @@ cout << "msb(0x00100)" << msb(0x00100) << endl;->0x00100->0 0000 0001 0000 0000	
 cout << "msb(0x01000)" << msb(0x01000) << endl;->0x01000->0 0000 0000 0000 0000		12
 cout << "msb(0x10000)" << msb(0x10000) << endl;->0x10000->1 0000 0000 0000 0000		16
 */
-Square msb(Bitboard b) {
+Square msb(Bitboard b) 
+{
 
   unsigned b32;
   int result = 0;
@@ -254,7 +257,8 @@ Square msb(Bitboard b) {
 +---+---+---+---+---+---+---+---+
 */
 
-void Bitboards::print(Bitboard b) {
+void Bitboards::print(Bitboard b) 
+{
 
   sync_cout;
 	//for (Rank rank = RANK_8; rank >= RANK_1; --rank) 本来のプログラム、内部構造をそのまま出すように改造
@@ -277,7 +281,8 @@ void Bitboards::print(Bitboard b) {
 /*
 各種Bitboardを初期設定している
 */
-void Bitboards::init() {
+void Bitboards::init() 
+{
 	/*
 	MS1BTableは
 	このような数列になる
@@ -952,7 +957,8 @@ namespace {
 他の駒に当たったらそこでその方向はやめる
 つまり利きをスライドしている
 */
-  Bitboard sliding_attack(Square deltas[], Square sq, Bitboard occupied) {
+  Bitboard sliding_attack(Square deltas[], Square sq, Bitboard occupied) 
+	{
 
     Bitboard attack = 0;
 
@@ -968,7 +974,8 @@ namespace {
   }
 
 
-  Bitboard pick_random(RKISS& rk, int booster) {
+  Bitboard pick_random(RKISS& rk, int booster) 
+	{
 
     // Values s1 and s2 are used to rotate the candidate magic of a
     // quantity known to be the optimal to quickly find the magics.
@@ -1088,7 +1095,8 @@ namespace {
 	*/
 
   void init_magics(Bitboard table[], Bitboard* attacks[], Bitboard magics[],
-                   Bitboard masks[], unsigned shifts[], Square deltas[], Fn index) {
+                   Bitboard masks[], unsigned shifts[], Square deltas[], Fn index) 
+	{
 		/*
 		[0][8]が32bit[1][8]が64bit機
 		*/

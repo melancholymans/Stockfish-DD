@@ -89,7 +89,8 @@ namespace {
 /*
 endgame.cpp‚©‚çŒÄ‚Î‚ê‚Ä‚¢‚é
 */
-bool Bitbases::probe_kpk(Square wksq, Square wpsq, Square bksq, Color us) {
+bool Bitbases::probe_kpk(Square wksq, Square wpsq, Square bksq, Color us) 
+{
 
   assert(file_of(wpsq) <= FILE_D);
 
@@ -100,7 +101,8 @@ bool Bitbases::probe_kpk(Square wksq, Square wpsq, Square bksq, Color us) {
 /*
 main.cpp‚©‚çŒÄ‚Î‚ê‚Ä‰Šú‰»‚µ‚Ä‚¢‚é
 */
-void Bitbases::init_kpk() {
+void Bitbases::init_kpk() 
+{
 
   unsigned idx, repeat = 1;
   std::vector<KPKPosition> db;
@@ -125,7 +127,8 @@ void Bitbases::init_kpk() {
 
 namespace {
 
-  KPKPosition::KPKPosition(unsigned idx) {
+  KPKPosition::KPKPosition(unsigned idx) 
+	{
 
     wksq = Square((idx >>  0) & 0x3F);
     bksq = Square((idx >>  6) & 0x3F);
@@ -154,7 +157,8 @@ namespace {
   }
 
   template<Color Us>
-  Result KPKPosition::classify(const std::vector<KPKPosition>& db) {
+  Result KPKPosition::classify(const std::vector<KPKPosition>& db) 
+	{
 
     // White to Move: If one move leads to a position classified as WIN, the result
     // of the current position is WIN. If all moves lead to positions classified

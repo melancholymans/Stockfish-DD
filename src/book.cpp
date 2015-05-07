@@ -330,7 +330,8 @@ namespace {
 	/*
 	polyglot_key()は局面情報を引数にとってハッシュキーを返す
 	*/
-  Key polyglot_key(const Position& pos) {
+  Key polyglot_key(const Position& pos) 
+	{
 
     Key key = 0;
     Bitboard b = pos.pieces();
@@ -374,7 +375,8 @@ namespace {
 rkissクラスに現在時刻のシードを与えて継承させている
 think関数で初期化される
 */
-PolyglotBook::PolyglotBook() : rkiss(Time::now() % 10000) {}
+PolyglotBook::PolyglotBook() : rkiss(Time::now() % 10000) 
+{}
 /*
 ファイルが開いているようなら閉じて終了すること
 */
@@ -387,7 +389,8 @@ PolyglotBook::~PolyglotBook() { if (is_open()) close(); }
 /*
 ファイルストリームを読み込んでいる
 */
-template<typename T> PolyglotBook& PolyglotBook::operator>>(T& n) {
+template<typename T> PolyglotBook& PolyglotBook::operator>>(T& n) 
+{
 
   n = 0;
   for (size_t i = 0; i < sizeof(T); ++i)
@@ -410,7 +413,8 @@ template<> PolyglotBook& PolyglotBook::operator>>(Entry& e) {
 probe関数から呼び出される
 指定された定跡ファイルを読み込む
 */
-bool PolyglotBook::open(const string& fName) {
+bool PolyglotBook::open(const string& fName) 
+{
 
   if (is_open()) // Cannot close an already closed file
       close();
@@ -437,7 +441,8 @@ Options["Book File"]はオプションで指定されるbook file名（デフォルトはbook.bin）
 引数のpickBestがtrueに指定してあったら常に高得点の手を返す
 falseを指定してあればランダムで手を選択
 */
-Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest) {
+Move PolyglotBook::probe(const Position& pos, const string& fName, bool pickBest) 
+{
 
   if (fileName != fName && !open(fName))
       return MOVE_NONE;
@@ -513,7 +518,8 @@ keyを元に定跡ファイルから定跡情報を持ってくる
 ファイルはkeyを元にソートされた状態で入っている（？）ようなので
 探索に２分木探索を使っている
 */
-size_t PolyglotBook::find_first(Key key) {
+size_t PolyglotBook::find_first(Key key) 
+{
 	/*
 	seekg移動する関数,第一引数が移動するサイズ、第二引数が基準となる位置
 	seekgでファイルの最後に移動させて置いてtellg関数（現在位置のサイズを返す）

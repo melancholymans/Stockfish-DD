@@ -42,7 +42,8 @@ void on_clear_hash(const Option&) { TT.clear(); }
 
 
 /// Our case insensitive less() function as required by UCI protocol
-bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const {
+bool CaseInsensitiveLess::operator() (const string& s1, const string& s2) const 
+{
 
   return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(),
          [](char c1, char c2) { return tolower(c1) < tolower(c2); });
@@ -64,7 +65,8 @@ string型のkeyとは
 void Option::operator<<(const Option& o)
 関数を呼ぶ
 */
-void init(OptionsMap& o) {
+void init(OptionsMap& o) 
+{
 
   o["Write Debug Log"]             = Option(false, on_logger);
   o["Write Search Log"]            = Option(false);
@@ -107,7 +109,8 @@ void init(OptionsMap& o) {
 OptionMapのidx順にオプションの内容を文字列化して(ostream)返す
 uci.cppのloop関数内で"uci"コマンドの時に呼ばれる
 */
-std::ostream& operator<<(std::ostream& os, const OptionsMap& om) {
+std::ostream& operator<<(std::ostream& os, const OptionsMap& om) 
+{
 
   for (size_t idx = 0; idx < om.size(); ++idx)
   {
@@ -153,14 +156,16 @@ Option::Option(int v, int minv, int maxv, Fn* f) : type("spin"), min(minv), max(
 /*
 int型を要求されたときの型変換演算子
 */
-Option::operator int() const {
+Option::operator int() const 
+{
   assert(type == "check" || type == "spin");
   return (type == "spin" ? stoi(currentValue) : currentValue == "true");
 }
 /*
 stringを要求されたときこの型変換演算子
 */
-Option::operator std::string() const {
+Option::operator std::string() const 
+{
   assert(type == "string");
   return currentValue;
 }
@@ -172,7 +177,8 @@ Option::operator std::string() const {
 /*
 Option[name] = valueのとき起動される演算子オーバライド
 */
-Option& Option::operator=(const string& v) {
+Option& Option::operator=(const string& v) 
+{
 
   assert(!type.empty());
 

@@ -83,7 +83,8 @@ namespace {
 /// that we exit gracefully if the GUI dies unexpectedly. In addition to the UCI
 /// commands, the function also supports a few debug commands.
 
-void UCI::loop(const string& args) {
+void UCI::loop(const string& args) 
+{
 
   Position pos(StartFEN, false, Threads.main()); // The root position
   string token, cmd = args;
@@ -164,7 +165,8 @@ namespace {
 	position startposまたは fen 局面を構成するfen文字列を入力することで
 	局面を再設定できる
 	*/
-	void position(Position& pos, istringstream& is) {
+	void position(Position& pos, istringstream& is) 
+	{
 
     Move m;
     string token, fen;
@@ -229,7 +231,8 @@ namespace {
 		<id> = USI_AnalyseMode, type check
 		stockfishはこのオプションをサポートしていない？
 	*/
-	void setoption(istringstream& is) {
+	void setoption(istringstream& is) 
+	{
 
     string token, name, value;
 
@@ -262,7 +265,8 @@ namespace {
 	User　Interfaceからこのコマンドがきたらオプションを設定の上
 	Threads.start_thinking関数を呼んで探索開始
 	*/
-	void go(const Position& pos, istringstream& is) {
+	void go(const Position& pos, istringstream& is) 
+	{
 
     Search::LimitsType limits;
     vector<Move> searchMoves;

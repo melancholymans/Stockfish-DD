@@ -90,7 +90,8 @@ namespace {
 	つまり相手はKINGのみでこちらはKING+ROOKならtrueを返す
 	is_KXKはこちら側がKing+x(どの駒とは分からないがその評価値集計はRookValueMg以上ある）かどうかを判定している
 	*/
-  template<Color Us> bool is_KXK(const Position& pos) {
+  template<Color Us> bool is_KXK(const Position& pos) 
+	{
     const Color Them = (Us == WHITE ? BLACK : WHITE);
     return  !pos.count<PAWN>(Them)
           && pos.non_pawn_material(Them) == VALUE_ZERO
@@ -100,7 +101,8 @@ namespace {
 	PAWNを除いた評価値がBishopValueMgちょうど、かつこちらのBISHOPが１個でPAWNが１以上ある
 	is_KBPsKsはKing+Bishop+Pawnが複数 VS King + どんな駒があるか問わない
 	*/
-  template<Color Us> bool is_KBPsKs(const Position& pos) {
+  template<Color Us> bool is_KBPsKs(const Position& pos) 
+	{
     return   pos.non_pawn_material(Us) == BishopValueMg
           && pos.count<BISHOP>(Us) == 1
           && pos.count<PAWN  >(Us) >= 1;
@@ -109,7 +111,8 @@ namespace {
 	こちら側にはPAWNがない＋Queenが１　VS　KING+ROOKが１つ＋PAWNが複数
 	であることを判定している
 	*/
-  template<Color Us> bool is_KQKRPs(const Position& pos) {
+  template<Color Us> bool is_KQKRPs(const Position& pos) 
+	{
     const Color Them = (Us == WHITE ? BLACK : WHITE);
     return  !pos.count<PAWN>(Us)
           && pos.non_pawn_material(Us) == QueenValueMg
@@ -122,7 +125,8 @@ namespace {
   /// piece type for both colors.
 
   template<Color Us>
-  int imbalance(const int pieceCount[][PIECE_TYPE_NB]) {
+  int imbalance(const int pieceCount[][PIECE_TYPE_NB]) 
+	{
 
     const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -160,7 +164,8 @@ namespace Material {
 なければ計算して保存する。
 なにを計算している？
 */
-Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
+Entry* probe(const Position& pos, Table& entries, Endgames& endgames) 
+{
 
   Key key = pos.material_key();
   Entry* e = entries[key];
@@ -317,7 +322,8 @@ Entry* probe(const Position& pos, Table& entries, Endgames& endgames) {
 /*
 駒評価値の正規化した数値を返す(0-128)
 */
-Phase game_phase(const Position& pos) {
+Phase game_phase(const Position& pos) 
+{
 	/*
 	npmにはそれぞれのカラーからPAWNを除いた駒評価値を足し合わせる
 	*/

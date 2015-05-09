@@ -51,7 +51,8 @@ UCIプロトコルのEngine to GUIの
 info　scoreコマンドの応答
 http://wbec-ridderkerk.nl/html/UCIProtocol.html
 */
-string score_to_uci(Value v, Value alpha, Value beta) {
+string score_to_uci(Value v, Value alpha, Value beta) 
+{
 
   stringstream s;
 
@@ -73,7 +74,8 @@ string score_to_uci(Value v, Value alpha, Value beta) {
 /*
 Move形式の指し手データを棋譜形式の文字列にする
 */
-const string move_to_uci(Move m, bool chess960) {
+const string move_to_uci(Move m, bool chess960) 
+{
 
   Square from = from_sq(m);
   Square to = to_sq(m);
@@ -108,7 +110,8 @@ const string move_to_uci(Move m, bool chess960) {
 /*
 棋譜形式指し手(a2a3）をMove形式の指し手に変換する
 */
-Move move_from_uci(const Position& pos, string& str) {
+Move move_from_uci(const Position& pos, string& str) 
+{
 	/*
 	PAWNがなると最後に成った駒種を小文字１字が追加されるのでそれが大文字だったら小文字に変換する
 	*/
@@ -140,7 +143,8 @@ Move形式の指し手情報を受け取って一般的な棋譜表記に変換する
 左にキャスリングしたときは「Ｏ－Ｏ－Ｏ」とします。
 http://chess.plala.jp/p6-1.html
 */
-const string move_to_san(Position& pos, Move m) {
+const string move_to_san(Position& pos, Move m) 
+{
 
   if (m == MOVE_NONE)
       return "(none)";
@@ -223,7 +227,8 @@ const string move_to_san(Position& pos, Move m) {
 このファイル内のpretty_pv関数からのみ呼ばれている
 msec単位で渡された経過時間を時:分:秒形式に変換して返している
 */
-static string time_to_string(int64_t msecs) {
+static string time_to_string(int64_t msecs) 
+{
 
   const int MSecMinute = 1000 * 60;
   const int MSecHour   = 1000 * 60 * 60;
@@ -246,7 +251,8 @@ pretty_pv関数からのみ呼ばれる
 static的な関数なのでこのnotation.cpp内部だけの関数
 渡された評価値を文字列に変換
 */
-static string score_to_string(Value v) {
+static string score_to_string(Value v) 
+{
 
   stringstream s;
 
@@ -267,7 +273,8 @@ SearchLog.txtファイルにログを記録している
 id_loopのなかで反復深化が１回終わるたびに呼び出されてその時の局面,depth,value,かかった探索時間
 pv(最善応手手順の最初の手＝最善手）を文字列にして返す
 */
-string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]) {
+string pretty_pv(Position& pos, int depth, Value value, int64_t msecs, Move pv[]) 
+{
 
   const int64_t K = 1000;
   const int64_t M = 1000000;

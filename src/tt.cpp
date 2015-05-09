@@ -41,7 +41,8 @@ Options["Hash"]はデフォルトでは32M個のクラスタが用意される
 このトランスポジションテーブルはリハッシュ回数がClusterSize=4のオープンハッシュテーブルで
 実装されている
 */
-void TranspositionTable::set_size(size_t mbSize) {
+void TranspositionTable::set_size(size_t mbSize) 
+{
 
   assert(msb((mbSize << 20) / sizeof(TTEntry)) < 32);
 	/*
@@ -122,7 +123,8 @@ TranspositionTableをゼロクリアする
 benchmark関数、UCIから呼ばれている（設定されているようだが
 呼ばれていないような気がする）
 */
-void TranspositionTable::clear() {
+void TranspositionTable::clear() 
+{
 
   std::memset(table, 0, (hashMask + ClusterSize) * sizeof(TTEntry));
 }
@@ -141,7 +143,8 @@ Zobristクラスが返すbit列は64bitでその下位32bitをTranspositionTableのインデックス
 最初にfirst_entry関数を呼び出し下位32bitでテーブルのインデックスを作り、該当するクラスタの最初のアドレス返してもらう
 クラウドの数だけ歩進（＝４）しそのエントリのkeyが上位32bitと一致していたらそのエントリーのアドレスを返す
 */
-const TTEntry* TranspositionTable::probe(const Key key) const {
+const TTEntry* TranspositionTable::probe(const Key key) const 
+{
 
   const TTEntry* tte = first_entry(key);
   uint32_t key32 = key >> 32;
@@ -169,7 +172,8 @@ first_entry関数を呼んで下位32bitでTranspositionTableのインデックスを
 順番にクラスタを検査して（ちゃんとエントリーは空いているか、もしくはすでに情報は入っているが
 上位３２bitも同じ）上書きOKならそのエントリーを更新対象にする
 */
-void TranspositionTable::store(const Key key, Value v, Bound b, Depth d, Move m, Value statV) {
+void TranspositionTable::store(const Key key, Value v, Bound b, Depth d, Move m, Value statV) 
+{
 
   int c1, c2, c3;
   TTEntry *tte, *replace;

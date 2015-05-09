@@ -107,7 +107,8 @@ namespace {
 —p“r•s–¾
 id_loopŠÖ”‚©‚çŒÄ‚Ño‚³‚ê‚Ä‚¢‚é
 */
-void TimeManager::pv_instability(double bestMoveChanges) {
+void TimeManager::pv_instability(double bestMoveChanges) 
+{
 
   unstablePVExtraTime = int(bestMoveChanges * optimumSearchTime / 1.4);
 }

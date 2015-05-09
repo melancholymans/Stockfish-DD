@@ -51,7 +51,8 @@ namespace {
 	キャスリング関係の生成関数なのでPASS
 	*/
 	template<CastlingSide Side, bool Checks, bool Chess960>
-  ExtMove* generate_castle(const Position& pos, ExtMove* mlist, Color us) {
+  ExtMove* generate_castle(const Position& pos, ExtMove* mlist, Color us) 
+	{
 
     if (pos.castle_impeded(us, Side) || !pos.can_castle(make_castle_right(us, Side)))
         return mlist;
@@ -93,7 +94,8 @@ namespace {
 	*/
 	template<GenType Type, Square Delta>
   inline ExtMove* generate_promotions(ExtMove* mlist, Bitboard pawnsOn7,
-                                      Bitboard target, const CheckInfo* ci) {
+                                      Bitboard target, const CheckInfo* ci) 
+	{
 
     Bitboard b = shift_bb<Delta>(pawnsOn7) & target;
 
@@ -134,7 +136,8 @@ namespace {
 	*/
 	template<Color Us, GenType Type>
   ExtMove* generate_pawn_moves(const Position& pos, ExtMove* mlist,
-                               Bitboard target, const CheckInfo* ci) {
+                               Bitboard target, const CheckInfo* ci) 
+	{
 
     // Compute our parametrized parameters at compile time, named according to
     // the point of view of white side.
@@ -278,7 +281,8 @@ namespace {
 	*/
 	template<PieceType Pt, bool Checks> FORCE_INLINE
   ExtMove* generate_moves(const Position& pos, ExtMove* mlist, Color us,
-                          Bitboard target, const CheckInfo* ci) {
+                          Bitboard target, const CheckInfo* ci) 
+	{
 
     assert(Pt != KING && Pt != PAWN);
 		/*
@@ -383,7 +387,8 @@ namespace {
 ここから駒種、生成パターンに応じて分岐する
 */
 template<GenType Type>
-ExtMove* generate(const Position& pos, ExtMove* mlist) {
+ExtMove* generate(const Position& pos, ExtMove* mlist) 
+{
 
   assert(Type == CAPTURES || Type == QUIETS || Type == NON_EVASIONS);
   assert(!pos.checkers());
@@ -417,7 +422,8 @@ template ExtMove* generate<NON_EVASIONS>(const Position&, ExtMove*);
 QUIET_CHECKSは駒をとらずに王手をかける手のこと？
 */
 template<>
-ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* mlist) {
+ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* mlist) 
+{
 
   assert(!pos.checkers());
 
@@ -453,7 +459,8 @@ ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* mlist) {
 王手を回避する手を生成する
 */
 template<>
-ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* mlist) {
+ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* mlist) 
+{
 
   assert(pos.checkers());
 
@@ -506,7 +513,8 @@ ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* mlist) {
 そうでなければ回避する手じゃない手を生成する
 */
 template<>
-ExtMove* generate<LEGAL>(const Position& pos, ExtMove* mlist) {
+ExtMove* generate<LEGAL>(const Position& pos, ExtMove* mlist) 
+{
 
   ExtMove *end, *cur = mlist;
   Bitboard pinned = pos.pinned_pieces(pos.side_to_move());

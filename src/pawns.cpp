@@ -123,7 +123,8 @@ namespace {
 	最終value値に集約して返す
 	*/
   template<Color Us>
-  Score evaluate(const Position& pos, Pawns::Entry* e) {
+  Score evaluate(const Position& pos, Pawns::Entry* e) 
+	{
 
     const Color  Them  = (Us == WHITE ? BLACK    : WHITE);
     const Square Up    = (Us == WHITE ? DELTA_N  : DELTA_S);
@@ -349,7 +350,8 @@ namespace Pawns {
 /*
 ChainMember配列の初期化
 */
-void init() {
+void init() 
+{
 
   const int chainByFile[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
   int bonus;
@@ -373,7 +375,8 @@ misc.hで定義してあるHashTableテンプレートでHashTableを作っている
 評価値を１valueに登録する。
 probe（探索）ではなくappend（追加）機能のような気がする
 */
-Entry* probe(const Position& pos, Table& entries) {
+Entry* probe(const Position& pos, Table& entries) 
+{
 
   Key key = pos.pawn_key();
   Entry* e = entries[key];
@@ -393,7 +396,8 @@ Entry* probe(const Position& pos, Table& entries) {
 update_safety関数からのみ呼ばれる
 */
 template<Color Us>
-Value Entry::shelter_storm(const Position& pos, Square ksq) {
+Value Entry::shelter_storm(const Position& pos, Square ksq) 
+{
 
   const Color Them = (Us == WHITE ? BLACK : WHITE);
 
@@ -440,7 +444,8 @@ Value Entry::shelter_storm(const Position& pos, Square ksq) {
 king_safety関数からのみ呼ばれる
 */
 template<Color Us>
-Score Entry::update_safety(const Position& pos, Square ksq) {
+Score Entry::update_safety(const Position& pos, Square ksq) 
+{
 
   kingSquares[Us] = ksq;
   castleRights[Us] = pos.can_castle(Us);

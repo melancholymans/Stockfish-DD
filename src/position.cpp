@@ -116,7 +116,8 @@ Bitboard& attackers 全アタッカー（カラーに関係なく）
 */
 template<int Pt> FORCE_INLINE
 PieceType min_attacker(const Bitboard* bb, const Square& to, const Bitboard& stmAttackers,
-                       Bitboard& occupied, Bitboard& attackers) {
+                       Bitboard& occupied, Bitboard& attackers) 
+{
 	/*
 	テンプレートパラメータで指定してある駒種でアタッカー駒を抽出
 	最初の駒種はPAWNからーつまり価値の低い駒から行う
@@ -157,7 +158,8 @@ PieceType min_attacker(const Bitboard* bb, const Square& to, const Bitboard& stm
 テンプレート関数（KINGの明示化）
 */
 template<> FORCE_INLINE
-PieceType min_attacker<KING>(const Bitboard*, const Square&, const Bitboard&, Bitboard&, Bitboard&) {
+PieceType min_attacker<KING>(const Bitboard*, const Square&, const Bitboard&, Bitboard&, Bitboard&) 
+{
   return KING; // No need to update bitboards, it is the last cycle
 }
 
@@ -170,7 +172,8 @@ PieceType min_attacker<KING>(const Bitboard*, const Square&, const Bitboard&, Bi
 局面クラスpositionを受け取って現局面で王手をかけている駒種ごとのbitboard（もちろんチエックがかかっていない場合は0）
 敵KINGに対してpin付けされている駒のbitboardを返す
 */
-CheckInfo::CheckInfo(const Position& pos) {
+CheckInfo::CheckInfo(const Position& pos) 
+{
 
   Color them = ~pos.side_to_move();
   ksq = pos.king_square(them);
@@ -196,7 +199,8 @@ CheckInfo::CheckInfo(const Position& pos) {
 Zobrist（局面ごとのハッシュ値を生成するクラス）を初期化している
 そのあと評価値（駒評価値と位置評価値）を初期している
 */
-void Position::init() {
+void Position::init() 
+{
 
   RKISS rk;
 	/*
@@ -264,7 +268,8 @@ void Position::init() {
 局面クラスpositionをコピーする演算子のオーバーロード
 startStateを受け取る
 */
-Position& Position::operator=(const Position& pos) {
+Position& Position::operator=(const Position& pos) 
+{
 
   std::memcpy(this, &pos, sizeof(Position));
   startState = *m_st;
@@ -283,7 +288,8 @@ Position& Position::operator=(const Position& pos) {
 /*
 FEN stringを読み込んで局面を設定している
 */
-void Position::set(const string& fenStr, bool isChess960, Thread* th) {
+void Position::set(const string& fenStr, bool isChess960, Thread* th) 
+{
 /*
    A FEN string defines a particular position using only the ASCII character set.
 
@@ -432,7 +438,8 @@ void Position::set(const string& fenStr, bool isChess960, Thread* th) {
 /*
 多分キャスリングに関するなにか
 */
-void Position::set_castle_right(Color c, Square rfrom) {
+void Position::set_castle_right(Color c, Square rfrom) 
+{
 
   Square kfrom = king_square(c);
   CastlingSide cs = kfrom < rfrom ? KING_SIDE : QUEEN_SIDE;
@@ -463,7 +470,8 @@ Position::fen() returns a FEN representation of the position. In case of
 Chess960 the Shredder-FEN notation is used. This is mainly a debugging function.
 内部データよりFEN stringを作り上げる
 */
-const string Position::fen() const {
+const string Position::fen() const 
+{
 
   std::ostringstream ss;
 
@@ -519,7 +527,8 @@ const string Position::fen() const {
 /*
 内部データ（board[]など）と渡された指し手情報を表示する
 */
-const string Position::pretty(Move move) const {
+const string Position::pretty(Move move) const 
+{
 
   const string dottedLine =            "\n+---+---+---+---+---+---+---+---+";
   const string twoRows =  dottedLine + "\n|   | . |   | . |   | . |   | . |"
@@ -563,7 +572,8 @@ toMoveは自陣サイドのカラー
 
 敵の大駒にpinされている自駒を返す
 */
-Bitboard Position::hidden_checkers(Square ksq, Color c, Color toMove) const {
+Bitboard Position::hidden_checkers(Square ksq, Color c, Color toMove) const 
+{
 
   Bitboard b, pinners, result = 0;
 
@@ -595,7 +605,8 @@ attackers_to関数の機能
 指定した座標に利いている全ての駒（カラーに関係なく）を検出してビットを立てた
 bitboardを返す
 */
-Bitboard Position::attackers_to(Square s, Bitboard occ) const {
+Bitboard Position::attackers_to(Square s, Bitboard occ) const 
+{
 
   return  (attacks_from<PAWN>(s, BLACK) & pieces(WHITE, PAWN))
         | (attacks_from<PAWN>(s, WHITE) & pieces(BLACK, PAWN))
@@ -622,7 +633,8 @@ attacks_from(Piece pc, Square s)
 指定した座標、指定した駒種から利きのbitboardを返す。
 非飛び駒は対応していない
 */
-Bitboard Position::attacks_from(Piece p, Square s, Bitboard occ) {
+Bitboard Position::attacks_from(Piece p, Square s, Bitboard occ) 
+{
 
   assert(is_ok(s));
 
@@ -645,7 +657,8 @@ Bitboard Position::attacks_from(Piece p, Square s, Bitboard occ) {
 移動先に敵の利きが利いていたらNG、キャスリングはOK
 pinがかかっていないこと,pinがかかっていてもpinがはずれない動きならOK
 */
-bool Position::legal(Move m, Bitboard pinned) const {
+bool Position::legal(Move m, Bitboard pinned) const 
+{
 
   assert(is_ok(m));
   assert(pinned == pinned_pieces(sideToMove));
@@ -705,7 +718,8 @@ bool Position::legal(Move m, Bitboard pinned) const {
 置換表からの手は必ずしも現局面において合法かどうかは検査するまで
 わからない、同様に兄弟手の水平展開＝キラー手も検査する
 */
-bool Position::pseudo_legal(const Move m) const {
+bool Position::pseudo_legal(const Move m) const 
+{
 
   Color us = sideToMove;
   Square from = from_sq(m);
@@ -889,7 +903,8 @@ perft
 search
 qsearch
 */
-bool Position::gives_check(Move m, const CheckInfo& ci) const {
+bool Position::gives_check(Move m, const CheckInfo& ci) const 
+{
 
   assert(is_ok(m));
   assert(ci.dcCandidates == discovered_check_candidates());
@@ -975,7 +990,8 @@ bool Position::gives_check(Move m, const CheckInfo& ci) const {
 /*
 局面を更新する関数、下の関数do_moveのオーバーロード
 */
-void Position::do_move(Move m, StateInfo& newSt) {
+void Position::do_move(Move m, StateInfo& newSt) 
+{
 	/*
 	CheckInfoで手番側に王手がかかっているかチエックしている
 	反対にgives_checkはこれから指す手が王手かどうかをチエックしている
@@ -986,7 +1002,8 @@ void Position::do_move(Move m, StateInfo& newSt) {
 /*
 局面を更新する唯一の関数
 */
-void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveIsCheck) {
+void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveIsCheck) 
+{
 
   assert(is_ok(m));
   assert(&newSt != m_st);
@@ -1306,7 +1323,8 @@ void Position::do_move(Move m, StateInfo& newSt, const CheckInfo& ci, bool moveI
 手を戻す関数
 do_move関数にくらべすごくコード量が少ない
 */
-void Position::undo_move(Move m) {
+void Position::undo_move(Move m) 
+{
 
   assert(is_ok(m));
 	/*
@@ -1401,7 +1419,8 @@ void Position::undo_move(Move m) {
 /*
 キャスリング関係、詳細不明
 */
-void Position::do_castle(Square kfrom, Square kto, Square rfrom, Square rto) {
+void Position::do_castle(Square kfrom, Square kto, Square rfrom, Square rto) 
+{
 
   // Remove both pieces first since squares could overlap in Chess960
   remove_piece(kfrom, sideToMove, KING);
@@ -1417,7 +1436,8 @@ void Position::do_castle(Square kfrom, Square kto, Square rfrom, Square rto) {
 /*
 ヌルムーブ用の局面更新関数
 */
-void Position::do_null_move(StateInfo& newSt) {
+void Position::do_null_move(StateInfo& newSt) 
+{
 
   assert(!checkers());
 	/*
@@ -1456,7 +1476,8 @@ void Position::do_null_move(StateInfo& newSt) {
 /*
 ヌルムーブ用の局面復元関数
 */
-void Position::undo_null_move() {
+void Position::undo_null_move() 
+{
 
   assert(!checkers());
 
@@ -1474,7 +1495,8 @@ void Position::undo_null_move() {
 静止探索
 駒の取り合いの評価、探索ルーチンを使用せず駒の取り合いがなくなるまで評価を続ける
 */
-int Position::see_sign(Move m) const {
+int Position::see_sign(Move m) const 
+{
 
   assert(is_ok(m));
 
@@ -1495,7 +1517,8 @@ int Position::see_sign(Move m) const {
 /*
 静止探索
 */
-int Position::see(Move m, int asymmThreshold) const {
+int Position::see(Move m, int asymmThreshold) const 
+{
 
   Square from, to;
   Bitboard occupied, attackers, stmAttackers;
@@ -1632,7 +1655,8 @@ int Position::see(Move m, int asymmThreshold) const {
 /*
 positionクラスをクリアにする、
 */
-void Position::clear() {
+void Position::clear() 
+{
 
   std::memset(this, 0, sizeof(Position));
   startState.epSquare = SQ_NONE;
@@ -1652,7 +1676,8 @@ void Position::clear() {
 局面の全ての駒と手番とキャスリング、アンパッサンに元ずいてハッシュ値を決める
 pos_is_ok関数とset関数のみから呼ばれる
 */
-Key Position::compute_key() const {
+Key Position::compute_key() const 
+{
 
   Key k = Zobrist::castle[m_st->castleRights];
 
@@ -1680,7 +1705,8 @@ Key Position::compute_key() const {
 局面上のPAWNだけの情報に基づいてハッシュ値を決める
 pos_is_ok関数とset関数のみから呼ばれる
 */
-Key Position::compute_pawn_key() const {
+Key Position::compute_pawn_key() const 
+{
 
   Key k = 0;
 
@@ -1704,7 +1730,8 @@ Zobrist::psq[2][8][64]と最後の升は本来、座標を表すものだが
 デバックチエックのpos_is_ok関数からと、set関数からのみ呼ばれている
 駒だけ（material）の情報でハッシュ値を決めている
 */
-Key Position::compute_material_key() const {
+Key Position::compute_material_key() const 
+{
 
   Key k = 0;
 
@@ -1724,7 +1751,8 @@ Key Position::compute_material_key() const {
 /*
 位置評価値の集計
 */
-Score Position::compute_psq_score() const {
+Score Position::compute_psq_score() const 
+{
 
   Score score = SCORE_ZERO;
 
@@ -1746,7 +1774,8 @@ Score Position::compute_psq_score() const {
 /*
 PAWNを除いた駒評価値の集計（中盤評価値）
 */
-Value Position::compute_non_pawn_material(Color c) const {
+Value Position::compute_non_pawn_material(Color c) const 
+{
 
   Value value = VALUE_ZERO;
 
@@ -1775,7 +1804,8 @@ Value Position::compute_non_pawn_material(Color c) const {
 50手ルール ： 50手連続して両者ともポーンが動かず、またお互いに駒を取らない場合。
 スリーフォールド・レピティション（同形三復）： 同一の局面が3回現れた場合。
 */
-bool Position::is_draw() const {
+bool Position::is_draw() const 
+{
 
   // Draw by material?
 	/*
@@ -1834,7 +1864,8 @@ bool Position::is_draw() const {
 渡された文字が小文字なら大文字に変換し大文字なら小文字にする
 すぐ下にあるflip関数のヘルパー、先手、後手を反転させる
 */
-static char toggle_case(char c) {
+static char toggle_case(char c) 
+{
   return char(islower(c) ? toupper(c) : tolower(c));
 }
 /*
@@ -1850,7 +1881,8 @@ startからendまでの範囲に関数funcを適用してresultに結果を返す
 関数toggle_caseは文字（文字列ではない）を受け取りそれが小文字なら
 大文字にして返す、大文字だったら小文字にして返す
 */
-void Position::flip() {
+void Position::flip() 
+{
 
   string f, token;
   std::stringstream ss(fen());
@@ -1896,7 +1928,8 @@ void Position::flip() {
 /*
 デバック用のチエックするもの？
 */
-bool Position::pos_is_ok(int* failedStep) const {
+bool Position::pos_is_ok(int* failedStep) const 
+{
 
   int dummy, *step = failedStep ? failedStep : &dummy;
 

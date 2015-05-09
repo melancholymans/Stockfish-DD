@@ -85,7 +85,8 @@ void dbg_hit_on(bool b) { ++hits[0]; if (b) ++hits[1]; }
 void dbg_hit_on_c(bool c, bool b) { if (c) dbg_hit_on(b); }
 void dbg_mean_of(int v) { ++means[0]; means[1] += v; }
 
-void dbg_print() {
+void dbg_print() 
+{
 
   if (hits[0])
       cerr << "Total " << hits[0] << " Hits " << hits[1]
@@ -130,7 +131,8 @@ struct Tie: public streambuf { // MSVC requires splitted streambuf for cin and c
 /*
 —p“r•s–¾
 */
-class Logger {
+class Logger 
+{
 
   Logger() : in(cin.rdbuf(), &file), out(cout.rdbuf(), &file) {}
  ~Logger() { start(false); }
@@ -139,7 +141,8 @@ class Logger {
   Tie in, out;
 
 public:
-  static void start(bool b) {
+  static void start(bool b) 
+	{
 
     static Logger l;
 
@@ -162,7 +165,8 @@ public:
 /// Used to serialize access to std::cout to avoid multiple threads to write at
 /// the same time.
 
-std::ostream& operator<<(std::ostream& os, SyncCout sc) {
+std::ostream& operator<<(std::ostream& os, SyncCout sc) 
+{
 
   static std::mutex m;
 
@@ -194,7 +198,8 @@ void prefetch(char*) {}
 
 #else
 
-void prefetch(char* addr) {
+void prefetch(char* addr) 
+{
 
 #  if defined(__INTEL_COMPILER)
    // This hack prevents prefetches to be optimized away by

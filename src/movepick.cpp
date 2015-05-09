@@ -147,7 +147,8 @@ MovePicker mp(pos, ttMove, depth, History, countermoves, followupmoves, ss);
 next_move関数が呼ばれた時に新しく着手リストを生成する
 */
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
-                       Move* cm, Search::Stack* s) : pos(p), history(h), depth(d) {
+                       Move* cm, Search::Stack* s) : pos(p), history(h), depth(d) 
+{
 
   assert(d > DEPTH_ZERO);
 
@@ -182,7 +183,8 @@ DEPTH_QS_RECAPTURES(-10)よりdepthが大きければQSEARCH_1(11)
 最後の引数sqは１つ前の敵駒が移動した先の升の座標
 */
 MovePicker::MovePicker(const Position& p, Move ttm, Depth d, const HistoryStats& h,
-                       Square sq) : pos(p), history(h), cur(moves), end(moves) {
+                       Square sq) : pos(p), history(h), cur(moves), end(moves) 
+{
 
   assert(d <= DEPTH_ZERO);
 
@@ -228,7 +230,8 @@ MovePicker mp(pos, ttMove, History, pos.captured_piece_type())
 stageはPROBCUTの１択
 */
 MovePicker::MovePicker(const Position& p, Move ttm, const HistoryStats& h, PieceType pt)
-                       : pos(p), history(h), cur(moves), end(moves) {
+                       : pos(p), history(h), cur(moves), end(moves) 
+{
 
   assert(!pos.checkers());
 
@@ -259,7 +262,8 @@ MovePicker::MovePicker(const Position& p, Move ttm, const HistoryStats& h, Piece
 取る手の着手リストの評価値を設定する
 */
 template<>
-void MovePicker::score<CAPTURES>() {
+void MovePicker::score<CAPTURES>() 
+{
   // Winning and equal captures in the main search are ordered by MVV/LVA.
   // Suprisingly, this appears to perform slightly better than SEE based
   // move ordering. The reason is probably that in a position with a winning
@@ -305,7 +309,8 @@ history[][]は駒種別、升目別の駒訪問履歴のようなもので駒がたくさん
 その升目に来ている升は得点が高い
 */
 template<>
-void MovePicker::score<QUIETS>() {
+void MovePicker::score<QUIETS>() 
+{
 
   Move m;
 
@@ -326,7 +331,8 @@ https://chessprogramming.wikispaces.com/MVV-LVA
 駒を取らない手ならhistory[][]を評価値にする
 */
 template<>
-void MovePicker::score<EVASIONS>() {
+void MovePicker::score<EVASIONS>() 
+{
   // Try good captures ordered by MVV/LVA, then non-captures if destination square
   // is not under attack, ordered by history value, then bad-captures and quiet
   // moves with a negative SEE. This last group is ordered by the SEE score.
@@ -360,7 +366,8 @@ void MovePicker::score<EVASIONS>() {
 /*
 next_move関数からよばれる各stageによって生成する指し手のパターンが異なる
 */
-void MovePicker::generate_next() {
+void MovePicker::generate_next() 
+{
 
   cur = moves;
 
@@ -524,7 +531,8 @@ STOP
 };
 */
 template<>
-Move MovePicker::next_move<false>() {
+Move MovePicker::next_move<false>() 
+{
 
   Move move;
 

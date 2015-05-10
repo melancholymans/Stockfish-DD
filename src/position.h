@@ -127,6 +127,9 @@ public:
   Position() {}
 	/*
 	他の局面をコピーして生成するコンストラクタ
+	*thisにpositionクラスの参照を代入しているだけのように見えるが*this = pの時に
+	代入演算子のオーバーロードが呼ばれる（この下にある　定義はposition.cppにあって
+	そこでメモリーを確保してpをコピーしている）
 	*/
   Position(const Position& p, Thread* t) { *this = p; thisThread = t; }
 	/*

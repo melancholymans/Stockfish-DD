@@ -146,6 +146,10 @@ void UCI::loop(const string& args)
       else if (token == "bench")      benchmark(pos, is);
       else if (token == "d")          sync_cout << pos.pretty() << sync_endl;
       else if (token == "isready")    sync_cout << "readyok" << sync_endl;
+			else if (token == "debug"){
+				printf("Signals.stop = %d\n", Search::Signals.stop);
+				printf("Limits.depth = %d\n", Search::Limits.depth);
+			}
       else
           sync_cout << "Unknown command: " << cmd << sync_endl;
 

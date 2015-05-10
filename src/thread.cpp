@@ -216,8 +216,9 @@ bool Thread::cutoff_occurred() const
 // stack (the "helpful master concept" in YBWC terminology).
 /*
 available_slave関数のみから呼び出されている
-探索中は即ないと返事
-用途不明
+スレッドプールにあるスレッドが利用可能か返す
+もしsearchingフラグが立っていれば利用できないのでfalseを返す
+
 */
 bool Thread::available_to(const Thread* master) const 
 {
@@ -231,6 +232,12 @@ bool Thread::available_to(const Thread* master) const
 
   // No split points means that the thread is available as a slave for any
   // other thread otherwise apply the "helpful master" concept if possible.
+	/*
+	最初の!sizeは走っているスレッドがMainThreadだけのときsizeは0となっているので
+	splitPoints[size - 1]が配列のアンダーを起こすのを防ぐ目的
+	スレッドプールにスレッドがたまっており、そのスレッドがマスタースレッドと紐づけられていれば
+	trueを返す
+	*/
   return !size || (splitPoints[size - 1].slavesMask & (1ULL << master->idx));
 }
 
@@ -328,13 +335,12 @@ void ThreadPool::read_uci_options()
 /*
 search関数,split関数から呼ばれる
 利用可能な奴隷（空いているスレッド）を探してあったらそのスレッドのインスタンスを返す
-なかったらnullptr(C++11で導入）
-available_to関数がどのように探しているのかわからないのでいまいちわからない
+なかったらnullptr(C++11で導入）返すスレッドのインタンスは１つだけ。
 */
 Thread* ThreadPool::available_slave(const Thread* master) const 
 {
 	/*
-	available_to関数用途不明
+	available_to関数はマスタースレッドが使えるスレーブスレッドか判定する
 	*/
   for (Thread* th : *this)
       if (th->available_to(master))
@@ -420,9 +426,10 @@ void Thread::split(Position& pos, const Stack* ss, Value alpha, Value beta, Valu
 	つまりここの探索分岐はMainThreadを長男とする同じ親を持つ兄弟ノードを探索するスレッド
 	searchingフラグをtrueにしてもらい、notify_one関数でidle_loop関数で目覚めさせて探索を開始させる
 	*/
-  while (    (slave = Threads.available_slave(this)) != nullptr
+  while ((slave = Threads.available_slave(this)) != nullptr
          && ++slavesCnt <= Threads.maxThreadsPerSplitPoint && !Fake)
   {
+			//slavesMaskに自分のマスタースレッドのidxと自分固有のidxを記録させておく
       sp.slavesMask |= 1ULL << slave->idx;
       slave->activeSplitPoint = &sp;
 			//取得したスレッドはThread::idle_loop関数内にいるので、searching=trueで探索を開始する

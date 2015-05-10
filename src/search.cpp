@@ -475,7 +475,10 @@ namespace {
 		Limits.depthはUCIプロトコルから探索深度を指定してあればそちらに従うがしかしMAX_PLYより大きな深度は意味なし
 		depth=1から開始されるMAX_PLYは120
 		*/
-		while (++depth <= MAX_PLY && !Signals.stop && (!Limits.depth || depth <= Limits.depth))
+		printf("Signals.stop = %d\n", Signals.stop);
+		printf("Limits.depth = %d\n", Limits.depth);
+
+		while (++depth <= MAX_PLY && /*!Signals.stop && 一時的にコメントアウト2015/5/9*/ (!Limits.depth || depth <= Limits.depth))
 		{
 			// Age out PV variability metric
 			/*
@@ -499,7 +502,7 @@ namespace {
 
 			// MultiPV loop. We perform a full root search for each PV line
 			//複数の応手手順数（MultiPVが有効なら４以上MultiPVがfalseなら1）だけ繰り返す
-			for (PVIdx = 0; PVIdx < PVSize && !Signals.stop; ++PVIdx)
+			for (PVIdx = 0; PVIdx < PVSize /*&& !Signals.stop一時的にコメントアウト2015/5/9*/; ++PVIdx)
 			{
 				// Reset aspiration window starting size
 				/*
@@ -1527,7 +1530,7 @@ moves_loop: // When in check and at SpNode search starts from here
 			探索中止なら評価値を持って返ります　もしくはcutoff_occurred関数が返す値がtrueなら返ります
 			cutoff_occurred関数の機能は不明
 			*/
-			if (Signals.stop || thisThread->cutoff_occurred())
+			if (/*Signals.stop || 一時的にコメントアウト*/thisThread->cutoff_occurred())
           return value; // To avoid returning VALUE_INFINITE
 
       if (RootNode)
@@ -1577,11 +1580,9 @@ moves_loop: // When in check and at SpNode search starts from here
 
       // Step 19. Check for splitting the search
 			/*
-			SpNode出ない時の返り方？
-			idle_loop関数に行くのはここだけ
 			まず最初にMainThreadがここにくる
-			条件
-			SpNodeがfalseのこと
+			MainThreadはPvNodeなのでSpNodeではなく　かつ　反復深化の深さがThreads.minimumSplitDepth(=8)より深いこと（浅い探索だと探索分岐の効果が少ない？）
+
 			*/
 			if (!SpNode
           &&  depth >= Threads.minimumSplitDepth
@@ -2245,7 +2246,10 @@ void Thread::idle_loop()
       if (searching)
       {
           assert(!exit);
-
+					/*
+					split関数で目覚めさせられたスレーブスレッドは全員mutexをロックして待機、
+					そしてMainThreadがsplit関数でThreads.mutexをunlockするのを待つ
+					*/
           Threads.mutex.lock();
 
           assert(searching);
@@ -2255,6 +2259,10 @@ void Thread::idle_loop()
           Threads.mutex.unlock();
 
           Stack stack[MAX_PLY_PLUS_6], *ss = stack+2; // To allow referencing (ss-2)
+					/*
+					ここで渡されたpositionクラスをコピーしてスレッドに渡す(activePositionにアドレスを渡す）
+					スレッドごとにコピーを渡す
+					*/
           Position pos(*sp->pos, this);
 
           std::memcpy(ss-2, sp->ss-2, 5 * sizeof(Stack));

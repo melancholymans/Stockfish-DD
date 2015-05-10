@@ -41,7 +41,6 @@ http://misakirara.s296.xrea.com/misaki/words.html
 
 namespace Search {
 	/*
-	Signals.stopは探索を止めるフラグ
 	stopOnPonderhit用途不明
 	firstRootMove	探索の最初の手順
 	failedLowAtRoot;
@@ -49,14 +48,20 @@ namespace Search {
 	failedLowAtRootはWinodw探索のLow失敗になるとtrueになる
 	初期設定はstart_thinking関数内でfalseに設定
 	*/
+	/*
+	Signals.stopは探索を止めるフラグ
+	*/
 	volatile SignalsType Signals;
+	/*
+	探索の制限項目（uciオプションで受け取る）
+	*/
   LimitsType Limits;
 	/*
 	ルートでの着手リスト
 	*/
 	std::vector<RootMove> RootMoves;
 	/*
-	ルートでの鏡面
+	探索開始局面
 	*/
 	Position RootPos;
 	/*
@@ -69,7 +74,8 @@ namespace Search {
 	*/
 	Time::point SearchTime;
 	/*
-	用途不明
+	応手手順を入れる、最初の局面がファイルなどから読み込んだ場合positionクラスにも同じSetupStateがあり
+	そのSetupStatesからコピーを受け取る
 	*/
 	StateStackPtr SetupStates;
 }
@@ -81,11 +87,14 @@ using namespace Search;
 namespace {
 
   // Set to true to force running with one thread. Used for debugging
+	/*
+	通常はfalseとし探索分岐（複数スレッドでの探索）を許可している、trueはデバック用途
+	*/
   const bool FakeSplit = false;
 
   // Different node types, used as template parameter
 	/*
-	search関数のテンプレート引数
+	search関数のテンプレート引数で
 	*/
 	enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
@@ -123,7 +132,7 @@ namespace {
   }
 
 	/*
-	用途不明
+	PVSize=最善応手手順数を入れる（MultiPV),PVIdx=複数応手手順のインデックス
 	*/
 	size_t PVSize, PVIdx;
 	/*
@@ -131,7 +140,8 @@ namespace {
 	*/
 	TimeManager TimeMgr;
 	/*
-	用途不明
+	root局面で最善手を変えた回数
+	探索時間制御で使用ー回数が多いと時間延長する
 	*/
 	double BestMoveChanges;
 	/*
@@ -483,7 +493,6 @@ namespace {
 			// Age out PV variability metric
 			/*
 			最初は0.0に初期化（このid_loop関数の冒頭で）
-			なので0にいくら0.8を掛けても0では？
 			*/
 			BestMoveChanges *= 0.8;
 
@@ -653,7 +662,8 @@ namespace {
 
 				// Take in account some extra time if the best move has changed
 				/*
-				用途不明
+				BestMoveChangesはroot局面で最善手が変更になった回数
+				その回数が多ければ危険な局面と判断して時間制御を伸ばす
 				*/
 				if (depth > 4 && depth < 50 && PVSize == 1)
 					TimeMgr.pv_instability(BestMoveChanges);
@@ -1546,6 +1556,11 @@ moves_loop: // When in check and at SpNode search starts from here
               // We record how often the best move has been changed in each
               // iteration. This information is used for time management: When
               // the best move changes frequently, we allocate some more time.
+							/*
+							最善応手が変更になった回数をカウントしておき時間制御に使用する
+							（あまりにも煩雑に最善手が変わるようなら危険な局面として慎重に探索する必要がある）
+							BestMoveChangesはid_loopで0に初期化されている
+							*/
               if (!pvMove)
                   ++BestMoveChanges;
           }

@@ -94,7 +94,13 @@ namespace {
 
   // Different node types, used as template parameter
 	/*
-	search関数のテンプレート引数で
+	search関数のテンプレート引数でノードの種別を表す
+	Root:ルート局面の探索
+	PV:最適応手手順用の探索ノード
+	NonPV:現時点で不明
+	SplitPointRoot:ルート局面での探索分岐になったノード
+	SplitPointPV:現時点で不明
+	SplitPointNonPV:現時点で不明
 	*/
 	enum NodeType { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
 
@@ -108,6 +114,7 @@ namespace {
   // Futility lookup tables (initialized at startup) and their access functions
 	/*
 	用途不明
+	search::init()で初期化される
 	*/
 	int FutilityMoveCounts[2][32]; // [improving][depth]
 	/*
@@ -248,6 +255,12 @@ void Search::init()
   }
 
   // Init futility move count array
+	/*
+	Excellで計算させてみた結果
+	FutilityMoveCounts[0]={2,3,3,4,5,6,8,10,12,14,16,19,22,25,28,31,35,39,43,47,51,56,60,65,70,75,81,86,92,98,104,110}
+	FutilityMoveCounts[1]={3,4,5,7,8,11,13,16,19,22,25,29,33,38,42,47,52,57,63,69,75,81,88,94,101,109,116,124,131,140,148,156}
+	２次曲線になる
+	*/
   for (d = 0; d < 32; ++d)
   {
       FutilityMoveCounts[0][d] = int(2.4 + 0.222 * pow(d +  0.0, 1.8));
@@ -1191,6 +1204,10 @@ moves_loop: // When in check and at SpNode search starts from here
 		MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
+		/*局面が優位になっているか判断して良くなっているならtrue
+		FutilityMoveCounts[improving][32]配列に使っていてtrteならFutilityMoveCounts[1][32]
+		falseならFutilityMoveCounts[0][32]の数字を使う。[0]の方が数字が小さめ
+		*/
     improving =   ss->staticEval >= (ss-2)->staticEval
                || ss->staticEval == VALUE_NONE
                ||(ss-2)->staticEval == VALUE_NONE;

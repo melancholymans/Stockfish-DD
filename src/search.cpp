@@ -1204,7 +1204,7 @@ moves_loop: // When in check and at SpNode search starts from here
 		MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
-		/*局面が優位になっているか判断して良くなっているならtrue
+		/*局面が2手前より優位になっているか判断（静止評価値で判断）して良くなっているならtrue
 		FutilityMoveCounts[improving][32]配列に使っていてtrteならFutilityMoveCounts[1][32]
 		falseならFutilityMoveCounts[0][32]の数字を使う。[0]の方が数字が小さめ
 		*/
@@ -1355,7 +1355,7 @@ moves_loop: // When in check and at SpNode search starts from here
       // Step 13. Pruning at shallow depth (exclude PV nodes)
 			/*
 			枝刈り
-			PｖNodeではない（PvNodeってなに）　＆＆
+			PｖNodeではない　＆＆
 			王手がかかっていない　＆＆（王手がかかっているようなノードを枝刈りしては危険）
 			王手が可能な手等重要な手ではない　＆＆
 			bestValue > VALUE_MATED_IN_MAX_PLY(= マイナス31880)極端に評価値が悪いわけではないがよくもない？
@@ -1369,8 +1369,10 @@ moves_loop: // When in check and at SpNode search starts from here
       {
           // Move count based pruning
 					/*
-					現在深度が末端に近く手数もFutilityMoveCounts[improving][depth]（これが何かは不明）
-					より多い　つまり結構、手数も深度も深く読んだ出のパスという枝刈り？
+					残り深さが16より小さくて、手数がFutilityMoveCounts[improving][depth]より多い
+					脅威手がない（手番側の良い評価一気にひっくり返すような手が存在するとき登録される）
+
+					つまり結構、手数も深度も深く読んだ出のパスという枝刈り？
 					*/
 					if (depth < 16 * ONE_PLY
               && moveCount >= FutilityMoveCounts[improving][depth]

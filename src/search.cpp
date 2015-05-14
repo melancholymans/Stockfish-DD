@@ -1370,7 +1370,7 @@ moves_loop: // When in check and at SpNode search starts from here
           // Move count based pruning
 					/*
 					Žc‚è[‚³‚ª16‚æ‚è¬‚³‚­‚ÄAŽè”‚ªFutilityMoveCounts[improving][depth]‚æ‚è‘½‚¢
-					‹ºˆÐŽè‚ª‚È‚¢iŽè”Ô‘¤‚Ì—Ç‚¢•]‰¿ˆê‹C‚É‚Ð‚Á‚­‚è•Ô‚·‚æ‚¤‚ÈŽè‚ª‘¶Ý‚·‚é‚Æ‚«“o˜^‚³‚ê‚éj
+					‹ºˆÐŽè‚ª‚È‚¢iŽè”Ô‘¤‚Ì—Ç‚¢•]‰¿ˆê‹C‚É‚Ð‚Á‚­‚è•Ô‚·‚æ‚¤‚ÈŽè‚ª‘¶Ý‚·‚é‚Æ‚«“o˜^‚³‚ê‚é ‹ºˆÐŽè‚Ímove‚ªŽw‚³‚ê‚½Œã‚ÉŽw‚³‚ê‚éŽèj
 
 					‚Â‚Ü‚èŒ‹\AŽè”‚à[“x‚à[‚­“Ç‚ñ‚¾o‚ÌƒpƒX‚Æ‚¢‚¤Ž}Š ‚èH
 					*/
@@ -2020,6 +2020,8 @@ moves_loop: // When in check and at SpNode search starts from here
 	/*
 	first‚ÅŽ¦‚³‚ê‚éŽw‚µŽè‚Åsecond‚ÅŽ¦‚³‚ê‚éŽè‚ð–hŒä‚Å‚«‚é‚©ƒeƒXƒg‚·‚é
 	‚à‚¤‚¿‚å‚Á‚ÆÚ‚µ‚­’²‚×‚é
+	first‚ÍÅ‰‚ÉŽw‚³‚ê‚éŽè‚ÅAsecond‚Í‚»‚ÌŒã‚ÉŽw‚³‚ê‚éŽè‚Å‚±‚ÌŠÖ”‚Ì‹@”\‚ÍseconndŽè‚ªfirst‘¤‚É‚Æ‚Á‚Ä‹ºˆÐ‚Æ
+	‚È‚éê‡firstŽè‚ª‚»‚Ì‹ºˆÐŽè‚Ì‘Î‰žŽè‚Æ‚È‚é‚©”»’è‚·‚é‚à‚Ì
 	*/
   bool refutes(const Position& pos, Move first, Move second) 
 	{
@@ -2033,11 +2035,17 @@ moves_loop: // When in check and at SpNode search starts from here
     Square m2to = to_sq(second);
 
     // Don't prune moves of the threatened piece
+		/*
+		first‹î‚ðŽæ‚éŽè‚ð‚ ‚ç‚©‚¶‚ß–h‚¢‚Å‚¢‚é‚È‚çtrue
+		*/
     if (m1from == m2to)
         return true;
 
     // If the threatened piece has value less than or equal to the value of the
     // threat piece, don't prune moves which defend it.
+		/*
+		‹ºˆÐŽè‚ª•ßŠlŽè‚Å‚©‚Â@•ßŠl‚·‚é‹î‚Ì•]‰¿’l‚ª•ßŠl‚³‚ê‚é‹î‚Ì‰¿’l‚æ‚è‘å‚«‚¢i‘å‹î‚Å¬‹î‚ðŽæ‚Á‚Ä‚¢‚é)@bb@•ßŠl‚·‚é‹îŽí‚ªKING
+		*/
     if (    pos.capture(second)
         && (   PieceValue[MG][pos.piece_on(m2from)] >= PieceValue[MG][pos.piece_on(m2to)]
             || type_of(pos.piece_on(m2from)) == KING))
@@ -2047,19 +2055,28 @@ moves_loop: // When in check and at SpNode search starts from here
         Piece pc = pos.piece_on(m1from);
 
         // The moved piece attacks the square 'tto' ?
+				/*
+				first‹î‚ÌˆÚ“®Œã‚»‚Ì—˜‚«‚ªsecond‹î‚ð•ßŠl‚·‚é‚±‚Æ‚ª‰Â”\‚È‚çtrue
+				*/
         if (pos.attacks_from(pc, m1to, occ) & m2to)
             return true;
 
         // Scan for possible X-ray attackers behind the moved piece
+				/*
+				*/
         Bitboard xray =  (attacks_bb<  ROOK>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, ROOK))
                        | (attacks_bb<BISHOP>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, BISHOP));
 
         // Verify attackers are triggered by our move and not already existing
+				/*
+				*/
         if (unlikely(xray) && (xray & ~pos.attacks_from<QUEEN>(m2to)))
             return true;
     }
 
     // Don't prune safe moves which block the threat path
+		/*
+		*/
     if ((between_bb(m2from, m2to) & m1to) && pos.see_sign(first) >= 0)
         return true;
 

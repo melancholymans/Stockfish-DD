@@ -2017,7 +2017,10 @@ moves_loop: // When in check and at SpNode search starts from here
   // refutes() tests whether a 'first' move is able to defend against a 'second'
   // opponent's move. In this case will not be pruned. Normally the second move
   // is the threat (the best move returned from a null search that fails low).
-
+	/*
+	firstで示される指し手でsecondで示される手を防御できるかテストする
+	もうちょっと詳しく調べる
+	*/
   bool refutes(const Position& pos, Move first, Move second) 
 	{
 

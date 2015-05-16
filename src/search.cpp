@@ -203,7 +203,13 @@ namespace {
 	*/
 	string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
 	/*
-	用途不明
+	スキルレベルの管理（ユーザーのchessスキル）
+	最高スキルが20最低スキルが0でスキルレベルに合わせて手を調整する
+	どうやって調整するかと言うと反復深化深度とスキルレベルがあった時に
+	pick_move関数を呼びこのクラスのMove bestに良い手登録しておく
+	そこで反復深化はやめず、そのまま探索は続けさせておくがskill変数が
+	id_loop関数を抜ける時デストラクタが呼ばれ深い深度で得られた最善手を（RootMoves[0]）
+	をbest手と交換することによって若干弱い手を採用する
 	*/
 	struct Skill {
     Skill(int l) : level(l), best(MOVE_NONE) {}
@@ -641,6 +647,12 @@ namespace {
 			}//MultiPV終了
 
 			// Do we need to pick now the sub-optimal best move ?
+			/*
+			スキルレベルが20未満 かつ　time_to_pick 関数でdepth（反復深化深度）がスキルレベルと同じならtrueそれ以外は
+			falseを返す。スキルレベルは最高で２０最低が０なのでスキルレベルが下がればpick_move関数を呼ぶ深度は浅くなる
+			skill.pick_move関数はbest手を返すようになっているがそれは使われていない
+			このバージョンではpick_move関数は残っているが将来のバージョンのstockfishでは消されている
+			*/
 			if (skill.enabled() && skill.time_to_pick(depth))
 				skill.pick_move();
 			/*
@@ -2018,7 +2030,7 @@ moves_loop: // When in check and at SpNode search starts from here
   // opponent's move. In this case will not be pruned. Normally the second move
   // is the threat (the best move returned from a null search that fails low).
 	/*
-	firstで示される指し手でsecondで示される手を防御できるかテストする
+	firstで示される指し手でsecondで示される手を防御できるか判定する
 	もうちょっと詳しく調べる
 	firstは最初に指される手で、secondはその後に指される手でこの関数の機能はseconnd手がfirst側にとって脅威と
 	なる場合first手がその脅威手の対応手となるか判定するもの
@@ -2063,12 +2075,14 @@ moves_loop: // When in check and at SpNode search starts from here
 
         // Scan for possible X-ray attackers behind the moved piece
 				/*
+				脅威手の移動先座標からROOKとBISHOPの利き上にfirst側のQUEEN,ROOK,BISHOPがいたらxrayに入れる
 				*/
         Bitboard xray =  (attacks_bb<  ROOK>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, ROOK))
                        | (attacks_bb<BISHOP>(m2to, occ) & pos.pieces(color_of(pc), QUEEN, BISHOP));
 
         // Verify attackers are triggered by our move and not already existing
 				/*
+				よくわからん、脅威の駒を手番側のROOKかBISHOPで捕獲可能ならtrue?
 				*/
         if (unlikely(xray) && (xray & ~pos.attacks_from<QUEEN>(m2to)))
             return true;
@@ -2076,10 +2090,13 @@ moves_loop: // When in check and at SpNode search starts from here
 
     // Don't prune safe moves which block the threat path
 		/*
+		first駒の移動によってsecond駒の移動を阻止できかつ静止探索の結果が0以上であればtrue
 		*/
     if ((between_bb(m2from, m2to) & m1to) && pos.see_sign(first) >= 0)
         return true;
-
+		/*
+		脅威手を防御できなければfalseを返す
+		*/
     return false;
   }
 
@@ -2087,7 +2104,8 @@ moves_loop: // When in check and at SpNode search starts from here
   // When playing with strength handicap choose best move among the MultiPV set
   // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 	/*
-	用途不明
+	クラスSkillのデストラクタで呼ばれる、id_loop関数から呼ばれる
+	レベル(スキルレベル)に応じて指し手を変える（最善手ではなく）
 	*/
 	Move Skill::pick_move() 
 	{
@@ -2095,11 +2113,17 @@ moves_loop: // When in check and at SpNode search starts from here
     static RKISS rk;
 
     // PRNG sequence should be not deterministic
+		/*
+		乱数をランダムな回数（時刻で決める　５０未満）
+		*/
     for (int i = Time::now() % 50; i > 0; --i)
         rk.rand<unsigned>();
 
     // RootMoves are already sorted by score in descending order
     int variance = std::min(RootMoves[0].score - RootMoves[PVSize - 1].score, PawnValueMg);
+		/*
+		デフォルトのlevelは20なのでweakness=120-2*20=80
+		*/
     int weakness = 120 - 2 * level;
     int max_s = -VALUE_INFINITE;
     best = MOVE_NONE;
@@ -2107,18 +2131,30 @@ moves_loop: // When in check and at SpNode search starts from here
     // Choose best move. For each move score we add two terms both dependent on
     // weakness, one deterministic and bigger for weaker moves, and one random,
     // then we choose the move with the resulting highest score.
+		/*
+
+		*/
     for (size_t i = 0; i < PVSize; ++i)
     {
         int s = RootMoves[i].score;
 
         // Don't allow crazy blunders even at very low skills
+				/*
+				RootMoves配列に並んでいる指し手リストのスコアが１つ前のスコアよりPawn駒評価値２個分以上離れている場合
+				このループを終了させる
+				*/
         if (i > 0 && RootMoves[i-1].score > s + 2 * PawnValueMg)
             break;
 
         // This is our magic formula
+				/*
+				ランダムな要素も取り入れてs変数にスコアを入れる
+				*/
         s += (  weakness * int(RootMoves[0].score - s)
               + variance * (rk.rand<unsigned>() % weakness)) / 128;
-
+				/*
+				ｓが十分大きかったらbestにRootMoves[i]番目の手を入れる
+				*/
         if (s > max_s)
         {
             max_s = s;

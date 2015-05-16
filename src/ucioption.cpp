@@ -92,7 +92,7 @@ void init(OptionsMap& o)
   o["Ponder"]                      = Option(true);
   o["OwnBook"]                     = Option(false);
   o["MultiPV"]                     = Option(1, 1, 500);
-  o["Skill Level"]                 = Option(20, 0, 20);
+  o["Skill Level"]                 = Option(15, 0, 20);		//skillの動作を確認するため20->15に変更 20は最高スキルなので手加減不要と言う意味
   o["Emergency Move Horizon"]      = Option(40, 0, 50);
   o["Emergency Base Time"]         = Option(60, 0, 30000);
   o["Emergency Move Time"]         = Option(30, 0, 5000);

@@ -41,6 +41,67 @@ http://misakirara.s296.xrea.com/misaki/words.html
 
 namespace Search {
 	/*
+	ponderとは
+	先読読みのこと
+	たとえばcomputer側が先手で、開始局面から探索を開始して76歩とかに決めてUSIプロトコルで bestmove 76fu
+	と送る時、先読みをしたい時相手が指すであろう手を予想してbest move 76fu ponder 34fuと送る
+	エンジンの相手（人間であれコンピュータであれUSIインターフェイスを備えているもの）はエンジンが予想した局面を
+	生成してエンジン側に送り返す。エンジン側はすぐに予想手で生成された局面を探索する。
+	相手側が手を指した場合指した手が予想手と一緒だった場合相手側はponderhitを返してくるエンジンがすでに探索が終了していれば
+	bestmove で手を返せばよいし、探索途中ならそのまま探索を継続すればよいponderhitを返した時点で手番が変わっている
+	もし予想手と違えば相手側はstopをエンジンにおくり、再度予想手ではない真の指し手（相手の手）で更新された局面を送ってきて
+	goコマンドを送ってくるのでエンジン側は通常探索をすればOK
+
+	＜将棋所HPより＞
+	これを使うときは、必ずgo ponderというように、goのすぐあとにponderを書くことになります。
+	ponderという言葉は、辞書では「熟考」と訳されていますが、思考ゲームにおいては、相手の手番中に次の手を考える「先読み」を意味します。
+	go ponderは、先読みを開始する合図となります。（先読みを開始すべき局面は、この前にpositionコマンドによって送られてきています。）
+	エンジンは、go ponderによって思考を開始する場合、GUI側から次のコマンド（stopまたはponderhit）が送られてくる前にbestmoveで
+	指し手を返してはいけません。（たとえ、思考開始の時点で詰んでいるような場合であったとしてもです。）相手が手を指すと、それによって
+	stopまたはponderhitが送られて来るので、それを待ってからbestmoveで指し手を返すことになります。（この辺の流れついては、
+	後述する「対局における通信の具体例」を読んで下さい。）
+
+	＜「対局における通信の具体例」＞
+	次に、先読み機能を説明します。
+	エンジンが後手で、先手が平手初期局面から１六歩と指した局面であれば
+	>position startpos moves 1g1f
+	>go
+	エンジンはbestmoveコマンドで指し手を返しますが、この時に先読み要求を出すことができます。エンジンの指し手が4a3bで、
+	それに対する相手の指し手を6i7hと予想したのであれば
+	<bestmove 4a3b ponder 6i7h
+	GUIはこれを受信すると、すぐにpositionコマンドで思考開始局面を送ります。この局面は、現在局面に、エンジンが予想した相手の指し手
+	（この場合は6i7h）を追加したものになります。それに続けてgo ponderコマンドを送ります。
+	>position startpos moves 1g1f 4a3b 6i7h
+	>go ponder
+	エンジンはこれを受信すると先読みを開始します。goコマンドの解説にも書きましたが、go ponderによって先読みを開始した場合、
+	次にGUIからstopまたはponderhitが送られてくるまで、エンジンはbestmoveを返してはいけません。相手が次の手を指す前に思考が
+	終わったとしても、GUIからstopまたはponderhitが送られてくるまで待つことになります。
+	やがて、相手が手を指します。その手がエンジンの予想手と一致した場合と、そうでない場合で動作が異なります。
+	エンジンの予想手が外れた場合
+	この場合、GUIはエンジンにstopを送ります。
+	>stop
+	エンジンはこれに対し、思考中ならすぐに思考を打ち切って、現時点で最善と考えている手をbestmoveで返します。既に思考が終わっていたなら、
+	探索済みの指し手をbestmoveで返します。（bestmoveのあとにponderで相手の予想手を追加しても構いませんが、いずれにしろ無視されます。）
+	<bestmove 6a5b ponder 4i5h
+	この、stopに対してbestmoveで返された指し手は、外れた予想手（この場合は6i7h）に対する指し手なので、GUIはこの内容を無視して、
+	正しい相手の指し手（現在局面）を送ります。続けてgoコマンドも送ります。相手が7g7fと指したのであれば
+	>position startpos moves 1g1f 4a3b 7g7f
+	>go
+	エンジンはこれによって通常の思考を開始します。
+	エンジンの予想手が当たった場合
+	この場合、GUIはエンジンにponderhitを送ります。
+	>ponderhit
+	予想手が当たったので、エンジンは引き続き思考を継続して構いません。既に思考が終わっていたら、すぐにその指し手を返すこともできます。
+	bestmoveで指し手を返すとき、前回と同様にponderを追加して先読み要求を出すこともできます。
+	<bestmove 6a5b ponder 4i5h
+	以下、同様にして対局が継続されます。
+
+	Q1 最初にponderを使用すると決めるオプションはどこにある。
+	ucioption.cpp内にponderオプションにtrueが与えられている
+	このオプションがtrueならoptimumSearchTimeに少し上乗せされる
+	*/
+
+	/*
 	stopOnPonderhit用途不明
 	firstRootMove	探索の最初の手順
 	failedLowAtRoot;
@@ -113,7 +174,6 @@ namespace {
 
   // Futility lookup tables (initialized at startup) and their access functions
 	/*
-	用途不明
 	search::init()で初期化される
 	*/
 	int FutilityMoveCounts[2][32]; // [improving][depth]
@@ -357,7 +417,20 @@ void Search::think()
           goto finalize;
       }
   }
+	/*
+	https://chessprogramming.wikispaces.com/Contempt+Factor
+	Contempt Factor=軽蔑要因?　＝＞デフォルトでは0 取れる値は-50 -> 50
+	UCI_AnalyseMode=UCI 解析モード？　＝＞デフォルトではfalse
+	引き分けと判断する評価値（閾値）を決める。
 
+	対等の相手なら閾値はVALUE_DRAW=0
+	相手が強かったらしき
+	PHASE_MIDGAME=128
+	game_phase関数は局面の評価値を正規化（評価値を0-128にする）した値にして返す
+	ｃｆで決めた評価値をVALUE_DRAW(=0）に加算する
+	このDrawValue[]は局面の評価値を見て引き分け状態か判定するものではない
+	引き分けと判断された時に返す仮の評価値
+	*/
   if (Options["Contempt Factor"] && !Options["UCI_AnalyseMode"])
   {
       int cf = Options["Contempt Factor"] * PawnValueMg / 100; // From centipawns
@@ -723,6 +796,10 @@ namespace {
 				{
 					// If we are allowed to ponder do not stop the search now but
 					// keep pondering until GUI sends "ponderhit" or "stop".
+					/*
+					stopシグナルが来ていてpomder中ならstopOnPonderhitをtrueにして探索停止する
+					ponderでなければ通常の停止フラグをセット
+					*/
 					if (Limits.ponder)
 					Signals.stopOnPonderhit = true;
 					else
@@ -2132,7 +2209,7 @@ moves_loop: // When in check and at SpNode search starts from here
     // weakness, one deterministic and bigger for weaker moves, and one random,
     // then we choose the move with the resulting highest score.
 		/*
-
+		マルチ最善応手数だけRootMoves配列をチエックして最も評価値が高い手をbest手に登録する
 		*/
     for (size_t i = 0; i < PVSize; ++i)
     {
@@ -2172,8 +2249,8 @@ moves_loop: // When in check and at SpNode search starts from here
 	詳細不明であるが,UCI向けに現段階の局面情報（score,nodes,npsなど）を出力する
 	id_loop関数からのみ呼び出される
 	*/
-	string uci_pv(const Position& pos, int depth, Value alpha, Value beta) {
-
+	string uci_pv(const Position& pos, int depth, Value alpha, Value beta) 
+	{
     std::stringstream s;
     Time::point elapsed = Time::now() - SearchTime + 1;
     size_t uciPVSize = std::min((size_t)Options["MultiPV"], RootMoves.size());
@@ -2185,6 +2262,11 @@ moves_loop: // When in check and at SpNode search starts from here
 
     for (size_t i = 0; i < uciPVSize; ++i)
     {
+				/*
+				PVIdxはこのファイル内のグローバル変数なので関数内でもアクセスできる
+				PVIdxはマルチPVのインデックス、updateフラグは今のPVIdxより小さいindexは表示
+				済みなのでパスするフラグ、このフラグがtrueなら表示、falseなら非表示
+				*/
         bool updated = (i <= PVIdx);
 
         if (depth == 1 && !updated)
@@ -2192,7 +2274,10 @@ moves_loop: // When in check and at SpNode search starts from here
 
         int d   = updated ? depth : depth - 1;
         Value v = updated ? RootMoves[i].score : RootMoves[i].prevScore;
-
+				/*
+				return count of buffered input characters
+				in_avail関数は文字数を返す？
+				*/
         if (s.rdbuf()->in_avail()) // Not at first line
             s << "\n";
 
@@ -2204,11 +2289,13 @@ moves_loop: // When in check and at SpNode search starts from here
           << " time "      << elapsed
           << " multipv "   << i + 1
           << " pv";
-
+				/*
+				move_to_uci関数はMove形式の指し手データを棋譜形式の文字列にする
+				RootMoves配列の中に入っている手をマルチPV数だけ出力する
+				*/
         for (size_t j = 0; RootMoves[i].pv[j] != MOVE_NONE; ++j)
             s <<  " " << move_to_uci(RootMoves[i].pv[j], pos.is_chess960());
     }
-
     return s.str();
   }
 
@@ -2220,11 +2307,14 @@ moves_loop: // When in check and at SpNode search starts from here
 /// allow to always have a ponder move even when we fail high at root, and a
 /// long PV to print that is important for position analysis.
 /*
-用途不明
+search関数からのみ呼ばれる
+PV登録、評価値更新時に呼ばれる
+pv[0]の手を取り出してその手を実行し局面を更新する
+探索の結果が置換表にあるので（あるはず）その手を取り出しつつ
+合法手チエックもしながらpv（最応手手順）を再構築している
 */
 void RootMove::extract_pv_from_tt(Position& pos) 
 {
-
   StateInfo state[MAX_PLY_PLUS_6], *st = state;
   const TTEntry* tte;
   int ply = 0;

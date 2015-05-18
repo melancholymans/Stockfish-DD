@@ -42,7 +42,7 @@ http://misakirara.s296.xrea.com/misaki/words.html
 namespace Search {
 	/*
 	ponderとは
-	先読読みのこと
+	先読みのこと
 	たとえばcomputer側が先手で、開始局面から探索を開始して76歩とかに決めてUSIプロトコルで bestmove 76fu
 	と送る時、先読みをしたい時相手が指すであろう手を予想してbest move 76fu ponder 34fuと送る
 	エンジンの相手（人間であれコンピュータであれUSIインターフェイスを備えているもの）はエンジンが予想した局面を
@@ -514,7 +514,9 @@ finalize:
 
   // Best move could be MOVE_NONE when searching on a stalemate position
 	/*
-	UCIに探索結果を返している
+	UCIに探索結果を返している,ponderを許可しているときとそうでない時の場合分けをしていると思ったが
+	そのようなことはしていない。常にbest move とponder手（最善応手手順の相手の手pv[1]を返している）
+	結果を受け取ったUCI側が判断してponder手を処理しているのかも
 	*/
 	sync_cout << "bestmove " << move_to_uci(RootMoves[0].pv[0], RootPos.is_chess960())
             << " ponder "  << move_to_uci(RootMoves[0].pv[1], RootPos.is_chess960())

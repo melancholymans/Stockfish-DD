@@ -279,7 +279,7 @@ namespace {
 
     while (is >> token)
     {
-			/*
+				/*
 				go ‚Ì‚ ‚Æ‚Ésearchmoves ‚ğ‘±‚¯‚Ä“Á’è‚Ìw‚µè‚ğa2a3,c2c4‚È‚Ç‚Æw’è‚·‚é‚Æ‚»‚Ìè‚Ì‚İ’Tõ‚·‚é
 				*/
 				if (token == "searchmoves")

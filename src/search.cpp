@@ -506,6 +506,10 @@ finalize:
   // we shouldn't print the best move before the GUI sends a "stop" or "ponderhit"
   // command. We simply wait here until GUI sends one of those commands (that
   // raise Signals.stop).
+	/*
+	ponder探索中ならstopOnPonderhitをtrueに、通常探索ならstopをtrueに
+	UCIからponderhitコマンドは来ないのか？
+	*/
   if (!Signals.stop && (Limits.ponder || Limits.infinite))
   {
       Signals.stopOnPonderhit = true;

@@ -102,7 +102,7 @@ namespace Search {
 	*/
 
 	/*
-	stopOnPonderhit用途不明
+	stopOnPonderhitponder 
 	firstRootMove	探索の最初の手順
 	failedLowAtRoot;
 	stackfishは反復深化＋Window＋alpha-beta探索をしていると思われる
@@ -508,7 +508,10 @@ finalize:
   // raise Signals.stop).
 	/*
 	ponder探索中ならstopOnPonderhitをtrueに、通常探索ならstopをtrueに
-	UCIからponderhitコマンドは来ないのか？
+	UCIからponderhitコマンドは来ないのか->くるUCI::loopでponderhitコマンドを受け取ったら
+	Signals.stopをtrueにして探索を止める処理に入る。
+	ここはponder探索中全ての探索が終了したがUCI側が思考を終えていないの指し手を返すのを防ぐため
+	UCIがstopコマンド（UCIが思考終了のフラグ）を出すのを待っている処理
 	*/
   if (!Signals.stop && (Limits.ponder || Limits.infinite))
   {
@@ -803,7 +806,7 @@ namespace {
 					// If we are allowed to ponder do not stop the search now but
 					// keep pondering until GUI sends "ponderhit" or "stop".
 					/*
-					stopシグナルが来ていてpomder中ならstopOnPonderhitをtrueにして探索停止する
+					stopシグナルが来ていてponder中ならstopOnPonderhitをtrueにして探索停止する
 					ponderでなければ通常の停止フラグをセット
 					*/
 					if (Limits.ponder)

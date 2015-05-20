@@ -281,6 +281,7 @@ namespace {
     {
 				/*
 				go ‚Ì‚ ‚Æ‚Ésearchmoves ‚ð‘±‚¯‚Ä“Á’è‚ÌŽw‚µŽè‚ða2a3,c2c4‚È‚Ç‚ÆŽw’è‚·‚é‚Æ‚»‚ÌŽè‚Ì‚Ý’Tõ‚·‚é
+				go ponder‚ðŽó‚¯Žæ‚é‚Æ‘ŠŽèŽvlŽžŠÔ’†‚Å‚à’Tõ‚ð‘±‚¯‚é
 				*/
 				if (token == "searchmoves")
             while (is >> token)

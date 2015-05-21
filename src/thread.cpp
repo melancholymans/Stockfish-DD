@@ -517,7 +517,7 @@ void ThreadPool::start_thinking(const Position& pos, const LimitsType& limits,co
 	*/
   SearchTime = Time::now(); // As early as possible
 	/*
-	Signals.stopOnPonderhitは不明
+	Signals.stopOnPonderhitはponder探索中にUCI側がponderhitコマンドを送ってきたらこのフラグがtrueになる
 	Signals.firstRootMoveは探索の最初の手順が行われたかのフラグ
 	*/
   Signals.stopOnPonderhit = Signals.firstRootMove = false;

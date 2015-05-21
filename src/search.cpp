@@ -102,7 +102,7 @@ namespace Search {
 	*/
 
 	/*
-	stopOnPonderhitponder 
+	stopOnPonderhitponder UCI側がponderhitコマンドを送ってきた時trueになる
 	firstRootMove	探索の最初の手順
 	failedLowAtRoot;
 	stackfishは反復深化＋Window＋alpha-beta探索をしていると思われる
@@ -510,8 +510,8 @@ finalize:
 	ponder探索中ならstopOnPonderhitをtrueに、通常探索ならstopをtrueに
 	UCIからponderhitコマンドは来ないのか->くるUCI::loopでponderhitコマンドを受け取ったら
 	Signals.stopをtrueにして探索を止める処理に入る。
-	ここはponder探索中全ての探索が終了したがUCI側が思考を終えていないの指し手を返すのを防ぐため
-	UCIがstopコマンド（UCIが思考終了のフラグ）を出すのを待っている処理
+	ここはponder探索中全ての探索が終了したがUCI側が思考を終えていないのにエンジン側が先に指し手を返すのを防ぐための処理
+	UCIがstopコマンド（UCIが思考終了のフラグ）かponderhitコマンドを出すのを待っている処理（wait_for関数で待機させる）
 	*/
   if (!Signals.stop && (Limits.ponder || Limits.infinite))
   {
@@ -798,7 +798,7 @@ namespace {
 					ss->excludedMove = MOVE_NONE;
 
 					if (v < rBeta)
-					stop = true;
+						stop = true;
 				}
 
 				if (stop)
@@ -810,9 +810,9 @@ namespace {
 					ponderでなければ通常の停止フラグをセット
 					*/
 					if (Limits.ponder)
-					Signals.stopOnPonderhit = true;
+						Signals.stopOnPonderhit = true;
 					else
-					Signals.stop = true;
+						Signals.stop = true;
 				}
 			}
 		}//反復深化終了

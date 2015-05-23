@@ -52,6 +52,29 @@ namespace Search {
 	もし予想手と違えば相手側はstopをエンジンにおくり、再度予想手ではない真の指し手（相手の手）で更新された局面を送ってきて
 	goコマンドを送ってくるのでエンジン側は通常探索をすればOK
 
+
+	ponderhitコマンドを受けとったあとの挙動
+	- すでに探索を終えている場合
+	　すでに探索をおえている場合はthink関数の終わりのほうで止まっている。そこにUCIがponderhitコマンドを送ってくると
+	  Search::Signals.stopOnPonderhitがtrueになっているのでSignals.stopフラグがtrueになりwait関数を抜けてUCIに
+	  指し手を返すことができる。この時もbestmove XX ponder XXと返すのでずーっとponder探索を繰り返すことができる。
+
+	 - 探索途中であった場合
+	 　UCI側がponderhitコマンドを送ってくるとSearch::Limits.ponder = falseとする。つまりponderhitコマンドを
+		受け取った瞬間からエンジン側に手番が移動しておりそのまま通常探索に移行するのである。
+		＜Limits.ponder=trueとfalseでは探索にどう挙動が違うのか＞
+			+ ponderがtrueになっている場合色々な探索制限の条件が成立してもSignals.stopがtrueにならず
+			Signals.stopOnPonderhitがtrueになるだけで済む。Signals.stopOnPonderhit変数は探索の挙動には
+			関係なくponderがtrueになると（相手手番の時間を利用しているので）制限がなく自由に探索しているといえる
+			だからponderhitiを受け取ったら探索に制約がついたという意味で通常の探索になる
+
+		先読み手が異なった場合はUCI側はstopコマンドを送ってくる。コマンドはUCI::loopで受け取られSearch::Signals.stop = trueとする。
+		＜Search::Signals.stop = trueとなった場合の探索の挙動＞
+		id_loop関数で随時この変数がチエックされており、trueになったら即探索ループを抜ける。RootMoves[0]にとりあえず登録してある手を返すが
+		これはponder手が正しいことを前提とした手なのでUCI側で破棄される。
+		UCI側はponder手が間違っていることを知っているのでponder手ではない手で更新された局面をpositionコマンドで送ってきたあと
+		go ponderコマンドを送ることでエンジンに再度探索を要求する。
+
 	＜将棋所HPより＞
 	これを使うときは、必ずgo ponderというように、goのすぐあとにponderを書くことになります。
 	ponderという言葉は、辞書では「熟考」と訳されていますが、思考ゲームにおいては、相手の手番中に次の手を考える「先読み」を意味します。

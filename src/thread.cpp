@@ -360,7 +360,7 @@ Thread* ThreadPool::available_slave(const Thread* master) const
 // search() then split() returns.
 /*
 search関数のstep19から呼び出される（呼び出し条件いろいろ）
-Fakeはfalseで呼び出される
+Fakeはfalseで呼び出される（Fakeはデバックのときtrueになる）
 探索分岐のスレッド用であるが完全には理解できていない
 */
 template <bool Fake>

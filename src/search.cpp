@@ -28,6 +28,8 @@ http://misakirara.s296.xrea.com/misaki/words.html
 #include <iostream>
 #include <sstream>
 
+#include <stdio.h>
+
 #include "book.h"
 #include "evaluate.h"
 #include "movegen.h"
@@ -125,15 +127,16 @@ namespace Search {
 	*/
 
 	/*
+	SignalsTypeは構造体
+		bool stopOnPonderhit
+		bool firstRootMove
+		bool stop
+		bool failedLowAtRoot;
+
 	stopOnPonderhitponder UCI側がponderhitコマンドを送ってきた時trueになる
 	firstRootMove	探索の最初の手順
-	failedLowAtRoot;
-	stackfishは反復深化＋Window＋alpha-beta探索をしていると思われる
-	failedLowAtRootはWinodw探索のLow失敗になるとtrueになる
-	初期設定はstart_thinking関数内でfalseに設定
-	*/
-	/*
 	Signals.stopは探索を止めるフラグ
+	failedLowAtRootはWinodw探索のLow失敗になるとtrueになる.初期設定はstart_thinking関数内でfalseに設定
 	*/
 	volatile SignalsType Signals;
 	/*
@@ -162,7 +165,7 @@ namespace Search {
 	そのSetupStatesからコピーを受け取る
 	*/
 	StateStackPtr SetupStates;
-}
+}	//namespace Search終了
 
 using std::string;
 using Eval::evaluate;
@@ -172,7 +175,7 @@ namespace {
 
   // Set to true to force running with one thread. Used for debugging
 	/*
-	通常はfalseとし探索分岐（複数スレッドでの探索）を許可している、trueはデバック用途
+	通常はfalseとしマルチスレッドで探索、trueはデバック用途で１スレッドで探索
 	*/
   const bool FakeSplit = false;
 
@@ -190,6 +193,7 @@ namespace {
 
   // Dynamic razoring margin based on depth
 	/*
+	https://chessprogramming.wikispaces.com/Razoring
 	Razoring枝刈りの時のマージンを計算する、深度が深くなるとマージンは小さくなる
 	sockfishのsearch関数内ではdepthは減っていく
 	*/
@@ -214,7 +218,7 @@ namespace {
 	*/
 	int8_t Reductions[2][2][64][64]; // [pv][improving][depth][moveNumber]
 	/*
-	用途不明
+	Search関数の枝刈り部から呼ばれる
 	*/
 	template <bool PvNode> inline Depth reduction(bool i, Depth d, int mn) {
 
@@ -326,7 +330,8 @@ void Search::init()
   int mc; // moveCount
 
   // Init reductions array
-  for (hd = 1; hd < 64; ++hd) for (mc = 1; mc < 64; ++mc)
+
+	for (hd = 1; hd < 64; ++hd) for (mc = 1; mc < 64; ++mc)
   {
       double    pvRed = log(double(hd)) * log(double(mc)) / 3.0;
       double nonPVRed = 0.33 + log(double(hd)) * log(double(mc)) / 2.25;
@@ -342,7 +347,23 @@ void Search::init()
       else if (Reductions[0][0][hd][mc] > 1 * ONE_PLY)
           Reductions[0][0][hd][mc] += ONE_PLY / 2;
   }
-
+	/*
+	Reductions配列の中身をファイルに書き出してExcellでグラフ化
+	FILE *fp;
+	fopen_s(&fp, "Reductions.csv", "w");
+	for (int pv = 0; pv < 2; pv++){
+		for (int imp = 0; imp < 2; imp++){
+			for (int depth = 0; depth < 64; depth++){
+				for (int mc = 0; mc < 64; mc++){
+					fprintf(fp, "%d", Reductions[pv][imp][depth][mc]);
+					if (mc != 63) fprintf(fp, ",");
+				}
+				fprintf(fp, "\n");
+			}
+		}
+	}
+	fclose(fp);
+	*/
   // Init futility move count array
 	/*
 	Excellで計算させてみた結果
@@ -1325,9 +1346,8 @@ moves_loop: // When in check and at SpNode search starts from here
 		MovePicker mp(pos, ttMove, depth, History, countermoves, ss);
     CheckInfo ci(pos);
     value = bestValue; // Workaround a bogus 'uninitialized' warning under gcc
-		/*局面が2手前より優位になっているか判断（静止評価値で判断）して良くなっているならtrue
-		FutilityMoveCounts[improving][32]配列に使っていてtrteならFutilityMoveCounts[1][32]
-		falseならFutilityMoveCounts[0][32]の数字を使う。[0]の方が数字が小さめ
+		/*
+		局面が2手前より優位になっているか判断（静止評価値で判断）して良くなっているならtrue
 		*/
     improving =   ss->staticEval >= (ss-2)->staticEval
                || ss->staticEval == VALUE_NONE
@@ -1485,15 +1505,16 @@ moves_loop: // When in check and at SpNode search starts from here
           && !captureOrPromotion
           && !inCheck
           && !dangerous
-       /* &&  move != ttMove Already implicit in the next condition */
           &&  bestValue > VALUE_MATED_IN_MAX_PLY)
       {
           // Move count based pruning
 					/*
 					残り深さが16より小さくて、手数がFutilityMoveCounts[improving][depth]より多い
+					FutilityMoveCounts[improving][depth]配列はdepthが深くなっていくと累乗関数のように増えていくつまりdepthが増えていけば
+					枝刈りの閾値も上がるということ
 					脅威手がない（手番側の良い評価一気にひっくり返すような手が存在するとき登録される 脅威手はmoveが指された後に指される手）
 
-					つまり結構、手数も深度も深く読んだ出のパスという枝刈り？
+					つまり、手数も深度も深く読んだが大した手ではなさそうなので枝刈りする
 					*/
 					if (depth < 16 * ONE_PLY
               && moveCount >= FutilityMoveCounts[improving][depth]
@@ -1501,17 +1522,29 @@ moves_loop: // When in check and at SpNode search starts from here
           {
               if (SpNode)
                   splitPoint->mutex.lock();
-
+							/*
+							この手をパスして次の兄弟に行く
+							*/
               continue;
           }
 					/*
-					用途不明
+					reductionはmoveCount(1～63までの数を取る）が大きくなるほど大きな数を返す(0～18程度）
+					またdepth（１～６３までの数をとる）が大きいほど大きな数を返す
+					つまりたくさん読めば残り深さを減らしてくれる、depthが大きいとき（まだ浅い読みの時）ときも
+					たくさん減らしてくれる。
+					Move count based pruningは横方向の枝刈り、このreductionは縦方向の枝刈りをしてくれる
 					*/
 					predictedDepth = newDepth - reduction<PvNode>(improving, depth, moveCount);
 
           // Futility pruning: parent node
 					/*
-					用途不明
+					https://chessprogramming.wikispaces.com/Futility+Pruning
+					 Futility枝刈りとはおおざっぱな評価値にマージンを持たせそのマージンがalpha-betaの範囲に入っていなかったら
+					 枝刈りする手法
+					 おおざっぱな評価値＝ss->staticEvalこの局面の駒評価値だけの評価値
+					 futility_margin関数＝マージン
+					 そうして得られたfutilityValueがalpha値を下回るならこの手はパスして次の兄弟にいく
+					 次はfutility_margin関数のことをしらべる
 					*/
 					if (predictedDepth < 7 * ONE_PLY)
           {
@@ -1582,6 +1615,10 @@ moves_loop: // When in check and at SpNode search starts from here
           &&  move != ss->killers[0]
           &&  move != ss->killers[1])
       {
+					/*
+					improving,depth,moveCountパラメータを指定してReductions配列の値を取ってくる
+
+					*/
           ss->reduction = reduction<PvNode>(improving, depth, moveCount);
 
           if (!PvNode && cutNode)

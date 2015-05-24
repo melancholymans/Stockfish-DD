@@ -1084,7 +1084,7 @@ namespace {
 		一つ前の手をmoveに代入しておきさらにそれがMOVE_NULLでないこと（null_moveでない）
 		直前の手が捕獲でもなく只の移動であったとき
 
-		Gainsのアップデートを行う、Gainsってなに
+		Gainsのアップデートを行う、特定の駒種がto座標に移動することによって生じた評価値が以前の評価値より高ければその評価値にupdateする
 		*/
     if (   !pos.captured_piece_type()
         &&  ss->staticEval != VALUE_NONE
@@ -1542,9 +1542,13 @@ moves_loop: // When in check and at SpNode search starts from here
 					 Futility枝刈りとはおおざっぱな評価値にマージンを持たせそのマージンがalpha-betaの範囲に入っていなかったら
 					 枝刈りする手法
 					 おおざっぱな評価値＝ss->staticEvalこの局面の駒評価値だけの評価値
-					 futility_margin関数＝マージン
+					 futility_margin関数＝マージン futility_margin関数=渡されたdepthに100をかけているだけ
 					 そうして得られたfutilityValueがalpha値を下回るならこの手はパスして次の兄弟にいく
-					 次はfutility_margin関数のことをしらべる
+					 Gainsクラスは配列ではないように見えるが内部にtable[][]配列を保持しており[]演算子オーバーロードで
+					 そのtable配列の値を返す
+					 Gainsは駒種ごとの、移動した座標ごとの直前評価値との差分評価値です
+					 Futility枝刈りのマージンに追加している,Gainsの利用は、ここだけ
+					 マージンを大きくすれば枝刈りしやすく、小さくすれば枝刈りしにくい
 					*/
 					if (predictedDepth < 7 * ONE_PLY)
           {
@@ -1567,7 +1571,8 @@ moves_loop: // When in check and at SpNode search starts from here
 
           // Prune moves with negative SEE at low depths
 					/*
-					用途不明
+					残り深さが４と末端局面で、静止探索した結果取り合い負けしているならこの手は
+					あきらめて次の兄弟にいく枝刈り
 					*/
 					if (predictedDepth < 4 * ONE_PLY && pos.see_sign(move) < 0)
           {
@@ -1578,8 +1583,12 @@ moves_loop: // When in check and at SpNode search starts from here
           }
 
       }
+			/*
+			ここまで枝刈り
+			*/
 
       // Check for legality only before to do the move
+
 			/*
 			合法手であるかのチエック、合法手でなければこのノードはパス
 			何故ここでチエックなのかもっと早くできないのかな

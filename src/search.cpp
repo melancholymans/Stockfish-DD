@@ -1598,9 +1598,22 @@ moves_loop: // When in check and at SpNode search starts from here
           moveCount--;
           continue;
       }
-
+			/*
+			PvNodeノードでかつ第１手目ならpvMoveをtrueにしておく
+			第１手目なので必ず通ってほしいルートに設定してある
+			*/
       pvMove = PvNode && moveCount == 1;
+			/*
+			ssは1手先の局面から前の手の参照によくつかわれる
+			*/
       ss->currentMove = move;
+			/*
+			captureOrPromotion　=　捕獲もしくは成るではない　
+			quietCountはsearch関数の冒頭で0セットされていてこの部分だげでインクリメントされている
+			つまり捕獲しない、成らない＝穏やかな手を６４手までquietsSearched配列に登録しておける
+			quietsSearched配列はsearch関数の局所変数、値を更新しているのはここだけ
+			後でHistory配列（移動履歴評価）の得点を下げるのに使用される
+			*/
       if (!SpNode && !captureOrPromotion && quietCount < 64)
           quietsSearched[quietCount++] = move;
 
@@ -1613,9 +1626,9 @@ moves_loop: // When in check and at SpNode search starts from here
       // Step 15. Reduced depth search (LMR). If the move fails high will be
       // re-searched at full depth.
 			/*
-			枝切りなのか探索延長なのかすら不明、縮小？
 			https://chessprogramming.wikispaces.com/Late+Move+Reductions
 			最終的にはdoFullDepthSearchを設定するところがこの部分の結論？
+			LRMは探索深さを////////////////////////////////////////////////////////////////////////////////////////////
 			*/
 			if (depth >= 3 * ONE_PLY
           && !pvMove
@@ -1842,6 +1855,11 @@ moves_loop: // When in check and at SpNode search starts from here
 
         // Increase history value of the cut-off move and decrease all the other
         // played non-capture moves.
+				/*
+				bestmove（一番良い手）はHistory配列（移動履歴評価？）の評価を高め
+				そうではない穏やかな手（捕獲しない、成らない平凡な手）はquietsSearched配列に
+				登録してあるのでその移動履歴評価を下げておく
+				*/
         Value bonus = Value(int(depth) * int(depth));
         History.update(pos.moved_piece(bestMove), to_sq(bestMove), bonus);
         for (int i = 0; i < quietCount - 1; ++i)

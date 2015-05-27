@@ -1628,7 +1628,13 @@ moves_loop: // When in check and at SpNode search starts from here
 			/*
 			https://chessprogramming.wikispaces.com/Late+Move+Reductions
 			最終的にはdoFullDepthSearchを設定するところがこの部分の結論？
-			LRMは探索深さを////////////////////////////////////////////////////////////////////////////////////////////
+			LRMは探索深さを短縮することで枝刈りを行う。
+			LRMは全てのノードで実施するのではなく
+			- 残り深さが３以上　
+			- pvMoveノードないこと
+			- この局面での指し手が置換表から得た手ではないこと
+			- キラー手ではないこと
+			つまりそれほど重要そうな手ではないこと
 			*/
 			if (depth >= 3 * ONE_PLY
           && !pvMove
@@ -1639,10 +1645,15 @@ moves_loop: // When in check and at SpNode search starts from here
       {
 					/*
 					improving,depth,moveCountパラメータを指定してReductions配列の値を取ってくる
-
+					Reductions配列の形はReductions.xlsxにグラフ化してある
+					depth,moveCountが増えると段階的にss->reductionに返す数値が大きくなる
+					つまり浅い探索段階ではそれほどからない、moveCountが少ない場合もそんなにたくさん刈らない
 					*/
           ss->reduction = reduction<PvNode>(improving, depth, moveCount);
-
+					/*
+					- PvNodeノードの時ではない
+					- cutNode=id_loop関数から初期値falseで渡される
+					*/
           if (!PvNode && cutNode)
               ss->reduction += ONE_PLY;
 

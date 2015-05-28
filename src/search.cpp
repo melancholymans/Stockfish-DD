@@ -1200,7 +1200,8 @@ namespace {
 				/*
 				ヌルムーブの深度が現在の残りの深度より深いならqsearch関数（末端探索）そうでなければsearch関数（一般探索）で
 				探索する
-				現在手番(null move)->相手手番(通常move)->現在手番(null move)>>>
+				現在手番(null move)->相手手番(通常move)->現在手番(null move)
+
 				*/
 				nullValue = depth - R < ONE_PLY ? -qsearch<NonPV, false>(pos, ss + 1, -beta, -alpha, DEPTH_ZERO)
                                       : - search<NonPV>(pos, ss+1, -beta, -alpha, depth-R, !cutNode);
@@ -1627,14 +1628,15 @@ moves_loop: // When in check and at SpNode search starts from here
       // re-searched at full depth.
 			/*
 			https://chessprogramming.wikispaces.com/Late+Move+Reductions
-			最終的にはdoFullDepthSearchを設定するところがこの部分の結論？
 			LRMは探索深さを短縮することで枝刈りを行う。
 			LRMは全てのノードで実施するのではなく
-			- 残り深さが３以上　
-			- pvMoveノードないこと
-			- この局面での指し手が置換表から得た手ではないこと
-			- キラー手ではないこと
+				- 残り深さが３以上　
+				- pvMoveノードないこと
+				- この局面での指し手が置換表から得た手ではないこと
+				- キラー手ではないこと
 			つまりそれほど重要そうな手ではないこと
+			このLRM枝刈りでないときはdoFullDepthSearch（フルDepthをする）=trueとなる。但しPvNodeで第一手めのときは
+			falseになる。
 			*/
 			if (depth >= 3 * ONE_PLY
           && !pvMove
@@ -1651,8 +1653,12 @@ moves_loop: // When in check and at SpNode search starts from here
 					*/
           ss->reduction = reduction<PvNode>(improving, depth, moveCount);
 					/*
-					- PvNodeノードの時ではない
-					- cutNode=id_loop関数から初期値falseで渡される
+						- PvNodeノードの時ではない
+						- cutNode=id_loop関数から初期値falseで渡される
+
+						cutNode変数を使用しているのはsearch関数の中で１か所だけで
+						LRM枝切りのところでPvNodeでないこととcutNodeがtrueであれば探索深さをONE_PLY追加で削減できる。
+						つまりcutNodeとはLRMをより強化するためのフラグ
 					*/
           if (!PvNode && cutNode)
               ss->reduction += ONE_PLY;
@@ -1678,10 +1684,9 @@ moves_loop: // When in check and at SpNode search starts from here
       // Step 16. Full depth search, when LMR is skipped or fails high
 			/*
 			ここが下の階層に降りて行くところ
-			qsearch関数かsearch関数かを選択しているが条件複雑で詳細不明
-			SpNode（探索分岐）、doFullDepthSearchはなに
+			qsearch関数かsearch関数かを選択している
+			SpNode＝探索分岐、doFullDepthSearch＝探索深さの削減をせず通常の深さ探索をする時のフラグ
 			doFullDepthSearchはseach関数の自動変数でbool型でstep15で設定されている
-			詳細不明
 			*/
 			if (doFullDepthSearch)
       {

@@ -1737,7 +1737,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
       // Step 18. Check for new best move
 			/*
-			探索分岐しているThreadなら
+			探索分岐しているThreadならここで共有データからbestValueとalpha値をもらっておく
 			まだ詳細不明
 			*/
 			if (SpNode)
@@ -1754,16 +1754,20 @@ moves_loop: // When in check and at SpNode search starts from here
 			/*
 			探索中止なら評価値を持って返ります　もしくはcutoff_occurred関数が返す値がtrueなら返ります
 			cutoff_occurred関数の機能は不明
+			探索の中止はUCIインターフェイスからの探索中止コマンドかcheck_time関数で時間制限に引っ掛かったらなる
 			*/
 			if (/*Signals.stop || 一時的にコメントアウト*/thisThread->cutoff_occurred())
           return value; // To avoid returning VALUE_INFINITE
-
+			/*
+			ノードがRootNodeであったら現在の指し手がroot局面の着手リストにあればそれをrmに保存する
+			*/
       if (RootNode)
       {
           RootMove& rm = *std::find(RootMoves.begin(), RootMoves.end(), move);
 
           // PV move or new best move ?
-          if (pvMove || value > alpha)
+					//pvMoveまたはalpha値を更新したら
+					if (pvMove || value > alpha)
           {
               rm.score = value;
               rm.extract_pv_from_tt(pos);
@@ -1783,21 +1787,40 @@ moves_loop: // When in check and at SpNode search starts from here
               // All other moves but the PV are set to the lowest value, this
               // is not a problem when sorting becuase sort is stable and move
               // position in the list is preserved, just the PV is pushed up.
+							/*
+							pvMoveでなくalpha値でもない手は最低の評価値を与えておく
+							*/
               rm.score = -VALUE_INFINITE;
       }
 
       if (value > bestValue)
       {
+					/*
+					SpNodeならbestValueを超えた評価値は共有データのbestValueを更新しておく
+					bestValueとalpha,beta,valueの関係は
+					*/
           bestValue = SpNode ? splitPoint->bestValue = value : value;
 
           if (value > alpha)
           {
+							/*
+							valueがalpha値を更新したらこの指し手を共有データに登録すると同時にnestMoveにも登録
+							*/
               bestMove = SpNode ? splitPoint->bestMove = move : move;
-
+							/*
+							- PvMoveである
+							- beta値を超えない
+							- alpha-beta窓のなかでalpha値を更新したらこの指し手の評価値をalpha値にする
+							  同時に共有データのalhpa値も更新する
+							*/
               if (PvNode && value < beta) // Update alpha! Always alpha < beta
                   alpha = SpNode ? splitPoint->alpha = value : value;
               else
               {
+									/*
+									そうではない、alpha-beta窓を超えた場合はbeta cutを起こさせる
+									whileループを出て後始末をしてこのノードをでて親の局面に帰っていく
+									*/
                   assert(value >= beta); // Fail high
 
                   if (SpNode)

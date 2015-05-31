@@ -1383,6 +1383,7 @@ moves_loop: // When in check and at SpNode search starts from here
 
 			/*
 			用途不明
+			excludedMoveのexcludedは遮断する、拒否するという意味
 			*/
 			if (move == excludedMove)
           continue;
@@ -1864,7 +1865,7 @@ moves_loop: // When in check and at SpNode search starts from here
     // If we are in a singular extension search then return a fail low score.
     // A split node has at least one move, the one tried before to be splitted.
 		/*
-		用途不明
+		moveCountが0ということは合法手がなかった＝チエックメイト　か　ステイルメイト
 		*/
 		if (!moveCount)
         return  excludedMove ? alpha

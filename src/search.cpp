@@ -503,9 +503,8 @@ void Search::think()
   }
 	// Reset the threads, still sleeping: will be wake up at split time
 	/*
-	用途不明
 	threadはメインスレッドと探索スレッド(start_routineスレッド)とtimerスレッドがある模様
-	あと探索中に複数のスレッドで探索木を探索する手法が実装されていると思うが詳細不明
+	あと探索中に複数のスレッドで探索木を探索する手法が実装されている
 	*/
 	for (Thread* th : Threads)
       th->maxPly = 0;
@@ -1804,7 +1803,7 @@ moves_loop: // When in check and at SpNode search starts from here
           if (value > alpha)
           {
 							/*
-							valueがalpha値を更新したらこの指し手を共有データに登録すると同時にnestMoveにも登録
+							valueがalpha値を更新したらこの指し手を共有データに登録すると同時にbestMoveにも登録
 							*/
               bestMove = SpNode ? splitPoint->bestMove = move : move;
 							/*
@@ -1851,7 +1850,8 @@ moves_loop: // When in check and at SpNode search starts from here
       }
     }//ここがメイン探索の終了
 		/*
-		SpNodeの時の返り方？
+		1つの親の全部の子供の探索が（探索分岐も含めて）終了したらここにくる
+		SpNodeのスレッドならここに到達したらbestValueを返してThread::idle_loop関数に返る
 		*/
 		if (SpNode)
         return bestValue;
@@ -2604,16 +2604,31 @@ void Thread::idle_loop()
           default:
               assert(false);
           }
-
+					/*
+					探索分岐したスレッドはここに帰ってくる。serach関数が返す評価値を全然利用していないのは
+					探索中に得た評価値はすべて共有データーに更新したからと思われる
+					*/
           assert(searching);
 
           searching = false;
           activePosition = nullptr;
+					/*
+					自分のスレッドIDを消している
+					*/
           sp->slavesMask &= ~(1ULL << idx);
+					/*
+					探索分岐が探索したノード数を合算している
+					*/
           sp->nodes += pos.nodes_searched();
 
           // Wake up master thread so to allow it to return from the idle loop
           // in case we are the last slave of the split point.
+					/*
+					MainThreadを起こしておく
+					- Threads.sleepWhileIdleはThink関数で探索前にfalseとしてしまうのでここが実行されることはない
+					- このスレッドがMainThreadではない（探索分岐スレッド）
+					- このスレッドが最後のスレッドなら
+					*/
           if (Threads.sleepWhileIdle &&  this != sp->masterThread && !sp->slavesMask)
           {
               assert(!sp->masterThread->searching);
@@ -2629,6 +2644,10 @@ void Thread::idle_loop()
 
       // If this thread is the master of a split point and all slaves have finished
       // their work at this split point, return from the idle loop.
+			/*
+			while永久ループの出口の一つ
+			全てのスレッドがなくなったらこのidle_loop関数から脱出できる
+			*/
       if (this_sp && !this_sp->slavesMask)
       {
           this_sp->mutex.lock();

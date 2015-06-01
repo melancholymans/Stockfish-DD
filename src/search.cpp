@@ -943,7 +943,7 @@ namespace {
 		ssは最初の２つはカットしてindex２からsearch関数に渡される
 		ここでstruct Stackの残りの初期化（探索分岐に関係のない部分）
 		ss->currentMoveは現在着目されている指し手を示す指し手であるが最初はMOVE_NONE
-		(ss+1)->excludedMoveこの指し手は何を示しているのかは現地時点で不明
+		(ss+1)->excludedMoveこの指し手は他の兄弟手より異常に点数が高く地平線効果が疑われるような危険な手
 		ss->plyは一つ前の深度に+１する。
 		(ss+1)->skipNullMove = falseはnull_moveの時２手連続でnull_moveにならないようにするフラグ、なので１つ次の深度になっている
 		(ss+1)->reduction = DEPTH_ZERO;は不明、reduction（削減）
@@ -1358,7 +1358,7 @@ moves_loop: // When in check and at SpNode search starts from here
 		探索延長が有効になる条件はRootNodeではないこと　＆＆　
 		SpNodeではないこと（SpNodeは探索分岐のこと？）　＆＆
 		depthが8*ONE_PLYより大きいこと（つまりRootNodeに近く、末端近くではないこと　＆＆
-		!excludedMoveってなに　＆＆
+		!excludedMoveは他の兄弟手に比べ異常に評価値が高く地平線効果が疑われるような危険な手でないこと　＆＆
 		トランスポジションテーブルの評価値が下限値　＆＆
 		トランスポジションテーブルの指し手の深度が現在の深度より3*ONE_PLAY引いたものよりおおきいこと
 
@@ -1384,6 +1384,7 @@ moves_loop: // When in check and at SpNode search starts from here
 			/*
 			用途不明
 			excludedMoveのexcludedは遮断する、拒否するという意味
+			excludedMoveは他の兄弟手より評価値が高く地平線効果が疑われる手なのでそのような手はパスして次の兄弟手へ
 			*/
 			if (move == excludedMove)
           continue;
@@ -1465,8 +1466,6 @@ moves_loop: // When in check and at SpNode search starts from here
 			ここのif文で別探索を現深度の半分で行っている
 			この部分での評価値によってext変数（深度延長変数）
 			にONE_PLY延長をかけている部分ではないか
-
-			詳細不明
 			*/
 			if (singularExtensionNode
           &&  move == ttMove
@@ -1477,6 +1476,9 @@ moves_loop: // When in check and at SpNode search starts from here
           assert(ttValue != VALUE_NONE);
 
           Value rBeta = ttValue - int(depth);
+					/*
+					地平線効果が疑われる手はexcludedMoveとして登録しておき、この手が見つかった時はパスできる。
+					*/
           ss->excludedMove = move;
           ss->skipNullMove = true;
           value = search<NonPV>(pos, ss, rBeta - 1, rBeta, depth / 2, cutNode);
@@ -1866,6 +1868,8 @@ moves_loop: // When in check and at SpNode search starts from here
     // A split node has at least one move, the one tried before to be splitted.
 		/*
 		moveCountが0ということは合法手がなかった＝チエックメイト　か　ステイルメイト
+		excludedMove手は地平線効果が疑われる手であるが他に手がないならその手を返す（excludedMove手は他の兄弟手より評価が高いので評価値はalpha値かな）
+		そんな手もなく王手がかかっていたら詰みの評価値を返す、王手も掛っていない＋合法手がない＝ステルメイトなので引き分け
 		*/
 		if (!moveCount)
         return  excludedMove ? alpha
@@ -1896,7 +1900,7 @@ moves_loop: // When in check and at SpNode search starts from here
         // Increase history value of the cut-off move and decrease all the other
         // played non-capture moves.
 				/*
-				bestmove（一番良い手）はHistory配列（移動履歴評価？）の評価を高め
+				bestmove（一番良い手）はHistory配列（移動履歴評価）の評価を高め
 				そうではない穏やかな手（捕獲しない、成らない平凡な手）はquietsSearched配列に
 				登録してあるのでその移動履歴評価を下げておく
 				*/

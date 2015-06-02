@@ -1959,7 +1959,9 @@ moves_loop: // When in check and at SpNode search starts from here
 		*/
 		if (PvNode)
         oldAlpha = alpha;
-
+		/*
+		bestMove,ss->currentMove‚ğ‰Šú‰»
+		*/
     ss->currentMove = bestMove = MOVE_NONE;
     ss->ply = (ss-1)->ply + 1;
 

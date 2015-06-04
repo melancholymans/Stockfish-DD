@@ -77,8 +77,8 @@ struct Stats {
 	/*このクラスで保持しているtableを0クリアにする*/
   void clear() { std::memset(table, 0, sizeof(table)); }
 	/*
-	templateがCountermovesが使用する
-	upadte関数、search関数から呼ばれる
+	templateがCountermovesの時に使用するupadte関数
+	search関数から呼ばれる
 	Piece pは直前に動いた敵駒の駒種
 	Square to　その敵駒の移動先座標
 	Move m　全ての探索をした結果一番良かった手

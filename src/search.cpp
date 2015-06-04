@@ -213,8 +213,7 @@ namespace {
 
   // Reduction lookup tables (initialized at startup) and their access function
 	/*
-	Reduction（縮小？）
-	用途不明
+	Reduction＝探索深さを縮小する枝刈り
 	*/
 	int8_t Reductions[2][2][64][64]; // [pv][improving][depth][moveNumber]
 	/*
@@ -230,7 +229,7 @@ namespace {
 	*/
 	size_t PVSize, PVIdx;
 	/*
-	時間制御？
+	時間制御
 	*/
 	TimeManager TimeMgr;
 	/*
@@ -239,13 +238,13 @@ namespace {
 	*/
 	double BestMoveChanges;
 	/*
-	用途不明
+	引き分け判定した場合の評価値
 	*/
 	Value DrawValue[COLOR_NB];
 	/*
-	Historyはクラスでプライベート変数にValue table[pieceType][SQ]を持っている
+	Historyはクラス内のプライベート変数にValue table[pieceType][SQ]を持っている
 	最初はid_loop関数内で0クリアしupdate関数で更新する
-	駒が移動した先の座標に得点が与えられ一種の位置評価で多くの駒が移動するほど高得点
+	駒が移動した先の座標に得点が与えられる一種の位置評価で多くの駒が移動するほど高得点
 	駒の移動履歴のようなもの
 	*/
 	HistoryStats History;
@@ -254,7 +253,8 @@ namespace {
 	*/
 	GainsStats Gains;
 	/*
-	用途不明
+	カウンター手（敵の指し手を駒種と移動先座標で特定しその時の自陣側の指し手）
+	を覚えておくためのクラス、first,secondと２手覚えられる
 	*/
 	CountermovesStats Countermoves;
 	/*
@@ -276,13 +276,16 @@ namespace {
 	*/
 	void id_loop(Position& pos);
 	/*
-	用途不明
+	トランスポジションテーブルに評価値を登録するときの整形関数かな
 	*/
 	Value value_to_tt(Value v, int ply);
 	/*
-	用途不明
+	トランスポジションテーブルから評価値を取り出す時の整形関数
+	value_to_tt関数の反対のことをしている
 	*/
 	Value value_from_tt(Value v, int ply);
+	/*
+	*/
   bool allows(const Position& pos, Move first, Move second);
   bool refutes(const Position& pos, Move first, Move second);
 	/*
@@ -1336,6 +1339,8 @@ namespace {
 moves_loop: // When in check and at SpNode search starts from here
 		/*
 		countermovesはここで初期化されている
+		Countermoves[piece][sq].firstは直前の敵指し手の駒種と座標に対してそれに対する自陣側のベスト指し手
+		Countermoves[piece][sq].firstは直前の敵指し手の駒種と座標に対してそれに対する自陣側のベスト指し手の次によい手が入っている
 		*/
 		Square prevMoveSq = to_sq((ss - 1)->currentMove);
     Move countermoves[] = { Countermoves[pos.piece_on(prevMoveSq)][prevMoveSq].first,
@@ -1667,7 +1672,10 @@ moves_loop: // When in check and at SpNode search starts from here
 
           else if (History[pos.piece_on(to_sq(move))][to_sq(move)] < 0)
               ss->reduction += ONE_PLY / 2;
-
+					/*
+					現在の指し手がカウンター手のfirst手（一番良い応手）またはsecond手（２番目に良い応手）だったら
+					探索深さを１手（ONE_PLY）減らしておく
+					*/
           if (move == countermoves[0] || move == countermoves[1])
               ss->reduction = std::max(DEPTH_ZERO, ss->reduction - ONE_PLY);
 
@@ -2168,7 +2176,10 @@ moves_loop: // When in check and at SpNode search starts from here
   // "plies to mate from the current position". Non-mate scores are unchanged.
   // The function is called before storing a value to the transposition table.
 	/*
-	用途不明
+	トランスポジションテーブルに評価値を登録するときの整形関数かな
+	- v >= VALUE_MATE_IN_MAX_PLY(29900) -> v + ply
+	- v <= VALUE_MATED_IN_MAX_PLY(-29900) -> v -ply
+	- いずれでもなかったらそのまま
 	*/
 	Value value_to_tt(Value v, int ply) 
 	{
@@ -2204,7 +2215,12 @@ moves_loop: // When in check and at SpNode search starts from here
   // 'second' move possible, for instance if the moving piece is the same in
   // both moves. Normally the second move is the threat (the best move returned
   // from a null search that fails low).
-
+	/*
+	search関数のstep8NUllMoveからのみ呼ばれている
+	firstは現局面より１つ前の敵の指し手、secondには現局面よりひとつ次の手
+	null Move探索により脅威の手が発見された場合、このallows関数で判定して
+	trueとなれば現局面を枝刈りする
+	*/
   bool allows(const Position& pos, Move first, Move second) 
 	{
 
@@ -2221,6 +2237,9 @@ moves_loop: // When in check and at SpNode search starts from here
     // The piece is the same or second's destination was vacated by the first move
     // We exclude the trivial case where a sliding piece does in two moves what
     // it could do in one move: eg. Ra1a2, Ra2a3.
+		/*
+
+		*/
     if (    m2to == m1from
         || (m1to == m2from && !aligned(m1from, m2from, m2to)))
         return true;

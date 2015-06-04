@@ -2217,9 +2217,10 @@ moves_loop: // When in check and at SpNode search starts from here
   // from a null search that fails low).
 	/*
 	search関数のstep8NUllMoveからのみ呼ばれている
-	firstは現局面より１つ前の敵の指し手、secondには現局面よりひとつ次の手
+	firstは現局面より１つ前の敵の指し手、secondには現局面よりひとつ次の敵の手
 	null Move探索により脅威の手が発見された場合、このallows関数で判定して
-	trueとなれば現局面を枝刈りする
+	その手（敵の手）が自陣にとって本当に脅威となる手であるか判断してそうであればtrueと
+	返し敵の脅威となる現局面は枝刈りする。
 	*/
   bool allows(const Position& pos, Move first, Move second) 
 	{
@@ -2238,28 +2239,44 @@ moves_loop: // When in check and at SpNode search starts from here
     // We exclude the trivial case where a sliding piece does in two moves what
     // it could do in one move: eg. Ra1a2, Ra2a3.
 		/*
-
+		次のような手は脅威手と判断して枝刈り対象とする（自陣側が現局面で、現指し手を指すことによって敵が脅威となる手を指すことが予想されるのでこの手は枝刈りする）
+		- 次の手が最初の手の座標に移動する
+		- 最初の手の移動先座標が、次の手の移動元座標　かつ　最初の手の移動元座標と次の手の移動元座標の利き上（bishopまたはRook）に次の手の移動先がないこと
+		  仮に駒がBishopだったとすると、２手続けて同一の駒を操作していることで脅威となる手を生成している（次の手の移動先が手戻りするような手ではないこと）
 		*/
     if (    m2to == m1from
         || (m1to == m2from && !aligned(m1from, m2from, m2to)))
         return true;
 
     // Second one moves through the square vacated by first one
+		/*
+		次の手の移動上に最初の手がいた（最初の駒がどいたので次の手が移動可能となって脅威の手となった）
+		*/
     if (between_bb(m2from, m2to) & m1from)
       return true;
 
     // Second's destination is defended by the first move's piece
+		/*
+		最初の手が次の手の移動先に利きを利かしている（次の手を保護し自陣側に取られないようにしている）
+		ような手は有効で脅威となる手と判定
+		*/
     Bitboard m1att = pos.attacks_from(pos.piece_on(m1to), m1to, pos.pieces() ^ m2from);
     if (m1att & m2to)
         return true;
 
     // Second move gives a discovered check through the first's checking piece
+		/*
+		最初の手が移動し、次の手がどくことによって自陣側のKingにcheckMateを掛けている（開き王手）
+		ような手は脅威の手
+		*/
     if (m1att & pos.king_square(pos.side_to_move()))
     {
         assert(between_bb(m1to, pos.king_square(pos.side_to_move())) & m2from);
         return true;
     }
-
+		/*
+		それ以外の手は脅威の手ではなかった
+		*/
     return false;
   }
 

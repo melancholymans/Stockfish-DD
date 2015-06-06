@@ -285,8 +285,14 @@ namespace {
 	*/
 	Value value_from_tt(Value v, int ply);
 	/*
+	手番側（現局面）の前後の敵の手をチエックし２手１組の脅威手か判定する
+	脅威手であればtrueを返し現局面の探索を中断し（自分が不利にあるとわかった手は指さない）
 	*/
   bool allows(const Position& pos, Move first, Move second);
+	/*
+	firstで示される指し手でsecondで示される手を防御できるか判定する
+	search関数から呼ばれる
+	*/
   bool refutes(const Position& pos, Move first, Move second);
 	/*
 	用途不明

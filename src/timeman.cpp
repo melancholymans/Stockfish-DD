@@ -103,13 +103,12 @@ namespace {
 }
 
 /*
-ｐｖ（最善応手手順）の不安定？
-用途不明
 id_loop関数から呼び出されている
+最善手が何回も変更されると（bestMoveChanges＝変更した回数）局面が不安定と判断され
+探索制限時間に延長が認められる
 */
 void TimeManager::pv_instability(double bestMoveChanges) 
 {
-
   unstablePVExtraTime = int(bestMoveChanges * optimumSearchTime / 1.4);
 }
 
@@ -155,10 +154,22 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 
   // Initialize to maximum values but unstablePVExtraTime that is reset
   unstablePVExtraTime = 0;
+	/*
+	limits.timeはgoコマンドのあとのオプションで決定される
+	go wtime x go btime xで時間を指定（単位はmsec)
+	*/
   optimumSearchTime = maximumSearchTime = limits.time[us];
 
   // We calculate optimum time usage for different hypothetic "moves to go"-values and choose the
   // minimum of calculated search time values. Usually the greatest hypMTG gives the minimum values.
+	/*
+	limits.movestogoはgoコマンドのオプションで "go movestogo x"のように与えられる,MoveHorizon=50で設定されているので
+	go movestogoで50を超える設定はできない、その値を上限としてhypMTGをループする
+	この関数は時間制御（１手読むに掛けて良い時間を制御）の初期化を行っている
+	この関数の目的はoptimumSearchTimeとmaximumSearchTimeを各設定に応じて計算することである
+	optimumSearchTimeは最適な探索時間？
+	maximumSearchTimeは最大な探索時間
+	*/
   for (hypMTG = 1; hypMTG <= (limits.movestogo ? std::min(limits.movestogo, MoveHorizon) : MoveHorizon); ++hypMTG)
   {
       // Calculate thinking time for hypothetic "moves to go"-value

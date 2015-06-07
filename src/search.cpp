@@ -295,7 +295,7 @@ namespace {
 	*/
   bool refutes(const Position& pos, Move first, Move second);
 	/*
-	用途不明
+	uci向けに現局面情報を出力する
 	*/
 	string uci_pv(const Position& pos, int depth, Value alpha, Value beta);
 	/*
@@ -457,7 +457,7 @@ void Search::think()
 	Limits.mateにその手数が入っている
 
 	定跡Bookを使用するなら（デフォルトはfalse）手を探し、
-	その手がRootMoves配列にあればその手をRootMovesの先頭に行ってfinalizeラベルに
+	その手がRootMoves配列にあればその手をRootMovesの先頭に置いてfinalizeラベルに
 	移動すること。つまり探索せず定跡手を優先のこと
 	*/
 	if (Options["OwnBook"] && !Limits.infinite && !Limits.mate)
@@ -480,7 +480,7 @@ void Search::think()
 	相手が強かったらしき
 	PHASE_MIDGAME=128
 	game_phase関数は局面の評価値を正規化（評価値を0-128にする）した値にして返す
-	ｃｆで決めた評価値をVALUE_DRAW(=0）に加算する
+	cfで決めた評価値をVALUE_DRAW(=0）に加算する
 	このDrawValue[]は局面の評価値を見て引き分け状態か判定するものではない
 	引き分けと判断された時に返す仮の評価値
 	*/
@@ -2430,7 +2430,7 @@ moves_loop: // When in check and at SpNode search starts from here
   // to send all the PV lines also if are still to be searched and so refer to
   // the previous search score.
 	/*
-	詳細不明であるが,UCI向けに現段階の局面情報（score,nodes,npsなど）を出力する
+	UCI向けに現段階の局面情報（score,nodes,npsなど）を出力する
 	id_loop関数からのみ呼び出される
 	*/
 	string uci_pv(const Position& pos, int depth, Value alpha, Value beta) 

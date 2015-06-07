@@ -53,7 +53,6 @@ http://wbec-ridderkerk.nl/html/UCIProtocol.html
 */
 string score_to_uci(Value v, Value alpha, Value beta) 
 {
-
   stringstream s;
 
   if (abs(v) < VALUE_MATE_IN_MAX_PLY)

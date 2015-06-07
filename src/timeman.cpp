@@ -173,6 +173,11 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
   for (hypMTG = 1; hypMTG <= (limits.movestogo ? std::min(limits.movestogo, MoveHorizon) : MoveHorizon); ++hypMTG)
   {
       // Calculate thinking time for hypothetic "moves to go"-value
+			/*
+			最適な探索時間を見積もる
+				- limits.time[us]はuci optionで設定されるカラーごとの持ち時間
+				- limits.inc[us]は１手に掛る所要時間をmsecで表した数値をuci optionからカラーごとに受け取る、これにhypMTG
+			*/
       hypMyTime =  limits.time[us]
                  + limits.inc[us] * (hypMTG - 1)
                  - emergencyBaseTime
@@ -199,7 +204,8 @@ namespace {
 	/*
 	remainingは「残ったもの」と言う意味　残された探索時間？
 	このファイル内のinit関数から呼び出されている
-	他から呼び出しなし
+	他から呼び出しないのでinit関数のヘルパー関数
+	TimeTypeはOptimumTime, MaxTimeが定義されているが、ここでしか使用されていない
 	*/
   template<TimeType T>
   int remaining(int myTime, int movesToGo, int currentPly, int slowMover)

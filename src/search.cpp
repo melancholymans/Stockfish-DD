@@ -496,7 +496,7 @@ void Search::think()
 	/*
 	Options["Write Search Log"]はデフォルトでfalse
 	Limits.time White,Blackそれぞれの持ち時間
-	Limits.inc　winc,binc(単位m sec)詳細不明
+	Limits.inc　winc,binc(単位m sec)１手ごとにかかる時間(m sec)
 	Limits.movestogo 探索に制限を設けるもののようだが詳細不明
 	*/
 	if (Options["Write Search Log"])

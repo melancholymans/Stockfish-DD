@@ -32,6 +32,11 @@
 コードを見ても理解できない時
 実際に動かして理解するためのtestコード
 */
+#include "timeman.h"
+/*
+#include "timeman.h"
+はtest関数からTimeManager::init関数を呼ぶために入れた
+*/
 
 using namespace Bitboards;
 #include "rkiss.h"
@@ -1008,6 +1013,22 @@ H8	20
 	printf("DarkSquares\n");
 	bb = 0xAA55AA55AA55AA55;
 	Bitboards::print(bb);
+
+
+	/*
+	TimeManager
+	*/
+	TimeManager TimeMgr;
+	Search::LimitsType  limits;
+
+	limits.time[0] = limits.time[1] = 4000;
+	for (int ply = 10; ply < 100;){
+		limits.inc[0] = limits.inc[1] = 10;
+		TimeMgr.init(limits, ply, BLACK);
+		printf("TimeMgr optimumSearchTime = %d \n", TimeMgr.available_time());
+		printf("TimeMgr maximumSearchTime = %d \n", TimeMgr.maximum_time());
+		ply += 10;
+	}
 	return;
 }
 

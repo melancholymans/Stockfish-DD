@@ -145,6 +145,7 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 	Emergency Move Time　=　非常用？			設定値は 30
 	Minimum Thinking Time　=　？					設定値は 20
 	Slow Mover　？												設定値は 70
+	emergencyMoveHorizon = 40
 	*/
   int emergencyMoveHorizon = Options["Emergency Move Horizon"];
   int emergencyBaseTime    = Options["Emergency Base Time"];
@@ -170,8 +171,9 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 	optimumSearchTimeは最適な探索時間？
 	maximumSearchTimeは最大な探索時間
 
-	hyMTGを１から徐々に増やしていく、uci optionでmovestogoが設定されていればその値、何も設定されていなければMoveHorizon=50となるが
-	もしmovestogoが設定されていなければmovestogoは0なのでhypMTGは一回もループを回すことなくなり、optimumSearchTime,maximumSearchTime
+	hyMTGを１から徐々に増やしていく、uci optionでmovestogoが設定されていればその値、何も設定されていなければMoveHorizon=50となる
+	hyMTGは探索深さを模擬しているようだ。
+	optimumSearchTime,maximumSearchTime
 	とも0となるがその時の時間制御はどうなるのだろう。
 	*/
   for (hypMTG = 1; hypMTG <= (limits.movestogo ? std::min(limits.movestogo, MoveHorizon) : MoveHorizon); ++hypMTG)
@@ -180,7 +182,10 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 			/*
 			最適な探索時間を見積もる
 				- limits.time[us]はuci optionで設定されるカラーごとの持ち時間
-				- limits.inc[us]は１手に掛る所要時間をmsecで表した数値をuci optionからカラーごとに受け取る、これにhypMTG
+				- limits.inc[us]は１手に掛る所要時間をmsecで表した数値をuci optionからカラーごとに受け取る、これにhypMTGをかけるので
+					hypMTGが増えると探索に掛ける時間は増える
+				- emergencyBaseTime=60を引く
+				- emergencyMoveTime=30*min(hypMTG,40)を引く
 			*/
       hypMyTime =  limits.time[us]
                  + limits.inc[us] * (hypMTG - 1)

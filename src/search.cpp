@@ -431,7 +431,8 @@ void Search::think()
 
   RootColor = RootPos.side_to_move();
 	/*
-	時間制御？
+	時間制御の初期化、呼ばれる度初期化されるのは局面によってどう制御するかが違っていくるからと思う
+	たとえば制限時間がなくなってきた場合など
 	*/
 	TimeMgr.init(Limits, RootPos.game_ply(), RootColor);
 	/*
@@ -440,6 +441,8 @@ void Search::think()
 	finalize:に飛ぶ
 	UCIプロトコルにはエンジン側から負けを通知するコマンドがないようです
 	http://www.geocities.jp/shogidokoro/usi.html
+	VALUE_MATEというのは評価値にcheck mateの意味を持たせているのだろうか？
+	あとchessは引き分けという概念があるようだ
 	*/
 	if (RootMoves.empty())
   {
@@ -478,7 +481,7 @@ void Search::think()
 	引き分けと判断する評価値（閾値）を決める。
 
 	対等の相手なら閾値はVALUE_DRAW=0
-	相手が強かったらしき
+	相手が強かったら
 	PHASE_MIDGAME=128
 	game_phase関数は局面の評価値を正規化（評価値を0-128にする）した値にして返す
 	cfで決めた評価値をVALUE_DRAW(=0）に加算する
@@ -518,15 +521,24 @@ void Search::think()
 	*/
 	for (Thread* th : Threads)
       th->maxPly = 0;
-
+	/*
+	Options["Idle Threads Sleep"]はfalse。
+	探索用スレッドを待機させる時sleepさせておいて、目覚めさせるのはシグナル起こすのか、もしくはポーリング状態で
+	待機させるのかのフラグ、trueでsleep,falseでポーリング、ポーリングは目覚めは良いが他のスレッドのCPUタイムを奪う
+	*/
   Threads.sleepWhileIdle = Options["Idle Threads Sleep"];
+	/*
+	タイマースレッドを起こしておく
+	*/
   Threads.timer->run = true;
   Threads.timer->notify_one(); // Wake up the recurring timer
 	/*
 	探索を開始
 	*/
 	id_loop(RootPos); // Let's start searching !
-
+	/*
+	タイマースレッドを停止しておく
+	*/
   Threads.timer->run = false; // Stop the timer
   Threads.sleepWhileIdle = true; // Send idle threads to sleep
 	/*

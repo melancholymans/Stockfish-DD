@@ -173,8 +173,8 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 
 	hyMTGを１から徐々に増やしていく、uci optionでmovestogoが設定されていればその値、何も設定されていなければMoveHorizon=50となる
 	hyMTGは探索深さを模擬しているようだ。
-	optimumSearchTime,maximumSearchTime
-	とも0となるがその時の時間制御はどうなるのだろう。
+	この関数は各種パラメータでoptimumSearchTime,maximumSearchTimeを決めている、limitsとcurrentPlyで変化するようなので
+	時間制御.xlsにグラフ化しておいた。いずれのパラメータもほぼ直線性を持っている
 	*/
   for (hypMTG = 1; hypMTG <= (limits.movestogo ? std::min(limits.movestogo, MoveHorizon) : MoveHorizon); ++hypMTG)
   {

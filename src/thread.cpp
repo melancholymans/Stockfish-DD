@@ -218,7 +218,6 @@ bool Thread::cutoff_occurred() const
 available_slave関数のみから呼び出されている
 スレッドプールにあるスレッドが利用可能か返す
 もしsearchingフラグが立っていれば利用できないのでfalseを返す
-
 */
 bool Thread::available_to(const Thread* master) const 
 {

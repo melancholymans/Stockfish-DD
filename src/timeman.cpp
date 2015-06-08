@@ -169,6 +169,10 @@ void TimeManager::init(const Search::LimitsType& limits, int currentPly, Color u
 	この関数の目的はoptimumSearchTimeとmaximumSearchTimeを各設定に応じて計算することである
 	optimumSearchTimeは最適な探索時間？
 	maximumSearchTimeは最大な探索時間
+
+	hyMTGを１から徐々に増やしていく、uci optionでmovestogoが設定されていればその値、何も設定されていなければMoveHorizon=50となるが
+	もしmovestogoが設定されていなければmovestogoは0なのでhypMTGは一回もループを回すことなくなり、optimumSearchTime,maximumSearchTime
+	とも0となるがその時の時間制御はどうなるのだろう。
 	*/
   for (hypMTG = 1; hypMTG <= (limits.movestogo ? std::min(limits.movestogo, MoveHorizon) : MoveHorizon); ++hypMTG)
   {

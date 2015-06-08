@@ -103,7 +103,9 @@ void benchmark(const Position& current, istream& is) {
 
   if (limitType == "time")
       limits.movetime = 1000 * stoi(limit); // movetime is in ms
-
+	/*
+	’Tõ’†‚É“WŠJ‚µ‚½ƒm[ƒh‚Å’Tõ§ŒÀ‚ª‚©‚¯‚é
+	*/
   else if (limitType == "nodes")
       limits.nodes = stoi(limit);
 

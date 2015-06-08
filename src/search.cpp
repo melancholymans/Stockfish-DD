@@ -454,7 +454,8 @@ void Search::think()
 	Limits.infinite‚Ígo ponderƒRƒ}ƒ“ƒh‚Ì‚ ‚Æ‚ÉinfiniteƒIƒvƒVƒ‡ƒ“‚ð‚Â‚¯‚é‚Æ
 	stop‚ªŠ|‚¯‚ç‚ê‚é‚Ü‚Å–³§ŒÀ’Tõ‚ð‘±‚¯‚éB
 	Limits.mate‚àgo ponder‚ÌƒIƒvƒVƒ‡ƒ“A‰¤Žè‚ð’Tõ‚³‚¹‚é x move‚ÅŽè”‚ð§ŒÀ‚É‚Â‚¯‚é
-	Limits.mate‚É‚»‚ÌŽè”‚ª“ü‚Á‚Ä‚¢‚é
+	Limits.mate‚É‚»‚ÌŽè”‚ª“ü‚Á‚Ä‚¢‚é,Limits.mate‚Ícheck mate’Tõ‚ð‚³‚¹‚éƒIƒvƒVƒ‡ƒ“‚È‚Ì‚Åƒgƒ‰ƒ“ƒXƒ|ƒWƒVƒ‡ƒ“ƒe[ƒuƒ‹‚É
+	‚»‚ñ‚ÈŽè‚ª“o˜^‚³‚ê‚Ä‚¢‚é‚í‚¯‚ª‚È‚¢‚Ì‚Åbook‚Í“Ç‚Ý‚É‚¢‚©‚È‚¢
 
 	’èÕBook‚ðŽg—p‚·‚é‚È‚çiƒfƒtƒHƒ‹ƒg‚ÍfalsejŽè‚ð’T‚µA
 	‚»‚ÌŽè‚ªRootMoves”z—ñ‚É‚ ‚ê‚Î‚»‚ÌŽè‚ðRootMoves‚Ìæ“ª‚É’u‚¢‚Äfinalizeƒ‰ƒxƒ‹‚É
@@ -804,7 +805,7 @@ namespace {
 
 			// Do we have found a "mate in x"?
 			/*
-			Limits.mate‚Í‰¤Žè‚ð’T‚·Žè‚ð§ŒÀ‚·‚éƒIƒvƒVƒ‡ƒ“‚Å
+			Limits.mate‚Í‰¤Žè‚ð’T‚·ƒIƒvƒVƒ‡ƒ“‚Å
 			‚±‚±‚É‚©‚¢‚Ä‚ ‚éðŒ‚ª¬—§‚µ‚½‚ç’Tõ’†Ž~‚Å‚ ‚é‚ª
 			‚»‚ÌðŒ‚ÌˆÓ–¡‚ª‚æ‚­‚í‚©‚ç‚ñ
 			*/
@@ -813,10 +814,20 @@ namespace {
 
 			// Do we have time for the next iteration? Can we stop searching now?
 			/*
-			’Tõ‚ÉLimits‚É‚æ‚é§ŒÀA’Tõ‚ð’âŽ~‚·‚éstopƒtƒ‰ƒO‚È‚Ç‚ªŠ|‚Á‚Ä‚¢‚È‚¯‚ê‚Î
+			use_time_managementŠÖ”‚Í’Tõ‚É§ŒÀ‚ðŠ|‚¯‚é‚©Œˆ‚ß‚éŠÖ”A
+				- mate check mate‚ð’Tõ‚·‚éƒIƒvƒVƒ‡ƒ“‚ªŠ|‚Á‚Ä‚¢‚é,‚±‚Ì‚·‚®ã‚É‚ ‚éƒR[ƒh‚ªLimits.mate‚ðƒ`ƒGƒbƒN‚µ‚Ä‚¢‚é‚à‚Ì‚Å‚ ‚é
+				- movetime ŽžŠÔ§ŒÀ‚ªŠ|‚Á‚Ä‚¢‚éƒIƒvƒVƒ‡ƒ“‚Å’TõŽžŠÔ§Œä‚Æ‚Í•Ê‚Ì‚à‚Ì
+				- depth ’Tõ[‚³§ŒÀ‚ÌƒIƒvƒVƒ‡ƒ“‚ªŠ|‚Á‚Ä‚¢‚éi[‚³§ŒÀ‚ª‚ ‚é‚Ì‚ÅŽžŠÔ§Œä‚ðƒ_ƒuƒ‹‚Å‚©‚¯‚é‚±‚Æ‚Í‚È‚¢j
+				- nodes	“WŠJƒm[ƒh”§ŒÀ‚ÌƒIƒvƒVƒ‡ƒ“‚ªŠ|‚Á‚Ä‚¢‚é
+				- infinite	‚Ü‚Á‚½‚­§ŒÀ‚ðŠ|‚¯‚È‚¢‚±‚Æ‚ðŽ¦‚·ƒIƒvƒVƒ‡ƒ“
+			‚±‚ê‚çƒtƒ‰ƒO‘S‚Ä‚ªfalse‚É‚È‚Á‚Ä‚¢‚È‚¯‚ê‚Î§ŒÀ‚ª‚©‚©‚é‚±‚Æ‚Í‚È‚¢
+			‚Â‚Ü‚è‚±‚Ìif•¶‚ÍƒIƒvƒVƒ‡ƒ“‚É‚æ‚é’Tõ§ŒÀ‚ªŠ|‚Á‚Ä‚¢‚È‚¢Žž‚É’TõŽžŠÔ§Œä‚ð‚¨‚±‚È‚¤
 			*/
 			if (Limits.use_time_management() && !Signals.stop && !Signals.stopOnPonderhit)
 			{
+				/*
+				ƒ[ƒJƒ‹•Ï”‚ÅSignals.stop‚Æ‚Íˆá‚¤‚Ì‚ÅŠÔˆá‚í‚È‚¢‚æ‚¤‚É
+				*/
 				bool stop = false; // Local variable, not the volatile Signals.stop
 
 				// Take in account some extra time if the best move has changed
@@ -830,10 +841,29 @@ namespace {
 				// Stop search if most of available time is already consumed. We
 				// probably don't have enough time to search the first move at the
 				// next iteration anyway.
+				/*
+				’TõŒo‰ßŽžŠÔ‚ªÅ“K’TõŽžŠÔ‚Ì62%‚ð’´‚¦‚½‚çstop‚ð‚©‚¯‚é
+				‚È‚º62%
+				*/
 				if (Time::now() - SearchTime > (TimeMgr.available_time() * 62) / 100)
 					stop = true;
 
 				// Stop search early if one move seems to be much better than others
+				/*
+				DBL_EPSILON	(•‚“®¬”“_‚ÌÅ¬’l)
+				http://blog.goo.ne.jp/yamadokoro/e/3a47c16e9363e29265e8dba8f07dffc5
+					- ”½•œ[‰»[‚³‚ª12ˆÈã
+					- BestMoveChanges‚ª‚Ù‚Ú0
+					- •ÊðŒ‚Åstop‚ª‚©‚©‚Á‚Ä‚¢‚È‚¢i‚·‚Å‚Éstop‚ª—§‚Á‚Ä‚¢‚é‚È‚ç‚±‚±‚ÍƒpƒXj
+					- PVSize‚ª1‚Å‚ ‚é‚±‚Æ@H
+					- bestValue‚ª‚Ð‚Ç‚¢“_”ˆÈã‚ ‚é‚±‚Æ->‚Ð‚Ç‚¢“_”‚Ì‚Ü‚Ü’Tõ’âŽ~‚µ‚Ä‚Í‚¾‚ß‚Å‚µ‚å
+					- ƒ‹[ƒg‹Ç–Ê‚Å‡–@Žè‚ª‚P‚µ‚©‚È‚¢
+					- ’TõŒo‰ßŽžŠÔ‚ªÅ“K’TõŽžŠÔ‚Ì20%‚ð’´‚¦‚½
+				‚Â‚Ü‚èƒ‹[ƒg‹Ç–Ê‚Å‚Ì‡–@Žè‚ª‚P‚Â‚µ‚©‚È‚­Å‘PŽè•Ï‰»‚à‚Ù‚Ú0‚Å‚±‚ÌŽè‚µ‚©‚È‚¢‚æ‚¤‚È‚Ì‚Å’Tõ’†Ž~‚·‚é•ûŒü‚Å‚ ‚é‚ª
+				‚Å‚à‚±‚ÌÅ‘P‚ÆŽv‚í‚ê‚éŽè(RootMoves[0].pv[0])‚ð‰ñ”ðŽèŽw’è(ss->excludedMove)‚É‚µ‚Ä’Tõ‘‹‚ð
+				Å‘P‚ÆŽv‚í‚ê‚éŽè‚Ì•]‰¿’l‚æ‚è‚àPawn‚QŒÂ•ªƒn[ƒhƒ‹‚ð‰º‚°‚Ä’Tõ‚µ‚Ä‚»‚ê‚Å‚àˆ«‚¢•]‰¿‚µ‚©o‚È‚¢‚æ‚¤‚Å‚ ‚ê‚Î
+				Œ»Ýã‚ª‚Á‚Ä‚¢‚éŽè‚ðÅ‘PŽè‚Æ‚µ‚Ä•Ô‚·‚Ì‚Å’Tõ‚ð’†Ž~‚·‚é
+				*/
 				if (    depth >= 12
 				&&  BestMoveChanges <= DBL_EPSILON
 				&& !stop
@@ -2727,10 +2757,14 @@ void check_time()
       lastInfoTime = Time::now();
       dbg_print();
   }
-
+	/*
+	ponder’Tõ’†‚ÍuciƒvƒƒgƒRƒ‹‚©‚çstop || ponderhit‚Å’âŽ~‚·‚é‚Ì‚Å‚±‚±‚Å‚Ìƒ`ƒGƒbƒN‚Í–³—p
+	*/
   if (Limits.ponder)
       return;
-
+	/*
+	“WŠJƒm[ƒh”‚É‚æ‚é’Tõ’âŽ~‚Ì‚½‚ßŒ»Ý’áˆÊ‰»‚µ‚½ƒm[ƒh”‚ðWŒv
+	*/
   if (Limits.nodes)
   {
       Threads.mutex.lock();
@@ -2762,8 +2796,9 @@ void check_time()
   }
 	/*
 	SearchTime‚Ístart_thkingŠÖ”‚ÅŽž‚ðƒZƒbƒg‚µ‚ÄA‚±‚±‚ÅŒo‰ßŽžŠÔelapsed‚ð‘ª‚é
-	‚±‚ÌŒo‰ßŽžŠÔ‚ªTimeMgr.available_time()‚ÉÝ’è‚µ‚Ä‚ ‚éŽžŠÔ‚ð’´‚¦‚½‚ç‚È‚Ç‚ÌðŒ‚Å
-	’Tõ’âŽ~‚Ìƒtƒ‰ƒO‚ð—§‚Ä‚é
+	‚±‚ÌŒo‰ßŽžŠÔ‚ªTimeMgr.available_time()‚ÉÝ’è‚µ‚Ä‚ ‚éŽžŠÔ‚ð’´‚¦‚½‚ç’âŽ~i’TõŽžŠÔ§Œäj
+	movetimeƒIƒvƒVƒ‡ƒ“‚ª‚ ‚Á‚½‚½‚çA‚»‚ÌÝ’è’l‚Å’âŽ~iã‚Ì’TõŽžŠÔ§Œä‚Æ‚Í•Ê‚Ì‚àj
+	nodesƒIƒvƒVƒ‡ƒ“‚ª‚ ‚Á‚½‚çAÝ’è‚µ‚Ä‚ ‚é“WŠJƒm[ƒh”‚ð’´‚¦‚é‚Æ’Tõ’âŽ~
 	’âŽ~‚ÌÚ×‚Í•s–¾
 	*/
   Time::point elapsed = Time::now() - SearchTime;

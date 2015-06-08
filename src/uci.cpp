@@ -293,8 +293,18 @@ namespace {
         else if (token == "binc")      is >> limits.inc[BLACK];
         else if (token == "movestogo") is >> limits.movestogo;
         else if (token == "depth")     is >> limits.depth;
+				/*
+				探索中に展開したノードで探索制限がかける
+				*/
         else if (token == "nodes")     is >> limits.nodes;
+				/*
+				探索制限をを時間で行うオプション、TimeManagerが行っている時間制御とはちがう、探索中に呼び出されるcheck_time関数のなかで
+				このlimits.movetimeと経過時間をチエックされオーバーしているようならstopフラグが立つ
+				*/
         else if (token == "movetime")  is >> limits.movetime;
+				/*
+				"mate"optionは指定した指し手がcheck mateかどうかを探索するオプション
+				*/
         else if (token == "mate")      is >> limits.mate;
         else if (token == "infinite")  limits.infinite = true;
         else if (token == "ponder")    limits.ponder = true;

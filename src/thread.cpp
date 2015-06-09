@@ -26,7 +26,7 @@
 #include "ucioption.h"
 
 /*
-stackfishはメインスレッドとMainThreadスレッド、TimerThreadがある
+stockfishはメインスレッドとMainThreadスレッド、TimerThreadがある
 探索中に発生する探索分岐（split）はどう制御しているのかはまだわからない
 クラスの継承関係
 ThreadBase->Thread		->ThreadPool

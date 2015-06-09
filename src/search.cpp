@@ -2775,7 +2775,7 @@ void check_time()
   if (Limits.ponder)
       return;
 	/*
-	展開ノード数による探索停止のため現在低位化したノード数を集計
+	展開ノード数による探索停止のため探索分岐したノード数を集計
 	*/
   if (Limits.nodes)
   {
@@ -2785,6 +2785,10 @@ void check_time()
 
       // Loop across all split points and sum accumulated SplitPoint nodes plus
       // all the currently active positions nodes.
+			/*
+			Threads（ThreadPoolのグローバル変数）はvectorを継承しているのでイーサレーターを返せるのでfor文のなかでループを回せる
+
+			*/
       for (Thread* th : Threads)
           for (int i = 0; i < th->splitPointsSize; ++i)
           {

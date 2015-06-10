@@ -2775,7 +2775,7 @@ void check_time()
   if (Limits.ponder)
       return;
 	/*
-	展開ノード数による探索停止のため探索分岐したノード数を集計
+	展開ノード数による探索停止のため、探索分岐したノード数を集計
 	*/
   if (Limits.nodes)
   {
@@ -2787,7 +2787,6 @@ void check_time()
       // all the currently active positions nodes.
 			/*
 			Threads（ThreadPoolのグローバル変数）はvectorを継承しているのでイーサレーターを返せるのでfor文のなかでループを回せる
-
 			*/
       for (Thread* th : Threads)
           for (int i = 0; i < th->splitPointsSize; ++i)
@@ -2797,9 +2796,17 @@ void check_time()
               sp.mutex.lock();
 
               nodes += sp.nodes;
+							/*
+							sp.slavesMaskに記録されているスレッドごとの固有ID（マスタースレッドと自分のID）を取り出す
+							BitBoard smに保持させているのは単にpop_lsb関数を使いたいだけだと思う。
+							*/
               Bitboard sm = sp.slavesMask;
               while (sm)
               {
+									/*
+									スレッドが持っている局面へのポインタを取り出して、その局面が持っている展開ノード
+									を加算している
+									*/
                   Position* pos = Threads[pop_lsb(&sm)]->activePosition;
                   if (pos)
                       nodes += pos->nodes_searched();
@@ -2815,7 +2822,7 @@ void check_time()
 	この経過時間がTimeMgr.available_time()に設定してある時間を超えたら停止（探索時間制御）
 	movetimeオプションがあったたら、その設定値で停止（上の探索時間制御とは別のも）
 	nodesオプションがあったら、設定してある展開ノード数を超えると探索停止
-	停止の詳細は不明
+
 	*/
   Time::point elapsed = Time::now() - SearchTime;
   bool stillAtFirstMove =    Signals.firstRootMove

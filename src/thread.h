@@ -56,6 +56,9 @@ struct SplitPoint {
 
   // Shared data
   std::mutex mutex;
+	/*
+	マスタースレッド固有番号+スレッドごとの固有番号を記録
+	*/
   volatile uint64_t slavesMask;
   volatile int64_t nodes;
   volatile Value alpha;
@@ -156,6 +159,9 @@ struct Thread : public ThreadBase {
   size_t idx;
   int maxPly;
   SplitPoint* volatile activeSplitPoint;
+	/*
+	探索分岐したスレッドごとに持っているsplitPoints配列のインデックス
+	*/
   volatile int splitPointsSize;
 	/*
 	初期化ではfalseが設定され

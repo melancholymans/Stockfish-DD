@@ -235,6 +235,7 @@ enum Bound {
 /*
 用途不明
 評価値に関するなにか？
+この評価値の意味を調査
 */
 enum Value : int {
   VALUE_ZERO      = 0,

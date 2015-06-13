@@ -236,6 +236,9 @@ enum Bound {
 用途不明
 評価値に関するなにか？
 この評価値の意味を調査
+VALUE_INFINITEは事実上の無限大？
+id_loop関数（反復深化）でbestNalue,alpha,deltaを-VALUE_INFINITEで初期化
+betaをVALUE_INFINITEで初期化している
 */
 enum Value : int {
   VALUE_ZERO      = 0,

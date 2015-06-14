@@ -108,7 +108,9 @@ void benchmark(const Position& current, istream& is) {
 	*/
   else if (limitType == "nodes")
       limits.nodes = stoi(limit);
-
+	/*
+	‹l‚İ’Tõ‚Ìw’èè”A‚X‚Æ‚ ‚ê‚Î‚XèˆÈ“à‚É‹l‚İ‚ª‚ ‚é‚©‚Ç‚¤‚©’Tõ‚·‚é
+	*/
   else if (limitType == "mate")
       limits.mate = stoi(limit);
 

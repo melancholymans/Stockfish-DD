@@ -303,7 +303,7 @@ namespace {
 				*/
         else if (token == "movetime")  is >> limits.movetime;
 				/*
-				"mate"optionは指定した指し手がcheck mateかどうかを探索するオプション
+				"mate"optionは詰があるか探索させる、mateコマンドのあとの数値は何手以内に詰みがあるかの指定
 				*/
         else if (token == "mate")      is >> limits.mate;
         else if (token == "infinite")  limits.infinite = true;

@@ -236,9 +236,18 @@ enum Bound {
 用途不明
 評価値に関するなにか？
 この評価値の意味を調査
-VALUE_INFINITEは事実上の無限大？
-id_loop関数（反復深化）でbestNalue,alpha,deltaを-VALUE_INFINITEで初期化
-betaをVALUE_INFINITEで初期化している
+VALUE_INFINITE
+　事実上の無限大を表す定数
+　id_loop関数（反復深化）でbestNalue,alpha,deltaを-VALUE_INFINITEで初期化
+　betaをVALUE_INFINITEで初期化している
+VALUE_MATE
+	check mateが掛って詰めの状態になった時の評価値定数
+VALUE_KNOWN_WIN
+　多分、局面の評価値の合計がほぼこの数
+　評価値がcheck mateがかかっていないことを確認するのに使用
+VALUE_NONE
+	トランスポジションテーブル専用の評価値で、有効な評価値がない時に
+	代入される評価定数
 */
 enum Value : int {
   VALUE_ZERO      = 0,

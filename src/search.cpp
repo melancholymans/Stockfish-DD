@@ -456,7 +456,7 @@ void Search::think()
 	/*
 	Limits.infiniteはgo ponderコマンドのあとにinfiniteオプションをつけると
 	stopが掛けられるまで無制限探索を続ける。
-	Limits.mateもgo ponderのオプション、王手を探索させる x moveで手数を制限につける
+	Limits.mateもgo ponderのオプション、王手があるかどうさ探索させる x moveで手数を制限につける
 	Limits.mateにその手数が入っている,Limits.mateはcheck mate探索をさせるオプションなのでトランスポジションテーブルに
 	そんな手が登録されているわけがないのでbookは読みにいかない
 
@@ -820,6 +820,12 @@ namespace {
 			Limits.mateは王手を探すオプションで
 			ここにかいてある条件が成立したら探索中止であるが
 			その条件の意味がよくわからん
+			- stockfishでは評価値にcheck mateがかかった意味が込められている。
+			  check mateが見つかった時の評価値VALUE_MATE - ply　VALUE_MATE(30000)は定数なので、最大深さ(MAX_PLY=100）を引いた数（VALUE_MATE_IN_MAX_PLY）より
+			  帰ってきた評価値bestValueが大ければ当然探索木のなかでcheck mateが発生したことがわかる
+			- Limits.mateは何手以内に王手があるか指定するものでVALUE_MATEとbestValueの差はcheck mateが発生した深さとなるので
+			　VALUE_MATEとbestValueの差以上であれば（chessではblack white１組で１手と表現する）
+			  http://ja.wikipedia.org/wiki/%E3%83%81%E3%82%A7%E3%82%B9%E3%81%AE%E3%83%AB%E3%83%BC%E3%83%AB
 			*/
 			if (Limits.mate && bestValue >= VALUE_MATE_IN_MAX_PLY && VALUE_MATE - bestValue <= 2 * Limits.mate)
 				Signals.stop = true;
@@ -1088,7 +1094,7 @@ namespace {
 		//さらにこの局面の親のGainを更新する（Gainはなんなのかわかっていない）
 		/*
 		王手がかかているならmoves_loppラベルにとんで探索を始めろ
-		ここからmoves_loppラベルまでは枝刈りの処理なので王手がかかっている場合は無意味
+		ここからmoves_loopラベルまでは枝刈りの処理なので王手がかかっている場合は無意味
 		*/
 		if (inCheck)
     {
@@ -1923,7 +1929,7 @@ moves_loop: // When in check and at SpNode search starts from here
     // If we are in a singular extension search then return a fail low score.
     // A split node has at least one move, the one tried before to be splitted.
 		/*
-		moveCountが0ということは合法手がなかった＝チエックメイト　か　ステイルメイト
+		moveCountが0ということは合法手がなかった＝(チエックメイト || ステイルメイト)
 		excludedMove手は地平線効果が疑われる手であるが他に手がないならその手を返す（excludedMove手は他の兄弟手より評価が高いので評価値はalpha値かな）
 		そんな手もなく王手がかかっていたら詰みの評価値を返す、王手も掛っていない＋合法手がない＝ステルメイトなので引き分け
 		*/
@@ -1932,6 +1938,9 @@ moves_loop: // When in check and at SpNode search starts from here
               : inCheck ? mated_in(ss->ply) : DrawValue[pos.side_to_move()];
 
     // If we have pruned all the moves without searching return a fail-low score
+		/*
+		一度もbestValue値を更新できなかった（良い手がなかった）場合はbestValueをalpha値で返す
+		*/
     if (bestValue == -VALUE_INFINITE)
         bestValue = alpha;
 		/*
@@ -2061,7 +2070,9 @@ moves_loop: // When in check and at SpNode search starts from here
 
     // Evaluate the position statically
 		/*
-		この状態で王手がかかっている場合はマイナス32001を返す
+		InCheckはこのqsearch関数のテンプレートパラメータでこのノードの一つ上のノードで王手が指されたことを示す
+		フラグでIncheckがtrueなら現手番のKINGがcheck mateされている
+		王手がかかっているのでbestValueは-VALUE_INFINITEで初期化しておく
 		*/
 		if (InCheck)
     {
@@ -2207,6 +2218,11 @@ moves_loop: // When in check and at SpNode search starts from here
 
     // All legal moves have been searched. A special case: If we're in check
     // and no legal moves were found, it is checkmate.
+		/*
+		王手が掛けられていてbestValueを更新できなかった（手がなかった）
+		（-VALUE_MATE + ply）を返す。つまりcheck mateを掛けられて逃れることができない時の評価値は決まっている
+		評価値を見ればcheck mateが掛ったかどうかがcheckできる
+		*/
     if (InCheck && bestValue == -VALUE_INFINITE)
         return mated_in(ss->ply); // Plies to mate from the root
 

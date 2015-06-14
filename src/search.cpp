@@ -263,7 +263,8 @@ namespace {
 	template <NodeType NT>
   Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode);
 	/*
-	たぶん末端用探索関数
+	末端用探索関数
+	テンプレートパラメータInCheckがtrueならこのqsearch関数を呼び出した手番側が王手をかけたという意味になる
 	*/
 	template <NodeType NT, bool InCheck>
   Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth);
@@ -501,7 +502,7 @@ void Search::think()
 	Options["Write Search Log"]はデフォルトでfalse
 	Limits.time White,Blackそれぞれの持ち時間
 	Limits.inc　winc,binc(単位m sec)１手ごとにかかる時間(m sec)
-	Limits.movestogo 探索に制限を設けるもののようだが詳細不明
+	Limits.movestogo 探索に制限を設けるもの
 	*/
 	if (Options["Write Search Log"])
   {
@@ -516,7 +517,7 @@ void Search::think()
   }
 	// Reset the threads, still sleeping: will be wake up at split time
 	/*
-	threadはメインスレッドと探索スレッド(start_routineスレッド)とtimerスレッドがある模様
+	threadはメインスレッドと探索スレッド(start_routineスレッド)とtimerスレッドがある
 	あと探索中に複数のスレッドで探索木を探索する手法が実装されている
 	*/
 	for (Thread* th : Threads)
@@ -818,8 +819,7 @@ namespace {
 			// Do we have found a "mate in x"?
 			/*
 			Limits.mateは王手を探すオプションで
-			ここにかいてある条件が成立したら探索中止であるが
-			その条件の意味がよくわからん
+			ここにかいてある条件が成立したら（王手がみつかった）探索中止
 			- stockfishでは評価値にcheck mateがかかった意味が込められている。
 			  check mateが見つかった時の評価値VALUE_MATE - ply　VALUE_MATE(30000)は定数なので、最大深さ(MAX_PLY=100）を引いた数（VALUE_MATE_IN_MAX_PLY）より
 			  帰ってきた評価値bestValueが大ければ当然探索木のなかでcheck mateが発生したことがわかる
@@ -1017,14 +1017,16 @@ namespace {
 
     // Used to send selDepth info to GUI
 		/*
-		PｖNodeでかつこのスレッドが持っているmaxPlyよりss->plyが深い場合ss->plyに合わせる
+		PｖNodeでかつ、このスレッドが持っているmaxPlyよりss->plyが深い場合ss->plyに合わせる
 		*/
 		if (PvNode && thisThread->maxPly < ss->ply)
         thisThread->maxPly = ss->ply;
 
 		/*
-		RootNode以外のみ
-		あとでコメント入れ
+		RootNode以外のみでチエックされる、どれか一つでも成立すれば引き分け用の評価値を持って帰る
+		 - 強制停止フラグが立っている
+		 - 50手ルールなどの引き分けルールが適用される
+		 - 探索深さがMAX_PLY(=100)を超えている
 		*/
 		if (!RootNode)
     {
@@ -1038,6 +1040,11 @@ namespace {
         // further, we will never beat current alpha. Same logic but with reversed signs
         // applies also in the opposite condition of being mated instead of giving mate,
         // in this case return a fail-high score.
+				/*
+				https://chessprogramming.wikispaces.com/Mate+Distance+Pruning
+				http://d.hatena.ne.jp/mclh46/20100731/1280539326　（ながとダイヤリー）
+				これはなにかの枝刈り手法のようであるが、不明
+				*/
         alpha = std::max(mated_in(ss->ply), alpha);
         beta = std::min(mate_in(ss->ply+1), beta);
         if (alpha >= beta)
@@ -1065,7 +1072,8 @@ namespace {
     // smooth experience in analysis mode. We don't probe at Root nodes otherwise
     // we should also update RootMoveList to avoid bogus output.
 		/*
-		用途不明
+		トランスポジションテーブルに有効な手が登録してあるので使用する
+
 		*/
 		if (!RootNode
         && tte

@@ -1072,8 +1072,8 @@ namespace {
     // smooth experience in analysis mode. We don't probe at Root nodes otherwise
     // we should also update RootMoveList to avoid bogus output.
 		/*
-		トランスポジションテーブルに有効な手が登録してあるので使用する
-
+		トランスポジションテーブル（以下tt）に有効な手が登録してあるので使用する
+			- ttに登録してある指し手の
 		*/
 		if (!RootNode
         && tte

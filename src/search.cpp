@@ -1073,8 +1073,13 @@ namespace {
     // we should also update RootMoveList to avoid bogus output.
 		/*
 		ƒgƒ‰ƒ“ƒXƒ|ƒWƒVƒ‡ƒ“ƒe[ƒuƒ‹iˆÈ‰ºttj‚É—LŒø‚ÈŽè‚ª“o˜^‚µ‚Ä‚ ‚é‚Ì‚ÅŽg—p‚·‚é
-			- tt‚É“o˜^‚µ‚Ä‚ ‚éŽw‚µŽè‚Ì
-		*/
+			- tt‚É“o˜^‚µ‚Ä‚ ‚éŽw‚µŽè‚ÌŽc‚è[‚³‚ÆŒ»Ý‚ÌŽc‚è[‚³‚ª¬‚³‚¢Œ»Ý‚Ì‹Ç–Ê‚Ì•û‚ª[‚¢‚Æ‚±‚ë‚ð’Tõ‚µ‚Ä‚¢‚éAƒgƒ‰ƒ“ƒXƒ|ƒWƒVƒ‡ƒ“ƒe[ƒuƒ‹‚É“o˜^‚³‚ê‚Ä‚¢‚éŽè‚ªó‚¢‚Æ‚±‚ë‚Å“¯ˆê‹Ç–Ê‚ðŒŸo‚µ‚Ä‚¢‚é
+			- tt‚É“o˜^‚µ‚Ä‚ ‚éŽè‚Ì•]‰¿’l‚ªVLAUE_NONE(‚ ‚è“¾‚È‚¢•]‰¿’lHj‚Å‚Í‚È‚¢‚±‚Æ
+			- PvNode‚Å‚ ‚é@••@tt‚É“o˜^‚µ‚Ä‚ ‚éŽè‚Ì•]‰¿’l‚ÌŽí•Ê‚ªBOUND_EXACT(^’l)‚Å‚ ‚é‚±‚Æ
+			- NonPvNode‚Å‚ ‚é@••@tt‚É“o˜^‚µ‚Ä‚ ‚éŽè‚Ì•]‰¿’l‚ÌŽí•Ê‚ªBOUND_LOWER(lowerŽ¸”s)‚Å‚ ‚é‚±‚Æ
+			- NonPvNode‚Å‚ ‚é@••@tt‚É“o˜^‚µ‚Ä‚ ‚éŽè‚Ì•]‰¿’l‚ÌŽí•Ê‚ªBOUND_UPPER(hightŽ¸”s)‚Å‚ ‚é‚±‚Æ
+			  BOUND_NONE‚Å‚È‚©‚Á‚½iŽè‚Í“o˜^‚µ‚Ä‚ ‚é‚ª’Tõ‚ªI—¹‚µ‚Ä‚¨‚ç‚¸•]‰¿‚ªŠm’è‚µ‚Ä‚¢‚È‚¢j
+			*/
 		if (!RootNode
         && tte
         && tte->depth() >= depth
@@ -1084,8 +1089,13 @@ namespace {
                               : (tte->bound() &  BOUND_UPPER)))
     {
         TT.refresh(tte);
+				/*
+				tt‚É“o˜^‚µ‚Ä‚ ‚éŽè‚ð—LŒø‚Æ”F‚ß‚Ä‚±‚Ì‹Ç–Ê‚Í‚±‚ê‚Å‹A‚é
+				*/
         ss->currentMove = ttMove; // Can be MOVE_NONE
-
+				/*
+				ƒLƒ‰[Žè‚Ì“ü‚ê‘Ö‚¦0¨‚PA1¨0
+				*/
         if (    ttValue >= beta
             &&  ttMove
             && !pos.capture_or_promotion(ttMove)
@@ -1110,12 +1120,15 @@ namespace {
         goto moves_loop;
     }
 		/*
-		‰¤Žè‚ª‚©‚©‚Á‚Ä‚¢‚È‚­‚Ä’èÕŽè‚ª‚ ‚èA‚»‚Ì•]‰¿’l‚ªVALUE_NONE‚È‚çŒ»‹Ç–Ê‚Ì•]‰¿’l‚ð
-		eval‚Æss->staticEval‚É—^‚¦‚éB
+		‰¤Žè‚ª‚©‚©‚Á‚Ä‚¢‚È‚­‚Ä’èÕŽè‚ª‚ ‚èA‚»‚Ì•]‰¿’l‚ªVALUE_NON(‚Æ‚è‚ ‚¦‚¸tt‚ÉŽè‚¾‚¯“o˜^‚µ‚Ä‚¨‚¢‚Ä•]‰¿’l‚ªŠm’è‚µ‚Ä‚È‚¢Žž‚Ì•]‰¿’l’è”)
+		‚È‚çŒ»‹Ç–Ê‚Ì•]‰¿’l‚ðeval‚Æss->staticEval‚É—^‚¦‚éB
 		*/
 		else if (tte)
     {
         // Never assume anything on values stored in TT
+			/*
+			tt‚É“o˜^‚µ‚Ä‚ ‚éŽè‚Ì•]‰¿’l‚ª–¢Šm’èiVALUE_NONEj‚È‚ç•]‰¿ŠÖ”‚ð“Ç‚ñ‚ÅŒ»‹Ç–Ê‚Ì•]‰¿’l‚ðŠm’è‚·‚é
+			*/
         if ((ss->staticEval = eval = tte->eval_value()) == VALUE_NONE)
             eval = ss->staticEval = evaluate(pos);
 
@@ -1142,13 +1155,12 @@ namespace {
         TT.store(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE, ss->staticEval);
     }
 		/*
-		’¼‘O‚ÌŽè‚ª•ßŠlŽè‚Å‚È‚¢iŽè‚ÌŽw‚µŽèƒpƒ^[ƒ“‚ªƒm[ƒ}ƒ‹‚Å‚ ‚é‚±‚Æ‚ðƒ`ƒGƒbƒN‚µ‚Ä‚¢‚é‚Ì‚È‚ç‚±‚Ìƒ`ƒGƒbƒN‚Í‚¢‚ç‚È‚¢‚Ì‚Å‚Íj
-		Œ»‹Ç–Ê‚ÌÃŽ~•]‰¿‚ªVALUE_NONE‚Å‚È‚¢
-		‚Ð‚Æ‚Â‘O‚ÌŽè‚ÌÃŽ~•]‰¿’l‚ªVALUE_NONE‚Å‚È‚¢
-		ˆê‚Â‘O‚ÌŽè‚ðmove‚É‘ã“ü‚µ‚Ä‚¨‚«‚³‚ç‚É‚»‚ê‚ªMOVE_NULL‚Å‚È‚¢‚±‚Æinull_move‚Å‚È‚¢j
-		’¼‘O‚ÌŽè‚ª•ßŠl‚Å‚à‚È‚­‘ü‚ÌˆÚ“®‚Å‚ ‚Á‚½‚Æ‚«
-
 		Gains‚ÌƒAƒbƒvƒf[ƒg‚ðs‚¤A“Á’è‚Ì‹îŽí‚ªtoÀ•W‚ÉˆÚ“®‚·‚é‚±‚Æ‚É‚æ‚Á‚Ä¶‚¶‚½•]‰¿’l‚ªˆÈ‘O‚Ì•]‰¿’l‚æ‚è‚‚¯‚ê‚Î‚»‚Ì•]‰¿’l‚Éupdate‚·‚é
+		- ’¼‘O‚ÌŽè‚ª•ßŠlŽè‚Å‚È‚¢iŽè‚ÌŽw‚µŽèƒpƒ^[ƒ“‚ªƒm[ƒ}ƒ‹‚Å‚ ‚é‚±‚Æ‚ðƒ`ƒGƒbƒN‚µ‚Ä‚¢‚é‚Ì‚È‚ç‚±‚Ìƒ`ƒGƒbƒN‚Í‚¢‚ç‚È‚¢‚Ì‚Å‚Íj
+		 - Œ»‹Ç–Ê‚ÌÃŽ~•]‰¿‚ªVALUE_NONE(•]‰¿–¢Šm’è)‚Å‚È‚¢
+		 - ‚Ð‚Æ‚Â‘O‚ÌŽè‚ÌÃŽ~•]‰¿’l‚ªVALUE_NONE‚Å‚È‚¢
+		 - ˆê‚Â‘O‚ÌŽè‚ðmove‚É‘ã“ü‚µ‚Ä‚¨‚«‚³‚ç‚É‚»‚ê‚ªMOVE_NULL‚Å‚È‚¢‚±‚Æinull_move‚Å‚È‚¢j
+		 - ’¼‘O‚ÌŽè‚ª•ßŠl‚Å‚à‚È‚­‘ü‚ÌˆÚ“®‚Å‚ ‚Á‚½‚Æ‚«
 		*/
     if (   !pos.captured_piece_type()
         &&  ss->staticEval != VALUE_NONE
@@ -1382,6 +1394,7 @@ namespace {
 
     // Step 10. Internal iterative deepening (skipped when in check)
 		/*
+		https://chessprogramming.wikispaces.com/Internal+Iterative+Deepening
 		—p“r•s–¾
 		*/
 		if (depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)

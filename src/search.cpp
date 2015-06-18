@@ -1395,18 +1395,33 @@ namespace {
     // Step 10. Internal iterative deepening (skipped when in check)
 		/*
 		https://chessprogramming.wikispaces.com/Internal+Iterative+Deepening
-		—p“r•s–¾
+		http://www.yss-aya.com/csa0307.txt
+		‘½d”½•œ[‰»i‰¤Žè‚ªŠ|‚Á‚Ä‚¢‚éŽž‚ÍƒXƒLƒbƒv‚³‚ê‚éj
+		- Žc‚è’Tõ[‚³‚ªPVNode‚È‚ç5‚æ‚è‚¨‚¨‚«‚¢‚±‚ÆA”ñPvNode‚È‚ç‚W‚æ‚è‚¨‚¨‚«‚¢‚±‚Æ@‚Â‚Ü‚è––’[‚Å‚Í‘½d[‰»‚Í‚·‚é‚È
+		- ‚±‚Ì‹–Ê‚Å—LŒø‚ÈŽè‚ªƒgƒ‰ƒ“ƒXƒ|ƒWƒVƒ‡ƒ“ƒe[ƒuƒ‹‚É“o˜^‚³‚ê‚Ä‚¢‚È‚©‚Á‚½
+		- PvNode or ‚±‚Ì‹Ç–Ê‚ÌÃŽ~•]‰¿’l‚É256ãæ‚¹‚µ‚½•]‰¿’l‚ªbeta’l‚ð’´‚¦‚éiƒÀcutj‰Â”\«‚ª‚ ‚é
+		–{Ši“I‚É’Tõ‚·‚é‘O‚Éó‚¢’Tõ‚ðs‚¢—Ç‚¢Žè‚ª‚ ‚Á‚½‚çttMove‚É“o˜^‚µ‚Ä‚¨‚­
 		*/
 		if (depth >= (PvNode ? 5 * ONE_PLY : 8 * ONE_PLY)
         && ttMove == MOVE_NONE
         && (PvNode || ss->staticEval + Value(256) >= beta))
     {
+				/*
+				Žc‚è[‚³‚ª16‚ÅNonPv‚È‚ç
+				d=16-2*2-(16/4)=8
+				‚ÆŽc‚è[‚³‚É‰ž‚¶‚Äó‚¢[‚³‚ÅŽ–‘O’Tõ‚ð‚µ‚Ä‚¢‚é
+				*/
         Depth d = depth - 2 * ONE_PLY - (PvNode ? DEPTH_ZERO : depth / 4);
-
+				/*
+				NullMove‚Í‰ðœ
+				*/
         ss->skipNullMove = true;
         search<PvNode ? PV : NonPV>(pos, ss, alpha, beta, d, true);
         ss->skipNullMove = false;
-
+				/*
+				’Tõ‚ðI‚¦‚ÄA‚±‚Ì‹Ç–Ê‚Å—LŒø‚ÈŽè‚ª‚ ‚Á‚½‚È‚çƒgƒ‰ƒ“ƒXƒ|ƒWƒVƒ‡ƒ“ƒe[ƒuƒ‹‚É“o˜^‚³‚ê‚Ä‚¢‚é‚Í‚¸‚È‚Ì‚Å
+				ƒe[ƒuƒ‹‚ð’²¸‚µ‚ÄA‚ ‚ê‚ÎttMove‚É“o˜^‚µ‚Ä‚¨‚­
+				*/
         tte = TT.probe(posKey);
         ttMove = tte ? tte->move() : MOVE_NONE;
     }

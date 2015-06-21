@@ -1477,7 +1477,6 @@ moves_loop: // When in check and at SpNode search starts from here
       assert(is_ok(move));
 
 			/*
-			用途不明
 			excludedMoveのexcludedは遮断する、拒否するという意味
 			excludedMoveは他の兄弟手より評価値が高く地平線効果が疑われる手なのでそのような手はパスして次の兄弟手へ
 			*/
@@ -1495,11 +1494,14 @@ moves_loop: // When in check and at SpNode search starts from here
           continue;
 			/*
 			RootNodeのときはSpNodeはfalse
-			SpNodeは探索分岐のこと？
+			SpNodeは探索分岐のこと
 			*/
 			if (SpNode)
       {
           // Shared counter cannot be decremented later if move turns out to be illegal
+					/*
+					非合法手ならスキップする
+					*/
           if (!pos.legal(move, ci.pinned))
               continue;
 
@@ -1516,14 +1518,26 @@ moves_loop: // When in check and at SpNode search starts from here
 			if (RootNode)
       {
           Signals.firstRootMove = (moveCount == 1);
-
+					/*
+					ルート局面での指し手情報を表示、info depthはuciプロトコルコマンド
+					http://wbec-ridderkerk.nl/html/UCIProtocol.html
+					 - このスレッドがメインスレッドである
+					 - 探索に掛っている時間が3000ms=3secを超えている
+					*/
           if (thisThread == Threads.main() && Time::now() - SearchTime > 3000)
               sync_cout << "info depth " << depth / ONE_PLY
                         << " currmove " << move_to_uci(move, pos.is_chess960())
                         << " currmovenumber " << moveCount + PVIdx << sync_endl;
       }
-
+			/*
+			深さ延長用の変数の初期化
+			ここから下のStep 12が探索深さの延長処理となり
+			延長の判定がこのext変数に反映され、現在残り深さdepthに加えられnewdepthに格納される
+			*/
       ext = DEPTH_ZERO;
+			/*
+			現在の指し手が捕獲手かなる手かのフラグ
+			*/
       captureOrPromotion = pos.capture_or_promotion(move);
 			/*
 			指し手パターンがノーマルで敵KINGへの利きを邪魔している駒がない場合
